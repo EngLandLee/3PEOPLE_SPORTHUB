@@ -8,6 +8,7 @@ import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/time_slot.dart';
 import '../../domain/entities/venue.dart';
 import '../state/ticket_store.dart';
+import '../utils/court_sport_partition.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/seed_data.dart';
 import '../utils/shift_slot_generator.dart';
@@ -44,8 +45,113 @@ class ChatbotService {
         .trim();
   }
 
-  /// Helper to find the best available court and actual price for a venue, sport, date, and time
-  static ({int courtNumber, int price, String courtName}) findAvailableCourtAndPrice({
+  /// Helper to parse time strings like '19h', '7h tối', '19:30', '8h30 sáng'
+  static ({String timeStr, String startTime, String endTime}) parseTime(
+    String text, {
+    String defaultTime = '19:00',
+  }) {
+    final lower = text.toLowerCase();
+    int h = 19;
+    int m = 0;
+    bool matched = false;
+
+    // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
+    final hMatch = RegExp(
+      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (hMatch != null) {
+      h = int.tryParse(hMatch.group(1)!) ?? 19;
+      m = int.tryParse(hMatch.group(2) ?? '00') ?? 0;
+      final period = hMatch.group(3)?.toLowerCase();
+      if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+        h += 12;
+      } else if (period == 'sáng' && h == 12) {
+        h = 0;
+      }
+      matched = true;
+    } else {
+      // Pattern 2: 19:30 or 07:30
+      final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(text);
+      if (colonMatch != null) {
+        h = int.tryParse(colonMatch.group(1)!) ?? 19;
+        m = int.tryParse(colonMatch.group(2)!) ?? 0;
+        if ((lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+          h += 12;
+        }
+        matched = true;
+      }
+    }
+
+    if (!matched) {
+      final parts = defaultTime.split(':');
+      h = int.tryParse(parts[0]) ?? 19;
+      m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    }
+
+    final startHStr = h.toString().padLeft(2, '0');
+    final minStr = m.toString().padLeft(2, '0');
+    final endH = (h + 1) % 24;
+    final endHStr = endH.toString().padLeft(2, '0');
+
+    return (
+      timeStr: '$startHStr:$minStr',
+      startTime: '$startHStr:$minStr',
+      endTime: '$endHStr:$minStr',
+    );
+  }
+
+  /// Helper to parse date strings like 'ngày mai', 'tối mai', 'hôm nay', 'ngày 30/09'
+  static ({String dateStr, String displayDate}) parseDate(String text) {
+    final lower = text.toLowerCase();
+    final now = DateTime.now();
+
+    if (lower.contains('ngày mai') ||
+        lower.contains('tối mai') ||
+        lower.contains('sáng mai') ||
+        lower.contains('chiều mai') ||
+        lower.contains('mai')) {
+      final tmr = now.add(const Duration(days: 1));
+      final dateStr =
+          '${tmr.year}-${tmr.month.toString().padLeft(2, '0')}-${tmr.day.toString().padLeft(2, '0')}';
+      return (
+        dateStr: dateStr,
+        displayDate: 'Ngày mai (${tmr.day.toString().padLeft(2, '0')}/${tmr.month.toString().padLeft(2, '0')})',
+      );
+    }
+
+    if (lower.contains('mốt') || lower.contains('ngày kia')) {
+      final after = now.add(const Duration(days: 2));
+      final dateStr =
+          '${after.year}-${after.month.toString().padLeft(2, '0')}-${after.day.toString().padLeft(2, '0')}';
+      return (
+        dateStr: dateStr,
+        displayDate: '${after.day.toString().padLeft(2, '0')}/${after.month.toString().padLeft(2, '0')}',
+      );
+    }
+
+    final dateMatch = RegExp(r'ngày\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{4}))?').firstMatch(text);
+    if (dateMatch != null) {
+      final d = int.tryParse(dateMatch.group(1)!) ?? now.day;
+      final m = int.tryParse(dateMatch.group(2)!) ?? now.month;
+      final y = dateMatch.group(3) != null
+          ? (int.tryParse(dateMatch.group(3)!) ?? now.year)
+          : now.year;
+      final dateStr = '$y-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+      return (
+        dateStr: dateStr,
+        displayDate: 'Ngày ${d.toString().padLeft(2, '0')}/${m.toString().padLeft(2, '0')}',
+      );
+    }
+
+    final todayStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return (dateStr: todayStr, displayDate: 'Hôm nay');
+  }
+
+  /// Helper to find the best available court and actual price for a venue, sport, date, and time.
+  /// Returns [isAvailable] = false and [courtNumber] = null if all matching courts are booked or maintenance.
+  static ({int? courtNumber, int price, String courtName, bool isAvailable}) findAvailableCourtAndPrice({
     required String venueId,
     required String venueName,
     required String sport,
@@ -70,7 +176,23 @@ class ChatbotService {
     final now = DateTime.now();
     final todayStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final dateStr = (date == 'Hôm nay' || date.isEmpty) ? todayStr : date;
+    String dateStr;
+    final lowerDate = date.toLowerCase();
+    if (lowerDate.contains('mai')) {
+      final tmr = now.add(const Duration(days: 1));
+      dateStr =
+          '${tmr.year}-${tmr.month.toString().padLeft(2, '0')}-${tmr.day.toString().padLeft(2, '0')}';
+    } else if (lowerDate.contains('mốt') || lowerDate.contains('kia')) {
+      final after = now.add(const Duration(days: 2));
+      dateStr =
+          '${after.year}-${after.month.toString().padLeft(2, '0')}-${after.day.toString().padLeft(2, '0')}';
+    } else if (date.isEmpty || lowerDate.contains('hôm nay') || lowerDate.contains('tối nay')) {
+      dateStr = todayStr;
+    } else if (date.contains('-')) {
+      dateStr = date;
+    } else {
+      dateStr = todayStr;
+    }
 
     // 3. Shift & minute offset
     final hour = int.tryParse(startTime.split(':').first) ?? 19;
@@ -100,11 +222,22 @@ class ChatbotService {
       venueBaseRate: venue.hourlyRate,
     ).toInt();
 
-    // 6. Find first court that is active & not booked
+    // 6. Find first court that is active & matching sport & not booked
     int bestCourt = 1;
     bool found = false;
 
     for (int c = 1; c <= venue.courtCount; c++) {
+      // Check sport partition if venue has multiple sports
+      if (venue.sportTypes.length > 1) {
+        final courtSport = CourtSportPartition.getSportForCourt(
+          venue: venue,
+          courtNumber: c,
+        );
+        if (courtSport != sportKey) {
+          continue;
+        }
+      }
+
       // Check if court is active (maintenance)
       final isCourtActive = VenueSyncService.instance.isCourtActive(
         venueId: venue.id,
@@ -136,24 +269,20 @@ class ChatbotService {
       break;
     }
 
-    // Fallback if none found: first active court
     if (!found) {
-      for (int c = 1; c <= venue.courtCount; c++) {
-        if (VenueSyncService.instance.isCourtActive(
-          venueId: venue.id,
-          courtNumber: c,
-          venueName: venue.name,
-        )) {
-          bestCourt = c;
-          break;
-        }
-      }
+      return (
+        courtNumber: null,
+        price: calculatedPrice > 0 ? calculatedPrice : 180000,
+        courtName: '',
+        isAvailable: false,
+      );
     }
 
     return (
       courtNumber: bestCourt,
       price: calculatedPrice > 0 ? calculatedPrice : 180000,
       courtName: 'Sân $bestCourt',
+      isAvailable: true,
     );
   }
 
@@ -168,6 +297,20 @@ class ChatbotService {
       _isTypingNotifier ??= ValueNotifier<bool>(false);
 
   bool get isTyping => isTypingNotifier.value;
+
+  /// Holds current pending booking card in conversation
+  Map<String, dynamic>? pendingBooking;
+
+  /// Gets the most recent booking card from conversation history or pendingBooking
+  Map<String, dynamic>? get latestBookingCard {
+    if (pendingBooking != null) return pendingBooking;
+    for (final msg in messagesNotifier.value.reversed) {
+      if (msg.hasActionCard && msg.actionCard!['type'] == 'booking_card') {
+        return msg.actionCard;
+      }
+    }
+    return null;
+  }
 
   /// Current user, screen, and venue context
   ChatContext? currentContext;
@@ -221,6 +364,7 @@ class ChatbotService {
     messagesNotifier.value = [];
     isTypingNotifier.value = false;
     _notifiedBookingIds.clear();
+    pendingBooking = null;
   }
 
   /// Adds a message to the conversation
@@ -509,7 +653,7 @@ class ChatbotService {
   ChatMessage _processLocalIntent(String text, ChatContext? context, {String? imageUrl}) {
     final lower = text.toLowerCase();
 
-    // Check date/time query first to prevent false matching on "bao nhiêu" in priceRegex
+    // 0. Check date/time query first to prevent false matching on "bao nhiêu" in priceRegex
     final isDateTimeQuery = RegExp(
       r'(hôm nay|bây giờ|hiện tại).*(ngày mấy|ngày bao nhiêu|thứ mấy|mấy giờ|thời gian)|'
       r'(ngày mấy|ngày bao nhiêu|thứ mấy|mấy giờ).*(hôm nay|bây giờ|hiện tại)|'
@@ -554,7 +698,81 @@ class ChatbotService {
       );
     }
 
-    // Payment confirmation / Ticket check query
+    // 1. Follow-up / Booking modification intent ("đổi sang 20h", "chuyển sang 20h", "lùi lại 20h", "20h thì sao")
+    final hasPendingOrRecent = pendingBooking != null || latestBookingCard != null;
+    final changeTimeMatch = RegExp(
+      r'(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(tối|sáng|chiều)?|'
+      r'^(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|nhé|nha)|'
+      r'(?:đổi|chuyển)\s*(?:sang|qua|lịch\s*sang)?\s*(ngày\s*mai|mai|hôm\s*nay|tối\s*mai)',
+      caseSensitive: false,
+    ).firstMatch(text);
+
+    if (hasPendingOrRecent && changeTimeMatch != null) {
+      final existing = latestBookingCard ?? pendingBooking!;
+      final venueId = existing['venueId']?.toString() ?? 'venue_01';
+      final venueName = existing['venueName']?.toString() ?? 'CLB Cầu Lông Tao Đàn';
+      final sport = existing['sport']?.toString() ?? 'Cầu lông';
+
+      final parsedTime = parseTime(text, defaultTime: existing['startTime']?.toString() ?? '19:00');
+      final parsedDate = parseDate(text);
+      final dateUsed = (text.contains('mai') || text.contains('ngày'))
+          ? parsedDate.displayDate
+          : (existing['date']?.toString() ?? 'Hôm nay');
+
+      final courtInfo = findAvailableCourtAndPrice(
+        venueId: venueId,
+        venueName: venueName,
+        sport: sport,
+        date: dateUsed,
+        startTime: parsedTime.startTime,
+      );
+
+      if (courtInfo.isAvailable) {
+        final existingAddonsTotal = (existing['addonsTotal'] as num?)?.toInt() ?? 0;
+        final newTotalPrice = courtInfo.price + existingAddonsTotal;
+
+        final updatedCard = {
+          ...existing,
+          'time': parsedTime.timeStr,
+          'startTime': parsedTime.startTime,
+          'endTime': parsedTime.endTime,
+          'court': courtInfo.courtName,
+          'price': newTotalPrice,
+          'basePrice': courtInfo.price,
+          'date': dateUsed,
+        };
+        pendingBooking = updatedCard;
+
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Dạ, em đã đổi khung giờ sang **${parsedTime.startTime} - ${parsedTime.endTime}** ($dateUsed) cho anh/chị tại **$venueName** (${courtInfo.courtName}). Thẻ đặt sân đã được cập nhật bên dưới nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          actionCard: updatedCard,
+          quickSuggestions: const [
+            '⚡ Đặt & Thanh toán VietQR ngay',
+            '🔍 Xem trên sơ đồ',
+            '🏸 Đặt thêm vợt',
+            '🥤 Thêm nước bù khoáng',
+          ],
+        );
+      } else {
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Rất tiếc, khung giờ **${parsedTime.startTime}** tại **$venueName** ($sport) đã kín sân rồi ạ. Anh/chị có muốn giữ khung giờ **${existing['time']}** trước đó hay tham khảo khung giờ khác không ạ?',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          actionCard: existing,
+          quickSuggestions: [
+            'Giữ khung giờ ${existing['time']}',
+            '🏸 Xem khung giờ khác',
+            '🏟️ Chọn cụm sân khác',
+          ],
+        );
+      }
+    }
+
+    // 2. Payment confirmation / Ticket check query
     final isPaymentQuery = RegExp(
       r'thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé',
       caseSensitive: false,
@@ -562,49 +780,114 @@ class ChatbotService {
 
     if (isPaymentQuery) {
       final tickets = TicketStore.instance.tickets;
-      final paidTicket = tickets.cast<TicketModel?>().firstWhere(
-            (t) => t?.status == 'paid',
-            orElse: () => tickets.isNotEmpty ? tickets.first : null,
-          );
+      final codeMatch = RegExp(r'(?:BK|SH)[a-zA-Z0-9_-]+', caseSensitive: false).firstMatch(text);
 
-      if (paidTicket != null) {
-        final courtLabel = paidTicket.courtNumber > 0
-            ? 'Sân ${paidTicket.courtNumber}'
+      TicketModel? targetTicket;
+      if (codeMatch != null) {
+        final code = codeMatch.group(0)!.toLowerCase();
+        targetTicket = tickets.cast<TicketModel?>().firstWhere(
+          (t) => t != null && (t.bookingId.toLowerCase() == code || t.id.toLowerCase() == code),
+          orElse: () => null,
+        );
+      }
+
+      if (targetTicket == null && latestBookingCard != null && latestBookingCard!['bookingId'] != null) {
+        final bId = latestBookingCard!['bookingId'].toString().toLowerCase();
+        targetTicket = tickets.cast<TicketModel?>().firstWhere(
+          (t) => t != null && t.bookingId.toLowerCase() == bId,
+          orElse: () => null,
+        );
+      }
+
+      if (targetTicket == null && context?.venueName != null) {
+        final vName = context!.venueName!.toLowerCase();
+        targetTicket = tickets.cast<TicketModel?>().firstWhere(
+          (t) => t != null && t.venueName.toLowerCase().contains(vName),
+          orElse: () => null,
+        );
+      }
+
+      targetTicket ??= tickets.isNotEmpty ? tickets.last : null;
+
+      if (targetTicket != null) {
+        final courtLabel = targetTicket.courtNumber > 0
+            ? 'Sân ${targetTicket.courtNumber}'
             : 'Sân tiêu chuẩn';
-        final formattedPrice = CurrencyFormatter.format(paidTicket.totalPrice);
+        final formattedPrice = CurrencyFormatter.format(targetTicket.totalPrice);
 
+        if (targetTicket.status == 'paid') {
+          return ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text: '🎉 Dạ em đã kiểm tra hệ thống và xác nhận đơn đặt sân mã **${targetTicket.bookingId}** tại **${targetTicket.venueName}** ($courtLabel, ${targetTicket.startTime} - ${targetTicket.endTime}) với số tiền **$formattedPrice** đã được thanh toán thành công qua VietQR rồi ạ!\n\n'
+                'Khung giờ đã được giữ chỗ riêng cho anh/chị. Khi đến sân, anh/chị chỉ cần xuất trình mã QR trong mục **Vé của tôi** để nhận sân nhé! Chúc anh/chị có buổi chơi thể thao thật vui vẻ! 🏸⚽🏓',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+            actionCard: {
+              'type': 'booking_card',
+              'venueId': targetTicket.venueName,
+              'venueName': targetTicket.venueName,
+              'sport': targetTicket.sportType,
+              'court': courtLabel,
+              'date': targetTicket.matchDate,
+              'time': '${targetTicket.startTime} - ${targetTicket.endTime}',
+              'startTime': targetTicket.startTime,
+              'endTime': targetTicket.endTime,
+              'price': targetTicket.totalPrice,
+              'isPaid': true,
+              'isBooked': true,
+              'bookingId': targetTicket.bookingId,
+              'ticketId': targetTicket.id,
+            },
+            quickSuggestions: const [
+              '🎫 Xem vé của tôi',
+              '🔍 Xem trên sơ đồ',
+              '📢 Đăng lên Bảng tin Cộng đồng',
+            ],
+          );
+        } else {
+          return ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text: 'Dạ em kiểm tra đơn đặt sân mã **${targetTicket.bookingId}** tại **${targetTicket.venueName}** ($courtLabel, ${targetTicket.startTime} - ${targetTicket.endTime}) hiện đang ở trạng thái **Chờ thanh toán** (chưa ghi nhận chuyển khoản).\n\n'
+                'Anh/chị vui lòng nhấn nút quét mã VietQR bên dưới để hoàn tất giữ chỗ nhé!',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+            actionCard: {
+              'type': 'booking_card',
+              'venueId': targetTicket.venueName,
+              'venueName': targetTicket.venueName,
+              'sport': targetTicket.sportType,
+              'court': courtLabel,
+              'date': targetTicket.matchDate,
+              'time': '${targetTicket.startTime} - ${targetTicket.endTime}',
+              'startTime': targetTicket.startTime,
+              'endTime': targetTicket.endTime,
+              'price': targetTicket.totalPrice,
+              'isPaid': false,
+              'bookingId': targetTicket.bookingId,
+              'ticketId': targetTicket.id,
+            },
+            quickSuggestions: const [
+              '⚡ Đặt & Thanh toán VietQR ngay',
+              '🎫 Xem vé của tôi',
+            ],
+          );
+        }
+      } else {
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: '🎉 Dạ em đã kiểm tra hệ thống và xác nhận đơn đặt sân mã **${paidTicket.bookingId}** tại **${paidTicket.venueName}** ($courtLabel, ${paidTicket.startTime} - ${paidTicket.endTime}) với số tiền **$formattedPrice** đã được thanh toán thành công qua VietQR rồi ạ!\n\n'
-              'Khung giờ đã được giữ chỗ riêng cho anh/chị. Khi đến sân, anh/chị chỉ cần xuất trình mã QR trong mục **Vé của tôi** để nhận sân nhé! Chúc anh/chị có buổi chơi thể thao thật vui vẻ! 🏸⚽🏓',
+          text: 'Dạ em đã kiểm tra trên hệ thống và chưa tìm thấy đơn đặt sân nào của anh/chị. Anh/chị có thể đặt sân ngay trên ứng dụng hoặc nhắn cho em để được hỗ trợ giữ chỗ nhé!',
           sender: 'assistant',
           timestamp: DateTime.now(),
-          actionCard: {
-            'type': 'booking_card',
-            'venueId': paidTicket.venueName,
-            'venueName': paidTicket.venueName,
-            'sport': paidTicket.sportType,
-            'court': courtLabel,
-            'date': paidTicket.matchDate,
-            'time': '${paidTicket.startTime} - ${paidTicket.endTime}',
-            'startTime': paidTicket.startTime,
-            'endTime': paidTicket.endTime,
-            'price': paidTicket.totalPrice,
-            'isPaid': true,
-            'isBooked': true,
-            'bookingId': paidTicket.bookingId,
-            'ticketId': paidTicket.id,
-          },
           quickSuggestions: const [
-            '🎫 Xem vé của tôi',
-            '🔍 Xem trên sơ đồ',
-            '📢 Đăng lên Bảng tin Cộng đồng',
+            '🏸 Cầu lông Q.1 (19h)',
+            '🏓 Pickleball Thảo Điền',
+            '⚽ Bóng đá mini Q.7',
           ],
         );
       }
     }
 
-    // Owner specific intents (doanh thu, check-in, tình trạng sân)
+    // 3. Owner specific intents (doanh thu, check-in, tình trạng sân)
     final isOwner = context?.userRole == 'owner';
     if (isOwner) {
       if (lower.contains('doanh thu')) {
@@ -732,18 +1015,47 @@ class ChatbotService {
       }
     }
 
-    // 0. Recruitment / Member finding / Matchmaking assistance
+    // 4. Recruitment / Member finding / Matchmaking assistance
     final isRecruitment = imageUrl != null ||
-        RegExp(r'tuyển\s*thành\s*viên|tuyển\s*người|tìm\s*bạn|ghép\s*kèo|tìm\s*kèo|kèo\s*giao\s*lưu|cần\s*người|cần\s*thành\s*viên|tuyển\s*thêm', caseSensitive: false).hasMatch(text);
+        RegExp(
+          r'tuyển\s*thành\s*viên|tuyển\s*người|tìm\s*bạn|ghép\s*kèo|tìm\s*kèo|kèo\s*giao\s*lưu|cần\s*người|cần\s*thành\s*viên|tuyển\s*thêm|tìm\s*người',
+          caseSensitive: false,
+        ).hasMatch(text);
 
     if (isRecruitment) {
-      final venueName = (context?.venueName != null && context!.venueName!.isNotEmpty)
+      // 4.1 Resolve venue & district
+      String venueName = (context?.venueName != null && context!.venueName!.isNotEmpty)
           ? context.venueName!
           : 'CLB Cầu Lông Tao Đàn';
+      String district = 'Quận 1';
+
+      if (lower.contains('bình thạnh') || lower.contains('binh thanh')) {
+        venueName = 'CLB Cầu Lông & Pickleball Bình Thạnh Sport';
+        district = 'Quận Bình Thạnh';
+      } else if (lower.contains('thảo điền') || lower.contains('thao dien') || lower.contains('thủ đức')) {
+        venueName = 'Thảo Điền Pickleball Hub';
+        district = 'TP. Thủ Đức';
+      } else if (lower.contains('tân bình') || lower.contains('tan binh')) {
+        venueName = 'Khu Liên Hợp Thể Thao Tân Bình Arena';
+        district = 'Quận Tân Bình';
+      } else if (lower.contains('quận 7') || lower.contains('nam sài gòn') || lower.contains('q7')) {
+        venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
+        district = 'Quận 7';
+      } else if (venueName.contains('Bình Thạnh')) {
+        district = 'Quận Bình Thạnh';
+      } else if (venueName.contains('Thảo Điền')) {
+        district = 'TP. Thủ Đức';
+      } else if (venueName.contains('Tân Bình')) {
+        district = 'Quận Tân Bình';
+      } else if (venueName.contains('Nam Sài Gòn')) {
+        district = 'Quận 7';
+      }
+
+      // 4.2 Sport
       final rawSport = context?.sport ??
-          (lower.contains('pickleball')
+          (lower.contains('pickleball') || lower.contains('🏓')
               ? 'pickleball'
-              : (lower.contains('bóng đá') || lower.contains('football')
+              : (lower.contains('bóng đá') || lower.contains('football') || lower.contains('⚽')
                   ? 'football'
                   : 'badminton'));
       final sportTitle = rawSport == 'pickleball'
@@ -753,38 +1065,86 @@ class ChatbotService {
           ? '🏓'
           : (rawSport == 'football' ? '⚽' : '🏸');
 
+      // 4.3 Player count extraction
+      int requiredPlayers = 4;
+      int currentPlayers = 2;
+      final playerMatch = RegExp(
+        r'(?:cần|tuyển|tìm)\s*(\d+)\s*(?:người|bạn|thành\s*viên|slot|chỗ|tay\s*vợt)?|(\d+)\s*(?:người|bạn|thành\s*viên|slot|chỗ)',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (playerMatch != null) {
+        final needed = int.tryParse(playerMatch.group(1) ?? playerMatch.group(2) ?? '2') ?? 2;
+        if (lower.contains('đánh đơn') || lower.contains('kèo đơn')) {
+          requiredPlayers = 2;
+          currentPlayers = (2 - needed).clamp(1, 2);
+        } else {
+          requiredPlayers = (needed > 2) ? needed + 1 : 4;
+          currentPlayers = (requiredPlayers - needed).clamp(1, requiredPlayers - 1);
+        }
+      } else if (lower.contains('đánh đơn') || lower.contains('kèo đơn')) {
+        requiredPlayers = 2;
+        currentPlayers = 1;
+      }
+
+      // 4.4 Time & Date extraction
+      final parsedTime = parseTime(text);
+      final parsedDate = parseDate(text);
+      final scheduledTime = '${parsedTime.startTime} - ${parsedTime.endTime} ${parsedDate.displayDate}';
+
+      // 4.5 Skill level extraction
+      String skillLevel = 'Trung bình (2.0 - 3.5)';
+      if (lower.contains('mới chơi') || lower.contains('người mới') || lower.contains('cơ bản') || lower.contains('newbie')) {
+        skillLevel = 'Mới bắt đầu (1.0 - 2.0)';
+      } else if (lower.contains('khá') || lower.contains('pro') || lower.contains('nâng cao') || lower.contains('chuyên')) {
+        skillLevel = 'Khá - Nâng cao (3.5+)';
+      } else if (lower.contains('giao lưu') || lower.contains('vui vẻ')) {
+        skillLevel = 'Giao lưu vui vẻ (Mọi trình độ)';
+      }
+
+      // 4.6 Share fee extraction
+      double shareFee = 45000.0;
+      final feeMatch = RegExp(r'(\d{2,3})\s*[kK]|(\d{4,6})\s*đ').firstMatch(text);
+      if (feeMatch != null) {
+        if (feeMatch.group(1) != null) {
+          shareFee = (double.tryParse(feeMatch.group(1)!) ?? 45) * 1000;
+        } else if (feeMatch.group(2) != null) {
+          shareFee = double.tryParse(feeMatch.group(2)!) ?? 45000.0;
+        }
+      }
+
+      final neededCount = requiredPlayers - currentPlayers;
       final recruitmentCard = {
         'type': 'recruitment_card',
         'title': 'Kèo Giao Lưu $sportTitle - $venueName',
         'venueName': venueName,
         'sportType': rawSport,
-        'district': 'Quận 1',
-        'skillLevel': 'Trung bình (2.0 - 3.5)',
-        'scheduledTime': '19:00 - 21:00 Hôm nay',
-        'requiredPlayers': 4,
-        'currentPlayers': 2,
-        'shareFee': 45000.0,
+        'district': district,
+        'skillLevel': skillLevel,
+        'scheduledTime': scheduledTime,
+        'requiredPlayers': requiredPlayers,
+        'currentPlayers': currentPlayers,
+        'shareFee': shareFee,
         'note': 'Giao lưu rèn luyện sức khỏe, vui vẻ và kết nối đam mê thể thao!',
         if (imageUrl != null) 'imageUrl': imageUrl,
       };
 
       final hasImg = imageUrl != null && imageUrl.isNotEmpty;
       final replyText = hasImg
-          ? '$sportIcon Em đã phân tích ảnh đính kèm và soạn sẵn bài đăng tuyển thành viên cực chuẩn cho anh/chị:\n\n'
+          ? '$sportIcon Em đã chuẩn bị sẵn bài đăng tuyển thành viên kèm hình ảnh cho anh/chị:\n\n'
             '📌 **${recruitmentCard['title']}**\n'
-            '📍 **Địa điểm**: $venueName\n'
-            '⏰ **Thời gian**: 19:00 - 21:00 Hôm nay\n'
-            '👥 **Cần tuyển**: 2 thành viên (Hiện có 2/4 người)\n'
-            '⭐ **Trình độ**: Trung bình (2.0 - 3.5, biết luật, đánh bền)\n'
-            '💰 **Chi phí chia sẻ**: 45.000đ/người (Bao gồm sân & cầu)\n\n'
+            '📍 **Địa điểm**: $venueName ($district)\n'
+            '⏰ **Thời gian**: $scheduledTime\n'
+            '👥 **Cần tuyển**: $neededCount thành viên (Hiện có $currentPlayers/$requiredPlayers người)\n'
+            '⭐ **Trình độ**: $skillLevel\n'
+            '💰 **Chi phí chia sẻ**: ${CurrencyFormatter.format(shareFee)}/người\n\n'
             '👉 Bạn có thể nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** để tìm người ghép kèo ngay nhé!'
-          : '$sportIcon Em đã hỗ trợ soạn bài đăng tuyển thành viên chuẩn thể thao cho anh/chị:\n\n'
+          : '$sportIcon Em đã chuẩn bị sẵn bài đăng tuyển thành viên cho anh/chị:\n\n'
             '📌 **${recruitmentCard['title']}**\n'
-            '📍 **Địa điểm**: $venueName\n'
-            '⏰ **Thời gian**: 19:00 - 21:00 Hôm nay\n'
-            '👥 **Cần tuyển**: 2 thành viên (Hiện có 2/4 người)\n'
-            '⭐ **Trình độ**: Trung bình (2.0 - 3.5)\n'
-            '💰 **Chi phí chia sẻ**: 45.000đ/người\n\n'
+            '📍 **Địa điểm**: $venueName ($district)\n'
+            '⏰ **Thời gian**: $scheduledTime\n'
+            '👥 **Cần tuyển**: $neededCount thành viên (Hiện có $currentPlayers/$requiredPlayers người)\n'
+            '⭐ **Trình độ**: $skillLevel\n'
+            '💰 **Chi phí chia sẻ**: ${CurrencyFormatter.format(shareFee)}/người\n\n'
             '👉 Hãy nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** bên dưới để đăng bài ngay nhé!';
 
       return ChatMessage(
@@ -815,7 +1175,7 @@ class ChatbotService {
       );
     }
 
-    // 1. Add-on services / extra items (nước uống, bù khoáng, ống cầu, thuê vợt...)
+    // 5. Add-on services / extra items (nước uống, bù khoáng, ống cầu, thuê vợt...)
     final addonCheckRegex = RegExp(
       r'nước|khoáng|bù khoáng|pocari|aquafina|ống cầu|quả cầu|hộp cầu|thuê vợt|vợt|bóng|đặt thêm|thêm',
       caseSensitive: false,
@@ -827,7 +1187,7 @@ class ChatbotService {
       final addonCounts = <String, int>{};
       int addonsTotal = 0;
 
-      // 1.1 Mineral water / Pocari
+      // 5.1 Mineral water / Pocari
       final waterMatch = RegExp(
         r'(\d+)?\s*(?:chai|lon|bình)?\s*(?:nước\s*bù\s*khoáng|pocari|nước\s*khoáng|nước\s*suối|nước)',
         caseSensitive: false,
@@ -841,7 +1201,7 @@ class ChatbotService {
         addonCounts['drink_pocari'] = (addonCounts['drink_pocari'] ?? 0) + qty;
       }
 
-      // 1.2 Shuttlecocks (ống cầu / quả cầu)
+      // 5.2 Shuttlecocks (ống cầu / quả cầu)
       final shuttleMatch = RegExp(
         r'(\d+)?\s*(?:ống|hộp|trái|quả)?\s*(?:cầu\s*lông|ống\s*cầu|quả\s*cầu|hộp\s*cầu|cầu)',
         caseSensitive: false,
@@ -860,7 +1220,7 @@ class ChatbotService {
         addonCounts[key] = (addonCounts[key] ?? 0) + qty;
       }
 
-      // 1.3 Rackets (vợt)
+      // 5.3 Rackets (vợt)
       final racketMatch = RegExp(
         r'(\d+)?\s*(?:cây|chiếc|cặp)?\s*(?:vợt\s*cầu\s*lông|vợt\s*pickleball|vợt)',
         caseSensitive: false,
@@ -875,42 +1235,116 @@ class ChatbotService {
       }
 
       if (itemsDesc.isNotEmpty) {
-        final venueName = (context?.venueName != null && context!.venueName!.isNotEmpty)
-            ? context.venueName!
-            : 'CLB Cầu Lông Tao Đàn';
-        final venueId = context?.venueId ?? 'venue_01';
+        final existingCard = latestBookingCard;
+        String venueName;
+        String venueId;
+        String sport;
+        String date;
+        String time;
+        String startTime;
+        String endTime;
+        String courtName;
+        int baseCourtPrice;
 
-        final courtInfo = findAvailableCourtAndPrice(
-          venueId: venueId,
-          venueName: venueName,
-          sport: 'Cầu lông',
-          date: 'Hôm nay',
-          startTime: '19:00',
-        );
+        Map<String, int> mergedAddonCounts = {};
 
-        final basePrice = courtInfo.price;
-        final totalPrice = basePrice + addonsTotal;
+        if (existingCard != null) {
+          venueName = existingCard['venueName']?.toString() ?? 'CLB Cầu Lông Tao Đàn';
+          venueId = existingCard['venueId']?.toString() ?? 'venue_01';
+          sport = existingCard['sport']?.toString() ?? 'Cầu lông';
+          date = existingCard['date']?.toString() ?? 'Hôm nay';
+          time = existingCard['time']?.toString() ?? '19:00';
+          startTime = existingCard['startTime']?.toString() ?? '19:00';
+          endTime = existingCard['endTime']?.toString() ?? '20:00';
+          courtName = existingCard['court']?.toString() ?? 'Sân 1';
+          baseCourtPrice = (existingCard['basePrice'] as num?)?.toInt() ??
+              ((existingCard['price'] as num?)?.toInt() ?? 180000) -
+                  ((existingCard['addonsTotal'] as num?)?.toInt() ?? 0);
+
+          mergedAddonCounts = Map<String, int>.from(existingCard['addonCounts'] ?? {});
+        } else {
+          venueName = (context?.venueName != null && context!.venueName!.isNotEmpty)
+              ? context.venueName!
+              : 'CLB Cầu Lông Tao Đàn';
+          venueId = context?.venueId ?? 'venue_01';
+          sport = (context?.sport != null && context!.sport!.isNotEmpty)
+              ? context.sport!
+              : 'Cầu lông';
+          date = 'Hôm nay';
+          time = '19:00';
+          startTime = '19:00';
+          endTime = '20:00';
+
+          final courtInfo = findAvailableCourtAndPrice(
+            venueId: venueId,
+            venueName: venueName,
+            sport: sport,
+            date: date,
+            startTime: startTime,
+          );
+          courtName = courtInfo.isAvailable ? courtInfo.courtName : 'Sân 1';
+          baseCourtPrice = courtInfo.price;
+        }
+
+        // Merge newly ordered addons with any existing addon counts
+        for (final entry in addonCounts.entries) {
+          mergedAddonCounts[entry.key] = (mergedAddonCounts[entry.key] ?? 0) + entry.value;
+        }
+
+        // Recompute all addon strings and total cost
+        final recomputedAddons = <String>[];
+        int totalAddonsCost = 0;
+
+        if (mergedAddonCounts.containsKey('drink_pocari') && mergedAddonCounts['drink_pocari']! > 0) {
+          final q = mergedAddonCounts['drink_pocari']!;
+          final c = q * 15000;
+          recomputedAddons.add('${q}x Pocari Sweat Bù Khoáng (+${CurrencyFormatter.format(c)})');
+          totalAddonsCost += c;
+        }
+        if (mergedAddonCounts.containsKey('gear_shuttle_tube') && mergedAddonCounts['gear_shuttle_tube']! > 0) {
+          final q = mergedAddonCounts['gear_shuttle_tube']!;
+          final c = q * 240000;
+          recomputedAddons.add('${q}x Ống Cầu Lông Hải Yến (+${CurrencyFormatter.format(c)})');
+          totalAddonsCost += c;
+        }
+        if (mergedAddonCounts.containsKey('gear_shuttle_single') && mergedAddonCounts['gear_shuttle_single']! > 0) {
+          final q = mergedAddonCounts['gear_shuttle_single']!;
+          final c = q * 22000;
+          recomputedAddons.add('${q}x Quả Cầu Lông (+${CurrencyFormatter.format(c)})');
+          totalAddonsCost += c;
+        }
+        if (mergedAddonCounts.containsKey('rent_badminton') && mergedAddonCounts['rent_badminton']! > 0) {
+          final q = mergedAddonCounts['rent_badminton']!;
+          final c = q * 30000;
+          recomputedAddons.add('${q}x Vợt Cầu Lông Yonex (+${CurrencyFormatter.format(c)})');
+          totalAddonsCost += c;
+        }
+
+        final grandTotal = baseCourtPrice + totalAddonsCost;
 
         final actionCard = {
+          if (existingCard != null) ...existingCard,
           'type': 'booking_card',
           'venueId': venueId,
           'venueName': venueName,
-          'sport': 'Cầu lông',
-          'date': 'Hôm nay',
-          'time': '19:00',
-          'startTime': '19:00',
-          'endTime': '20:00',
-          'court': courtInfo.courtName,
-          'price': totalPrice,
-          'basePrice': basePrice,
-          'addonsTotal': addonsTotal,
-          'addons': addons,
-          'addonCounts': addonCounts,
+          'sport': sport,
+          'date': date,
+          'time': time,
+          'startTime': startTime,
+          'endTime': endTime,
+          'court': courtName,
+          'price': grandTotal,
+          'basePrice': baseCourtPrice,
+          'addonsTotal': totalAddonsCost,
+          'addons': recomputedAddons,
+          'addonCounts': mergedAddonCounts,
         };
+
+        pendingBooking = actionCard;
 
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: 'Dạ, em đã ghi nhận thêm dịch vụ cho anh/chị: ${itemsDesc.join(' và ')}. Phụ phí dịch vụ là ${CurrencyFormatter.format(addonsTotal)}. Nhân viên sân $venueName sẽ chuẩn bị sẵn sàng khi mình tới nhé!',
+          text: 'Dạ, em đã ghi nhận thêm dịch vụ cho anh/chị: ${itemsDesc.join(' và ')}. Đơn đặt sân tại $venueName ($courtName, $time) đã cập nhật phụ phí dịch vụ ${CurrencyFormatter.format(totalAddonsCost)}, tổng thanh toán là ${CurrencyFormatter.format(grandTotal)}. Nhân viên sân sẽ chuẩn bị sẵn sàng khi mình tới nhé!',
           sender: 'assistant',
           timestamp: DateTime.now(),
           actionCard: actionCard,
@@ -918,23 +1352,89 @@ class ChatbotService {
             '⚡ Đặt & Thanh toán VietQR ngay',
             '🔍 Xem trên sơ đồ',
             '🏸 Đặt thêm vợt',
+            '🥤 Thêm nước bù khoáng',
           ],
         );
       }
     }
 
-    // 1. Pricing query
+    // 6. Pricing query (Context-aware)
     final priceRegex = RegExp(r'giá|bao nhiêu|bảng giá|chi phí', caseSensitive: false);
     if (priceRegex.hasMatch(text)) {
-      return ChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-        text: 'Giá thuê sân cầu lông dao động từ 100.000đ - 180.000đ/giờ tuỳ theo khung giờ (giờ vàng sau 17:00 thường là 150.000đ - 180.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
-        sender: 'assistant',
-        timestamp: DateTime.now(),
-      );
+      final s = context?.sport?.toLowerCase() ?? '';
+      final isPickle = lower.contains('pickleball') || lower.contains('🏓') || s.contains('pickleball');
+      final isFoot = lower.contains('bóng đá') || lower.contains('football') || lower.contains('soccer') || lower.contains('⚽') || s.contains('football') || s.contains('bóng');
+
+      final vName = (context?.venueName != null && context!.venueName!.isNotEmpty)
+          ? context.venueName!
+          : (lower.contains('thảo điền')
+              ? 'Thảo Điền Pickleball Hub'
+              : (lower.contains('nam sài gòn') || lower.contains('quận 7')
+                  ? 'Sân Bóng Đá Mini Nam Sài Gòn'
+                  : (lower.contains('bình thạnh')
+                      ? 'CLB Cầu Lông & Pickleball Bình Thạnh Sport'
+                      : (lower.contains('tân bình')
+                          ? 'Khu Liên Hợp Thể Thao Tân Bình Arena'
+                          : 'CLB Cầu Lông Tao Đàn'))));
+
+      final parsedTime = parseTime(text);
+      final hasSpecificHour = RegExp(r'(\d{1,2})(?:h|:|\s*giờ)', caseSensitive: false).hasMatch(text);
+
+      if (hasSpecificHour) {
+        final slotPrice = ShiftSlotGenerator.calculateSlotPrice(
+          sportType: isPickle ? 'pickleball' : (isFoot ? 'football' : 'badminton'),
+          startTime: parsedTime.startTime,
+        ).toInt();
+        final sportLabel = isPickle ? 'Pickleball' : (isFoot ? 'Bóng đá' : 'Cầu lông');
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Khung giờ **${parsedTime.startTime}** tại **$vName** (môn $sportLabel) có giá là **${CurrencyFormatter.format(slotPrice)}/giờ** ạ. Anh/chị có thể đặt trực tiếp trên app để giữ chỗ ngay nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: [
+            '⚡ Đặt sân $sportLabel ${parsedTime.startTime}',
+            'Chính sách hoàn hủy',
+          ],
+        );
+      }
+
+      if (isPickle) {
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Giá thuê sân Pickleball tại $vName dao động từ **130.000đ - 220.000đ/giờ** tuỳ theo khung giờ (giờ vàng sau 17:00 thường là 220.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: const [
+            '🏓 Đặt sân Pickleball 19h',
+            'Chính sách hoàn hủy',
+          ],
+        );
+      } else if (isFoot) {
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Giá thuê sân bóng đá mini tại $vName dao động từ **250.000đ - 420.000đ/giờ** tuỳ theo khung giờ (giờ vàng sau 17:00 thường là 420.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: const [
+            '⚽ Đặt sân bóng đá 19h',
+            'Chính sách hoàn hủy',
+          ],
+        );
+      } else {
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Giá thuê sân cầu lông dao động từ 100.000đ - 180.000đ/giờ tuỳ theo khung giờ (giờ vàng sau 17:00 thường là 150.000đ - 180.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: const [
+            '🏸 Đặt sân cầu lông 19h',
+            'Chính sách hoàn hủy',
+          ],
+        );
+      }
     }
 
-    // 2. Cancellation / Policy query
+    // 7. Cancellation / Policy query
     final policyRegex = RegExp(r'hủy|đổi lịch|chính sách', caseSensitive: false);
     if (policyRegex.hasMatch(text)) {
       return ChatMessage(
@@ -945,9 +1445,14 @@ class ChatbotService {
       );
     }
 
-    // 3. Booking intent
+    // 8. Booking intent (Expanded)
     final bookingRegex = RegExp(
-      r'đặt\s*sân|book|đặt\s*chỗ|tìm\s*sân|🏸|🏓|⚽',
+      r'đặt\s*sân|book|thuê\s*sân|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|'
+      r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|thể\s*thao)|kiểm\s*tra\s*sân|'
+      r'lấy\s*sân|muốn\s*sân|cần\s*sân|'
+      r'(?:cầu\s*lông|pickleball|bóng\s*đá).*(?:\d{1,2}\s*h|tối|sáng|chiều|sân)|'
+      r'(?:\d{1,2}\s*h|tối|sáng|chiều).*(?:cầu\s*lông|pickleball|bóng\s*đá)|'
+      r'🏸|🏓|⚽',
       caseSensitive: false,
     );
     const defaultQuickSuggestions = [
@@ -958,28 +1463,8 @@ class ChatbotService {
     ];
 
     if (bookingRegex.hasMatch(text)) {
-      // Extract time
-      String extractedTime = '19:00';
-      final timeHMatch = RegExp(r'(\d{1,2})h(\d{2})?', caseSensitive: false).firstMatch(text);
-      if (timeHMatch != null) {
-        final h = int.tryParse(timeHMatch.group(1)!) ?? 19;
-        final m = int.tryParse(timeHMatch.group(2) ?? '00') ?? 0;
-        extractedTime = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
-      } else {
-        final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(text);
-        if (colonMatch != null) {
-          final h = int.tryParse(colonMatch.group(1)!) ?? 19;
-          final m = int.tryParse(colonMatch.group(2)!) ?? 0;
-          extractedTime = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
-        }
-      }
-
-      final parts = extractedTime.split(':');
-      final startH = int.tryParse(parts[0]) ?? 19;
-      final minStr = parts.length > 1 ? parts[1] : '00';
-      final endH = (startH + 1) % 24;
-      final startTime = '${startH.toString().padLeft(2, '0')}:$minStr';
-      final endTime = '${endH.toString().padLeft(2, '0')}:$minStr';
+      final parsedTime = parseTime(text);
+      final parsedDate = parseDate(text);
 
       // Match district / location keywords to target venue
       String venueId = 'venue_01';
@@ -1087,26 +1572,44 @@ class ChatbotService {
         venueId: venueId,
         venueName: venueName,
         sport: sport,
-        date: 'Hôm nay',
-        startTime: startTime,
+        date: parsedDate.dateStr,
+        startTime: parsedTime.startTime,
       );
+
+      // Do NOT create booking card if all courts are booked or maintenance
+      if (!courtInfo.isAvailable) {
+        pendingBooking = null;
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Rất tiếc, các sân môn $sport tại $venueName vào khung giờ ${parsedTime.startTime} (${parsedDate.displayDate}) đều đã được đặt kín hoặc đang bảo trì rồi ạ.\n\nAnh/chị có thể tham khảo các khung giờ khác hoặc chuyển sang cụm sân lân cận nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: [
+            '🏸 Xem khung giờ khác',
+            '🏟️ Cụm sân lân cận',
+            '🎫 Xem vé của tôi',
+          ],
+        );
+      }
 
       final actionCard = {
         'type': 'booking_card',
         'venueId': venueId,
         'venueName': venueName,
         'sport': sport,
-        'date': 'Hôm nay',
-        'time': extractedTime,
-        'startTime': startTime,
-        'endTime': endTime,
+        'date': parsedDate.displayDate,
+        'time': parsedTime.timeStr,
+        'startTime': parsedTime.startTime,
+        'endTime': parsedTime.endTime,
         'court': courtInfo.courtName,
         'price': courtInfo.price,
       };
 
+      pendingBooking = actionCard;
+
       return ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-        text: 'Em đã tìm thấy sân trống phù hợp theo yêu cầu của anh/chị tại $venueName vào lúc $extractedTime. Anh/chị có thể nhấn nút đặt và thanh toán VietQR ngay trên thẻ bên dưới nhé!',
+        text: 'Em đã tìm thấy sân trống phù hợp theo yêu cầu của anh/chị tại $venueName vào lúc ${parsedTime.timeStr}. Anh/chị có thể nhấn nút đặt và thanh toán VietQR ngay trên thẻ bên dưới nhé!',
         sender: 'assistant',
         timestamp: DateTime.now(),
         actionCard: actionCard,
@@ -1114,7 +1617,7 @@ class ChatbotService {
       );
     }
 
-    // 4. Greeting
+    // 9. Greeting
     final greetingRegex = RegExp(r'chào|hello|hi|bạn là ai', caseSensitive: false);
     if (greetingRegex.hasMatch(text)) {
       final userName = context?.userName?.trim();
@@ -1130,7 +1633,7 @@ class ChatbotService {
       );
     }
 
-    // 5. Default fallback
+    // 10. Default fallback
     return ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
       text: 'Dạ, em có thể hỗ trợ anh/chị tìm sân trống, kiểm tra giá hoặc đặt lịch nhanh chóng. Anh/chị muốn tìm sân môn thể thao nào và vào khung giờ nào ạ?',

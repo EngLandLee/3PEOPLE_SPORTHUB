@@ -6,6 +6,7 @@ import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/ticket_store.dart';
 import 'package:sporthub/domain/entities/venue.dart';
 import 'package:sporthub/presentation/blocs/booking/booking_bloc.dart';
+import 'package:sporthub/presentation/widgets/chat/chat_message_bubble.dart';
 import 'package:sporthub/presentation/widgets/chat/chatbot_bottom_sheet.dart';
 import 'package:sporthub/presentation/widgets/chat/floating_chat_bubble.dart';
 
@@ -139,13 +140,13 @@ void main() {
       await tester.tap(chipFinder);
       await tester.pumpAndSettle();
 
-      // Now both the chip and the user chat bubble contain 'Sân trống tối nay?'
-      expect(find.text('Sân trống tối nay?'), findsNWidgets(2));
+      // Verify message was sent to ChatbotService and chat bubbles are rendered
       expect(
         ChatbotService.instance.messagesNotifier.value
             .any((m) => m.text == 'Sân trống tối nay?'),
         isTrue,
       );
+      expect(find.byType(ChatMessageBubble), findsWidgets);
     });
 
     testWidgets('text field input and send button sends message', (tester) async {

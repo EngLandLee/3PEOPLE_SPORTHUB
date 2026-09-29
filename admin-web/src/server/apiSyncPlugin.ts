@@ -329,6 +329,29 @@ function loadSyncStore(): SyncStoreData {
     { id: 'court_q7_02', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 02', sport: 'football', courtNumber: 2, isActive: true, regularPrice: 280000, peakPrice: 380000 },
     { id: 'court_q7_03', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 03', sport: 'football', courtNumber: 3, isActive: true, regularPrice: 280000, peakPrice: 380000 },
     { id: 'court_q7_04', venueId: 'venue_q7_03', name: 'Sân Bóng Đá 04', sport: 'football', courtNumber: 4, isActive: true, regularPrice: 350000, peakPrice: 480000 },
+    // Bình Thạnh Sport
+    { id: 'court_bt_01', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 150000, peakPrice: 180000 },
+    { id: 'court_bt_02', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 150000, peakPrice: 180000 },
+    { id: 'court_bt_03', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 150000, peakPrice: 180000 },
+    { id: 'court_bt_04', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 150000, peakPrice: 180000 },
+    { id: 'court_bt_05', venueId: 'venue_bt_01', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 160000, peakPrice: 200000 },
+    { id: 'court_bt_06', venueId: 'venue_bt_01', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 160000, peakPrice: 200000 },
+    // Thảo Điền Pickleball Hub
+    { id: 'court_td_01', venueId: 'venue_td_02', name: 'Sân Pickleball 01', sport: 'pickleball', courtNumber: 1, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_td_02', venueId: 'venue_td_02', name: 'Sân Pickleball 02', sport: 'pickleball', courtNumber: 2, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_td_03', venueId: 'venue_td_02', name: 'Sân Pickleball 03', sport: 'pickleball', courtNumber: 3, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_td_04', venueId: 'venue_td_02', name: 'Sân Pickleball 04', sport: 'pickleball', courtNumber: 4, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_td_05', venueId: 'venue_td_02', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_td_06', venueId: 'venue_td_02', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    // Tân Bình Arena
+    { id: 'court_tb_01', venueId: 'venue_tb_05', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_tb_02', venueId: 'venue_tb_05', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_tb_03', venueId: 'venue_tb_05', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_tb_04', venueId: 'venue_tb_05', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_tb_05', venueId: 'venue_tb_05', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_tb_06', venueId: 'venue_tb_05', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 200000, peakPrice: 250000 },
+    { id: 'court_tb_07', venueId: 'venue_tb_05', name: 'Sân Bóng Đá Mini 07', sport: 'football', courtNumber: 7, isActive: true, regularPrice: 300000, peakPrice: 400000 },
+    { id: 'court_tb_08', venueId: 'venue_tb_05', name: 'Sân Bóng Đá Mini 08', sport: 'football', courtNumber: 8, isActive: true, regularPrice: 300000, peakPrice: 400000 },
   ];
 
   return {
@@ -393,6 +416,9 @@ function findAvailableCourtForTime(venueId: string, startTime: string, sport?: s
     }
     return true;
   });
+  if (courts.length === 0) {
+    return 1;
+  }
   for (const c of courts) {
     // Tao Dan court 1 at 17:00 & 19:00 is booked in seed generator
     const isSeedBooked = (venueId === 'venue_01' || venueId === 'venue_q1_04') && c.courtNumber === 1 && (startTime === '17:00' || startTime === '19:00');
@@ -408,7 +434,7 @@ function findAvailableCourtForTime(venueId: string, startTime: string, sport?: s
 
     return c.courtNumber;
   }
-  return courts.length > 1 ? courts[1].courtNumber : (courts.length > 0 ? courts[0].courtNumber : 2);
+  return 0;
 }
 
 export function apiSyncPlugin(): Plugin {
@@ -861,6 +887,7 @@ export function apiSyncPlugin(): Plugin {
               let sport = 'Cầu lông';
               let price = 160000;
               let time = '19:00';
+              let courtNum = 1;
 
               if (isBooking || isRecruitment) {
                 // 1. Resolve venue, sport, and price from message keywords (location first)
@@ -929,18 +956,28 @@ export function apiSyncPlugin(): Plugin {
                   }
                 }
 
-                // 2. Parse time
-                const hMatch = (message || '').match(/(\d{1,2})(?:h|:)(\d{2})?/i);
+                // 2. Parse time (support "tối", "chiều", "sáng")
+                let startH = 19;
+                let startM = 0;
+                const timeChangeMatch = (message || '').match(/(?:đổi|chuyển|dời)\s*(?:sang|qua|lịch)?\s*(\d{1,2})(?:h|:)?/i) ||
+                  (message || '').match(/(?:hay|còn)\s*(\d{1,2})(?:h|:)?\s*thì\s*sao/i);
+                const hMatch = timeChangeMatch || (message || '').match(/(\d{1,2})(?:h|:)(\d{2})?/i);
                 if (hMatch) {
-                  const h = hMatch[1].padStart(2, '0');
-                  const m = (hMatch[2] || '00').padStart(2, '0');
-                  time = `${h}:${m}`;
+                  startH = parseInt(hMatch[1], 10);
+                  startM = parseInt(hMatch[2] || '0', 10);
+                  const isEvening = /tối|đêm/i.test(lowerMsg);
+                  const isAfternoon = /chiều/i.test(lowerMsg);
+                  if ((isEvening || isAfternoon) && startH > 0 && startH < 12) {
+                    startH += 12;
+                  }
                 }
-                const startH = parseInt(time.split(':')[0], 10) || 19;
+                const hStr = startH.toString().padStart(2, '0');
+                const mStr = startM.toString().padStart(2, '0');
+                time = `${hStr}:${mStr}`;
                 const endH = (startH + 1) % 24;
-                const startTime = `${startH.toString().padStart(2, '0')}:00`;
-                const endTime = `${endH.toString().padStart(2, '0')}:00`;
-                const courtNum = findAvailableCourtForTime(venueId, startTime, sport);
+                const startTime = `${hStr}:${mStr}`;
+                const endTime = `${endH.toString().padStart(2, '0')}:${mStr}`;
+                courtNum = findAvailableCourtForTime(venueId, startTime, sport);
 
                 // Dynamically sync price with actual slot and peak hours if time was specified or for specific court
                 if (hMatch) {
@@ -956,18 +993,22 @@ export function apiSyncPlugin(): Plugin {
                   }
                 }
 
-                actionCard = {
-                  type: 'booking_card',
-                  venueId,
-                  venueName,
-                  sport,
-                  court: `Sân ${courtNum}`,
-                  date: 'Hôm nay',
-                  time,
-                  startTime,
-                  endTime,
-                  price,
-                };
+                if (courtNum > 0) {
+                  actionCard = {
+                    type: 'booking_card',
+                    venueId,
+                    venueName,
+                    sport,
+                    court: `Sân ${courtNum}`,
+                    date: 'Hôm nay',
+                    time,
+                    startTime,
+                    endTime,
+                    price,
+                  };
+                } else {
+                  actionCard = null;
+                }
               }
 
               // 3. Add-on services / extra items (nước uống, bù khoáng, ống cầu, thuê vợt...)
@@ -1017,25 +1058,34 @@ export function apiSyncPlugin(): Plugin {
               }
 
               let reply = isBooking
-                ? `Chào ${context?.userName || 'anh/chị'}! Em đã gợi ý ngay cho mình sân ${venueName} (${sport}) khung giờ ${time} với giá ưu đãi ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút đặt ngay bên dưới hoặc chọn nhanh các gợi ý khác ạ!`
+                ? (courtNum > 0
+                    ? `Chào ${context?.userName || 'anh/chị'}! Em đã gợi ý ngay cho mình sân ${venueName} (${sport}) khung giờ ${time} với giá ưu đãi ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút đặt ngay bên dưới hoặc chọn nhanh các gợi ý khác ạ!`
+                    : `Rất tiếc, các sân môn ${sport} tại ${venueName} vào khung giờ ${time} đều đã được đặt kín hoặc đang bảo trì rồi ạ.\n\nAnh/chị có thể tham khảo các khung giờ khác hoặc chuyển sang cụm sân lân cận nhé!`)
                 : "Dạ, em là trợ lý SportHub AI. Em có thể hỗ trợ anh/chị tìm sân trống, xem giá và đặt lịch nhanh chóng tại TP.HCM nhé!";
 
               if (itemsDesc.length > 0) {
-                const baseCourtPrice = isBooking ? price : 180000;
+                const prevCard = (context as any)?.pendingBooking || actionCard;
+                const effectiveVenueId = prevCard?.venueId || venueId;
+                const effectiveVenueName = prevCard?.venueName || venueName;
+                const effectiveSport = prevCard?.sport || sport;
+                const effectiveCourt = prevCard?.court || `Sân ${courtNum > 0 ? courtNum : 1}`;
+                const effectiveDate = prevCard?.date || 'Hôm nay';
+                const effectiveTime = prevCard?.time || time;
+                const effectiveStartTime = prevCard?.startTime || startTime;
+                const effectiveEndTime = prevCard?.endTime || endTime;
+                const baseCourtPrice = prevCard?.basePrice || prevCard?.price || (isBooking ? price : 160000);
                 const grandTotal = baseCourtPrice + addonsTotal;
-                const startTime = `${(parseInt(time.split(':')[0], 10) || 19).toString().padStart(2, '0')}:00`;
-                const courtNum = findAvailableCourtForTime(venueId, startTime, sport);
 
                 actionCard = {
                   type: 'booking_card',
-                  venueId,
-                  venueName,
-                  sport,
-                  court: `Sân ${courtNum}`,
-                  date: 'Hôm nay',
-                  time,
-                  startTime,
-                  endTime: `${((parseInt(time.split(':')[0], 10) || 19) + 1).toString().padStart(2, '0')}:00`,
+                  venueId: effectiveVenueId,
+                  venueName: effectiveVenueName,
+                  sport: effectiveSport,
+                  court: effectiveCourt,
+                  date: effectiveDate,
+                  time: effectiveTime,
+                  startTime: effectiveStartTime,
+                  endTime: effectiveEndTime,
                   price: grandTotal,
                   basePrice: baseCourtPrice,
                   addonsTotal,
@@ -1043,25 +1093,51 @@ export function apiSyncPlugin(): Plugin {
                   addonCounts,
                 };
 
-                reply = `Dạ, em đã ghi nhận thêm dịch vụ cho ${context?.userName || 'anh/chị'}: ${itemsDesc.join(' và ')}. Phụ phí dịch vụ là ${addonsTotal.toLocaleString('vi-VN')}đ. Nhân viên sân ${venueName} sẽ chuẩn bị sẵn sàng khi mình tới nhé!`;
+                reply = `Dạ, em đã ghi nhận thêm dịch vụ cho ${context?.userName || 'anh/chị'}: ${itemsDesc.join(' và ')}. Phụ phí dịch vụ là ${addonsTotal.toLocaleString('vi-VN')}đ. Nhân viên sân ${effectiveVenueName} sẽ chuẩn bị sẵn sàng khi mình tới nhé!`;
               } else if (isRecruitment) {
+                // Extract realistic player counts if mentioned (e.g., "cần 2 người", "tuyển 1 bạn")
+                const needCountMatch = (message || '').match(/(?:cần|tuyển|tìm)\s*(?:thêm)?\s*(\d+)\s*(?:người|bạn|thành\s*viên|slot)/i);
+                const needed = needCountMatch ? (parseInt(needCountMatch[1], 10) || 2) : 2;
+                const sportDefaultTotal = sport.toLowerCase().includes('bóng') ? 10 : 4;
+                const requiredPlayers = Math.max(needed + 1, sportDefaultTotal);
+                const currentPlayers = Math.max(1, requiredPlayers - needed);
+
+                // Extract share fee if mentioned
+                const feeMatch = (message || '').match(/(\d+(?:\.\d+)?)\s*(?:k|nghìn|ngàn|đ)/i);
+                let shareFee = 45000;
+                if (feeMatch) {
+                  const rawVal = parseFloat(feeMatch[1].replace(',', '.'));
+                  shareFee = rawVal < 1000 ? Math.round(rawVal * 1000) : Math.round(rawVal);
+                } else if (sport.toLowerCase().includes('pickleball')) {
+                  shareFee = 60000;
+                } else if (sport.toLowerCase().includes('bóng')) {
+                  shareFee = 50000;
+                }
+
+                // Resolve district from venue
+                let venueDistrict = 'Quận 1';
+                if (venueName.includes('Bình Thạnh')) venueDistrict = 'Bình Thạnh';
+                else if (venueName.includes('Thảo Điền') || venueName.includes('Thủ Đức')) venueDistrict = 'TP. Thủ Đức';
+                else if (venueName.includes('Tân Bình')) venueDistrict = 'Tân Bình';
+                else if (venueName.includes('Nam Sài Gòn') || venueName.includes('Q7')) venueDistrict = 'Quận 7';
+
                 actionCard = {
                   type: 'recruitment_card',
                   title: `Kèo Giao Lưu ${sport} - ${venueName}`,
                   venueName,
                   sportType: sport.toLowerCase().includes('pickleball') ? 'pickleball' : (sport.toLowerCase().includes('bóng') ? 'football' : 'badminton'),
-                  district: 'Quận 1',
+                  district: venueDistrict,
                   skillLevel: 'Trung bình (2.0 - 3.5)',
-                  scheduledTime: '19:00 - 21:00 Hôm nay',
-                  requiredPlayers: 4,
-                  currentPlayers: 2,
-                  shareFee: 45000,
+                  scheduledTime: `${time} - ${(parseInt(time.split(':')[0], 10) + 2).toString().padStart(2, '0')}:00 Hôm nay`,
+                  requiredPlayers,
+                  currentPlayers,
+                  shareFee,
                   note: 'Giao lưu rèn luyện sức khỏe, vui vẻ và kết nối thể thao!',
                   ...(imageUrl ? { imageUrl } : {}),
                 };
                 reply = imageUrl
-                  ? `📸 Em đã phân tích ảnh đính kèm và soạn sẵn bài đăng tuyển thành viên cực chuẩn cho bạn:\n\n📌 **${actionCard.title}**\n📍 **Địa điểm**: ${venueName}\n⏰ **Thời gian**: 19:00 - 21:00 Hôm nay\n👥 **Cần tuyển**: 2 thành viên (Hiện có 2/4 người)\n⭐ **Trình độ**: Trung bình (2.0 - 3.5, biết luật, đánh bền)\n💰 **Chi phí chia sẻ**: 45.000đ/người (Bao gồm sân & cầu)\n\n👉 Bạn có thể nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** để tìm người ghép kèo ngay nhé!`
-                  : `🏸 Em đã hỗ trợ soạn bài đăng tuyển thành viên chuẩn thể thao cho bạn:\n\n📌 **${actionCard.title}**\n📍 **Địa điểm**: ${venueName}\n⏰ **Thời gian**: 19:00 - 21:00 Hôm nay\n👥 **Cần tuyển**: 2 thành viên (Hiện có 2/4 người)\n⭐ **Trình độ**: Trung bình (2.0 - 3.5)\n💰 **Chi phí chia sẻ**: 45.000đ/người\n\n👉 Hãy nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** bên dưới để đăng bài ngay nhé!`;
+                  ? `📸 Em đã chuẩn bị sẵn bài đăng tuyển thành viên cực chuẩn cho bạn:\n\n📌 **${actionCard.title}**\n📍 **Địa điểm**: ${venueName} (${venueDistrict})\n⏰ **Thời gian**: ${actionCard.scheduledTime}\n👥 **Cần tuyển**: ${needed} thành viên (Hiện có ${currentPlayers}/${requiredPlayers} người)\n⭐ **Trình độ**: Trung bình (2.0 - 3.5, biết luật, đánh bền)\n💰 **Chi phí chia sẻ**: ${shareFee.toLocaleString('vi-VN')}đ/người\n\n👉 Bạn có thể nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** để tìm người ghép kèo ngay nhé!`
+                  : `🏸 Em đã hỗ trợ soạn bài đăng tuyển thành viên chuẩn thể thao cho bạn:\n\n📌 **${actionCard.title}**\n📍 **Địa điểm**: ${venueName} (${venueDistrict})\n⏰ **Thời gian**: ${actionCard.scheduledTime}\n👥 **Cần tuyển**: ${needed} thành viên (Hiện có ${currentPlayers}/${requiredPlayers} người)\n⭐ **Trình độ**: Trung bình (2.0 - 3.5)\n💰 **Chi phí chia sẻ**: ${shareFee.toLocaleString('vi-VN')}đ/người\n\n👉 Hãy nhấn **"📢 Đăng lên Bảng tin Cộng đồng"** bên dưới để đăng bài ngay nhé!`;
               }
 
               if (isDateTimeQuery) {
@@ -1073,19 +1149,24 @@ export function apiSyncPlugin(): Plugin {
               const isPaymentStatusQuery = !isDateTimeQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
 
               if (isPaymentStatusQuery) {
-                const latestBooking = (store.bookings || []).slice().reverse().find(b => b.paymentStatus === 'paid') || (store.bookings || [])[0];
+                const latestBooking = (store.bookings || []).slice().reverse().find(b => b.paymentStatus === 'paid') || (store.bookings || []).slice().reverse()[0];
+                const isPaid = latestBooking?.paymentStatus === 'paid';
                 const bookingCode = latestBooking?.id || latestBooking?.bookingId || `BK-${Date.now().toString().slice(-8)}`;
-                const vName = latestBooking?.venueName || 'Thảo Điền Pickleball Hub';
-                const cName = latestBooking?.courtName || `Sân ${latestBooking?.courtNumber || 2}`;
+                const vName = latestBooking?.venueName || 'CLB Cầu Lông Tao Đàn';
+                const cName = latestBooking?.courtName || `Sân ${latestBooking?.courtNumber || 1}`;
                 const tSlot = latestBooking?.timeSlot || `${latestBooking?.startTime || '19:00'} - ${latestBooking?.endTime || '20:00'}`;
-                const bPrice = latestBooking?.price || 220000;
-                const bSport = latestBooking?.sport || 'Pickleball';
+                const bPrice = latestBooking?.price || 160000;
+                const bSport = latestBooking?.sport || 'Cầu lông';
 
-                reply = `🎉 Dạ em đã kiểm tra và ghi nhận đơn đặt sân mã **${bookingCode}** tại **${vName}** (${cName}, ${tSlot}) với số tiền **${bPrice.toLocaleString('vi-VN')}đ** đã được thanh toán thành công qua VietQR rồi ạ!\n\nKhung giờ đã được giữ chỗ riêng cho anh/chị trên hệ thống. Khi đến sân, anh/chị chỉ cần xuất trình mã QR trong mục **Vé của tôi** để nhận sân nhé! Chúc anh/chị có buổi chơi thể thao thật tuyệt vời! 🏸⚽🏓`;
+                if (isPaid) {
+                  reply = `🎉 Dạ em đã kiểm tra và ghi nhận đơn đặt sân mã **${bookingCode}** tại **${vName}** (${cName}, ${tSlot}) với số tiền **${bPrice.toLocaleString('vi-VN')}đ** đã được thanh toán thành công qua VietQR rồi ạ!\n\nKhung giờ đã được giữ chỗ riêng cho anh/chị trên hệ thống. Khi đến sân, anh/chị chỉ cần xuất trình mã QR trong mục **Vé của tôi** để nhận sân nhé! Chúc anh/chị có buổi chơi thể thao thật tuyệt vời! 🏸⚽🏓`;
+                } else {
+                  reply = `Dạ em kiểm tra đơn đặt sân mã **${bookingCode}** tại **${vName}** (${cName}, ${tSlot}) hiện đang ở trạng thái **Chờ thanh toán** (chưa ghi nhận chuyển khoản).\n\nAnh/chị vui lòng nhấn nút quét mã VietQR bên dưới để hoàn tất giữ chỗ nhé!`;
+                }
 
                 actionCard = {
                   type: 'booking_card',
-                  venueId: latestBooking?.venueId || 'venue_td_02',
+                  venueId: latestBooking?.venueId || 'venue_01',
                   venueName: vName,
                   sport: bSport,
                   court: cName,
@@ -1094,16 +1175,21 @@ export function apiSyncPlugin(): Plugin {
                   startTime: latestBooking?.startTime || '19:00',
                   endTime: latestBooking?.endTime || '20:00',
                   price: bPrice,
-                  isPaid: true,
-                  isBooked: true,
+                  isPaid,
+                  isBooked: isPaid,
                   bookingId: bookingCode,
                 };
 
-                quickSuggestions = [
-                  '🎫 Xem vé của tôi',
-                  '🔍 Xem trên sơ đồ',
-                  '📢 Đăng lên Bảng tin Cộng đồng',
-                ];
+                quickSuggestions = isPaid
+                  ? [
+                      '🎫 Xem vé của tôi',
+                      '🔍 Xem trên sơ đồ',
+                      '📢 Đăng lên Bảng tin Cộng đồng',
+                    ]
+                  : [
+                      '⚡ Đặt & Thanh toán VietQR ngay',
+                      '🎫 Xem vé của tôi',
+                    ];
               }
 
               const isOffTopic = /viết\s*(?:thơ|code|bài\s*văn)|giải\s*toán|chính\s*trị|bầu\s*cử|api\s*key|system\s*prompt|bẻ\s*khóa|hack\s*hệ\s*thống/i.test(lowerMsg);

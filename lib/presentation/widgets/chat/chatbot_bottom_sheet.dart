@@ -155,7 +155,7 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     });
 
     final effectiveText = text.isEmpty
-        ? 'Hãy phân tích ảnh đính kèm này và hỗ trợ tôi soạn bài tuyển thành viên / ghép kèo'
+        ? 'Hãy hỗ trợ tôi tạo bài đăng tuyển thành viên / ghép kèo với ảnh đính kèm này'
         : text;
 
     ChatbotService.instance.sendMessage(
@@ -981,7 +981,7 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              'AI sẽ phân tích ảnh & hỗ trợ đăng bài ghép kèo',
+                              'AI sẽ hỗ trợ tạo bài đăng ghép kèo',
                               style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),

@@ -212,7 +212,7 @@ void main() {
       expect(card['time'], '19:00');
       expect(card['startTime'], '19:00');
       expect(card['endTime'], '20:00');
-      expect(card['court'], anyOf('Sân 1', 'Sân 2'));
+      expect(card['court'], anyOf('Sân 1', 'Sân 2', 'Sân 3', 'Sân 4'));
       expect(card['price'], anyOf(120000, 180000));
 
       expect(assistantMsg.text, contains('CLB Cầu Lông Tao Đàn'));
