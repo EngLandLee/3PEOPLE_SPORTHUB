@@ -108,7 +108,7 @@ Anh có muốn đặt khung giờ này không ạ?
       expect(response.actionCard!['startTime'], equals('19:30'));
       expect(response.actionCard!['endTime'], equals('21:30'));
       expect(response.actionCard!['durationHours'], equals(2.0));
-      expect(response.actionCard!['price'], equals(840000));
+      expect(response.actionCard!['price'], equals(580000));
     });
   });
 }

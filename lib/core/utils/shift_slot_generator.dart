@@ -69,11 +69,8 @@ class ShiftSlotGenerator {
     final isPickleball = sportType.contains('pickleball');
 
     if (isFootball) {
-      if (startHour >= 6 && startHour < 8) return 280000.0;
-      if (startHour >= 8 && startHour < 16) return 250000.0;
-      if (startHour >= 16 && startHour < 17) return 320000.0;
-      if (startHour >= 17 && startHour < 21) return 420000.0;
-      return 300000.0;
+      if (startHour >= 17 && startHour < 21) return 290000.0;
+      return 250000.0;
     } else if (isPickleball) {
       if (startHour >= 6 && startHour < 8) return 160000.0;
       if (startHour >= 8 && startHour < 16) return 130000.0;

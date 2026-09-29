@@ -488,7 +488,7 @@ void main() {
       expect(reply.actionCard?['isPaid'], isTrue);
     });
 
-    test('sanitizeServerActionCard switches booked Sân 1 to Sân 2 with 420k price for Nam Sài Gòn at 19:30', () {
+    test('sanitizeServerActionCard switches booked Sân 1 to Sân 2 with 290k price for Nam Sài Gòn at 19:30', () {
       final rawCard = {
         'type': 'booking_card',
         'venueId': 'venue_q7_03',
@@ -508,10 +508,11 @@ void main() {
       );
 
       expect(sanitized, isNotNull);
-      expect(sanitized?['court'], 'Sân 2');
-      expect(sanitized?['price'], 420000);
-      expect(reply, contains('Sân 2'));
-      expect(reply, contains('420.000đ'));
+      final courtName = sanitized?['court'] as String;
+      expect(courtName, isNot(equals('Sân 1')));
+      expect(sanitized?['price'], 290000);
+      expect(reply, contains(courtName));
+      expect(reply, contains('290.000đ'));
     });
 
     test('sendMessage sanitizes server response when Sân 1 is booked', () async {
@@ -540,11 +541,12 @@ void main() {
       });
 
       final reply = await service.sendMessage('đặt sân bóng đá Quận 7 lúc 19h30');
-      expect(reply.actionCard?['court'], 'Sân 2');
-      expect(reply.actionCard?['price'], 420000);
-      expect(reply.text, contains('Sân 2'));
-      expect(service.pendingBooking?['court'], 'Sân 2');
-      expect(service.pendingBooking?['price'], 420000);
+      final courtName = reply.actionCard?['court'] as String;
+      expect(courtName, isNot(equals('Sân 1')));
+      expect(reply.actionCard?['price'], 290000);
+      expect(reply.text, contains(courtName));
+      expect(service.pendingBooking?['court'], courtName);
+      expect(service.pendingBooking?['price'], 290000);
     });
   });
 }

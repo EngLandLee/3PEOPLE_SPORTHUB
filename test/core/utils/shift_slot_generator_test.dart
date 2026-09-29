@@ -119,7 +119,7 @@ void main() {
     });
 
     test('calculateSlotPrice gives realistic sport-specific rates', () {
-      // Football pitch: Daytime off-peak ~250k, Peak ~420k
+      // Football pitch: Daytime off-peak ~250k, Peak ~290k
       final fbOffPeak = ShiftSlotGenerator.calculateSlotPrice(
         sportType: 'football',
         startTime: '10:00',
@@ -130,7 +130,7 @@ void main() {
         sportType: 'football',
         startTime: '18:00',
       );
-      expect(fbPeak, equals(420000.0));
+      expect(fbPeak, equals(290000.0));
 
       // Pickleball: Daytime off-peak ~130k, Peak ~220k
       final pbOffPeak = ShiftSlotGenerator.calculateSlotPrice(
@@ -181,7 +181,7 @@ void main() {
 
       // Court 8 (Football) at 18:00
       final fbSlot = slots.firstWhere((s) => s.courtNumber == 8 && s.startTime == '18:00');
-      expect(fbSlot.price, equals(420000.0));
+      expect(fbSlot.price, equals(290000.0));
     });
 
     test('CourtSportPartition.getZonesForVenue groups Tân Bình Arena into 3 physical zones', () {

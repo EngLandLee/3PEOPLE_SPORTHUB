@@ -325,10 +325,10 @@ function loadSyncStore(): SyncStoreData {
     { id: 'court_07', venueId: 'venue_01', name: 'Sân Pickleball 07', sport: 'pickleball', courtNumber: 7, isActive: true, regularPrice: 150000, peakPrice: 220000 },
     { id: 'court_08', venueId: 'venue_01', name: 'Sân Pickleball 08', sport: 'pickleball', courtNumber: 8, isActive: true, regularPrice: 150000, peakPrice: 220000 },
     // Nam Sài Gòn Football
-    { id: 'court_q7_01', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 01', sport: 'football', courtNumber: 1, isActive: true, regularPrice: 280000, peakPrice: 420000 },
-    { id: 'court_q7_02', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 02', sport: 'football', courtNumber: 2, isActive: true, regularPrice: 280000, peakPrice: 420000 },
-    { id: 'court_q7_03', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 03', sport: 'football', courtNumber: 3, isActive: true, regularPrice: 280000, peakPrice: 420000 },
-    { id: 'court_q7_04', venueId: 'venue_q7_03', name: 'Sân Bóng Đá 04', sport: 'football', courtNumber: 4, isActive: true, regularPrice: 350000, peakPrice: 480000 },
+    { id: 'court_q7_01', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 01', sport: 'football', courtNumber: 1, isActive: true, regularPrice: 250000, peakPrice: 290000 },
+    { id: 'court_q7_02', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 02', sport: 'football', courtNumber: 2, isActive: true, regularPrice: 250000, peakPrice: 290000 },
+    { id: 'court_q7_03', venueId: 'venue_q7_03', name: 'Sân Bóng Đá Mini 03', sport: 'football', courtNumber: 3, isActive: true, regularPrice: 250000, peakPrice: 290000 },
+    { id: 'court_q7_04', venueId: 'venue_q7_03', name: 'Sân Bóng Đá 04', sport: 'football', courtNumber: 4, isActive: true, regularPrice: 250000, peakPrice: 290000 },
     // Bình Thạnh Sport
     { id: 'court_bt_01', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 150000, peakPrice: 150000 },
     { id: 'court_bt_02', venueId: 'venue_bt_01', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 150000, peakPrice: 150000 },
@@ -943,7 +943,7 @@ export function apiSyncPlugin(): Plugin {
                   venueId = 'venue_q7_03';
                   venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
                   sport = 'Bóng đá';
-                  price = 280000;
+                  price = 250000;
                 } else if (lowerMsg.includes('tao đàn') || lowerMsg.includes('tao dan') || lowerMsg.includes('quận 1') || lowerMsg.includes('quan 1') || lowerMsg.includes('q1') || lowerMsg.includes('q.1')) {
                   venueId = 'venue_01';
                   venueName = 'CLB Cầu Lông Tao Đàn';
@@ -1066,7 +1066,7 @@ export function apiSyncPlugin(): Plugin {
                   if (matchedCourt) {
                     unitRate = (isPeak && matchedCourt.peakPrice) ? matchedCourt.peakPrice : (matchedCourt.regularPrice || matchedCourt.price || price);
                   } else if (venueId === 'venue_q7_03') {
-                    unitRate = isPeak ? 420000 : 250000;
+                    unitRate = isPeak ? 290000 : 250000;
                   } else if (venueId === 'venue_td_02') {
                     unitRate = isPeak ? 220000 : 130000;
                   } else if (venueId === 'venue_01' || venueId === 'venue_q1_04') {

@@ -44,7 +44,7 @@ void main() {
     // Verify Zone details
     expect(find.textContaining('Cụm Sân Bóng Đá Mini'), findsOneWidget);
     expect(find.textContaining('FIFA Pro'), findsOneWidget);
-    expect(find.textContaining('420k'), findsWidgets); // Football peak price
+    expect(find.textContaining('290k'), findsWidgets); // Football peak price
   });
 
   testWidgets('VenueDetailScreen filters Sport Zones when sport partition chips are tapped', (tester) async {
@@ -133,7 +133,7 @@ void main() {
     await tester.tap(footballFilter);
     await tester.pumpAndSettle();
 
-    expect(find.text('420k'), findsWidgets);
-    expect(find.textContaining('Từ 300k - 420k/slot'), findsWidgets);
+    expect(find.text('290k'), findsWidgets);
+    expect(find.textContaining('Từ 250k - 290k/slot'), findsWidgets);
   });
 }

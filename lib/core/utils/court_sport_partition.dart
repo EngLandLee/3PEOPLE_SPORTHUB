@@ -42,7 +42,7 @@ class CourtSportPartition {
       final label = _sportLabel(sport);
       final String priceRange;
       if (sport == 'football') {
-        priceRange = '250k - 420k';
+        priceRange = '250k - 290k';
       } else if (sport == 'pickleball') {
         priceRange = '130k - 220k';
       } else {
@@ -90,7 +90,7 @@ class CourtSportPartition {
         zoneName = 'Phân khu $zoneLetter: Cụm Sân Bóng Đá Mini';
         facilityDesc = 'Mặt cỏ nhân tạo FIFA Pro • Đèn cao áp • Lưới vây 8m';
         badgeText = 'Ngoài trời';
-        priceRange = '250k - 420k';
+        priceRange = '250k - 290k';
       } else if (sport == 'pickleball') {
         zoneName = 'Phân khu $zoneLetter: Cụm Sân Pickleball Pro';
         facilityDesc = 'Mặt sơn USAPA giảm chấn • Mái che thoáng khí';

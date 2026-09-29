@@ -224,7 +224,7 @@ class SeedData {
       address: '78 Nguyễn Hữu Thọ, Tân Hưng',
       district: 'Quận 7',
       courtCount: 4,
-      hourlyRate: 280000.0,
+      hourlyRate: 250000.0,
       rating: 4.7,
       reviewCount: 215,
       imageUrls: [

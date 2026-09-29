@@ -1568,7 +1568,7 @@ class ChatbotService {
       } else if (isFoot) {
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: 'Giá thuê sân bóng đá mini tại $vName dao động từ **250.000đ - 420.000đ/giờ** tuỳ theo khung giờ (giờ vàng sau 17:00 thường là 420.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
+          text: 'Giá thuê sân bóng đá mini tại $vName dao động từ **250.000đ - 290.000đ/giờ** tuỳ theo khung giờ (giờ vàng sau 17:00 là 290.000đ/giờ). Anh/chị có thể đặt trực tiếp trên app để nhận ưu đãi nhé!',
           sender: 'assistant',
           timestamp: DateTime.now(),
           quickSuggestions: const [
