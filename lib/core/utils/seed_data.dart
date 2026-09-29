@@ -278,6 +278,18 @@ class SeedData {
       onTimeRate: 98,
     ),
     UserProfile(
+      userId: 'user_demo_qa',
+      fullName: 'Lê Quốc Anh',
+      phone: '0901 234 567',
+      preferredSport: 'football',
+      skillLevel: 'Intermediate',
+      district: 'Quận 7',
+      playTimePreference: 'Tối (19:00 - 21:00)',
+      matchesPlayed: 25,
+      reputationRating: 4.9,
+      onTimeRate: 98,
+    ),
+    UserProfile(
       userId: 'user_demo_02',
       fullName: 'Lê Minh',
       phone: '0918 888 999',

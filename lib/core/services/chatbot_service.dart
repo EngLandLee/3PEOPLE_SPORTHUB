@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import '../../data/models/ticket_model.dart';
 import '../../domain/entities/chat_message.dart';
+export '../../domain/entities/chat_message.dart';
 import '../../domain/entities/time_slot.dart';
 import '../../domain/entities/venue.dart';
 import '../state/ticket_store.dart';
@@ -28,7 +29,7 @@ class ChatbotService {
     return raw
         .replaceAll(
           RegExp(
-            r'\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|Thẻ\s*đặt\s*sân|Thẻ\s*dịch\s*vụ|Thẻ|Nút|Button|Card)[^\]]*\]',
+            r'👉\s*\[[^\]]+\]|\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|📅|Thẻ|Nút|Button|Card|Nhấn|Bấm|Đặt|Xem|Khung)[^\]]*\]',
             caseSensitive: false,
           ),
           '',
@@ -45,41 +46,80 @@ class ChatbotService {
         .trim();
   }
 
-  /// Helper to parse time strings like '19h', '7h tối', '19:30', '8h30 sáng'
-  static ({String timeStr, String startTime, String endTime}) parseTime(
+  /// Helper to parse time strings like '19h', '7h tối', '19:30', '8h30 sáng', or range '19h30 - 21h30'
+  static ({String timeStr, String startTime, String endTime, double durationHours}) parseTime(
     String text, {
     String defaultTime = '19:00',
   }) {
     final lower = text.toLowerCase();
     int h = 19;
     int m = 0;
+    int endH = 20;
+    int endM = 0;
+    double durationHours = 1.0;
     bool matched = false;
 
-    // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
-    final hMatch = RegExp(
-      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
+    // Pattern 0: Time range, e.g. 19h30 - 21h30, 19:30 - 21:30, 19h-21h, 19h đến 21h
+    final rangeMatch = RegExp(
+      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
       caseSensitive: false,
     ).firstMatch(text);
-    if (hMatch != null) {
-      h = int.tryParse(hMatch.group(1)!) ?? 19;
-      m = int.tryParse(hMatch.group(2) ?? '00') ?? 0;
-      final period = hMatch.group(3)?.toLowerCase();
+
+    if (rangeMatch != null) {
+      h = int.tryParse(rangeMatch.group(1)!) ?? 19;
+      m = int.tryParse(rangeMatch.group(2) ?? '00') ?? 0;
+      endH = int.tryParse(rangeMatch.group(3)!) ?? (h + 1);
+      endM = int.tryParse(rangeMatch.group(4) ?? '00') ?? 0;
+      final period = rangeMatch.group(5)?.toLowerCase();
       if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
         h += 12;
       } else if (period == 'sáng' && h == 12) {
         h = 0;
       }
+      if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && endH < 12) {
+        endH += 12;
+      } else if (period == 'sáng' && endH == 12) {
+        endH = 0;
+      }
+      if (endH < h && h >= 12 && endH < 12) {
+        endH += 12;
+      }
+      final diff = ((endH * 60 + endM) - (h * 60 + m)) / 60.0;
+      durationHours = diff > 0 ? diff : 1.0;
       matched = true;
     } else {
-      // Pattern 2: 19:30 or 07:30
-      final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(text);
-      if (colonMatch != null) {
-        h = int.tryParse(colonMatch.group(1)!) ?? 19;
-        m = int.tryParse(colonMatch.group(2)!) ?? 0;
-        if ((lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+      // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
+      final hMatch = RegExp(
+        r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (hMatch != null) {
+        h = int.tryParse(hMatch.group(1)!) ?? 19;
+        m = int.tryParse(hMatch.group(2) ?? '00') ?? 0;
+        final period = hMatch.group(3)?.toLowerCase();
+        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
           h += 12;
+        } else if (period == 'sáng' && h == 12) {
+          h = 0;
         }
+        endH = (h + 1) % 24;
+        endM = m;
+        durationHours = 1.0;
         matched = true;
+      } else {
+        // Pattern 2: 19:30 or 07:30
+        final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(text);
+        if (colonMatch != null) {
+          h = int.tryParse(colonMatch.group(1)!) ?? 19;
+          m = int.tryParse(colonMatch.group(2)!) ?? 0;
+          if ((lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+            h += 12;
+          }
+          endH = (h + 1) % 24;
+          endM = m;
+          durationHours = 1.0;
+          matched = true;
+        }
       }
     }
 
@@ -87,17 +127,21 @@ class ChatbotService {
       final parts = defaultTime.split(':');
       h = int.tryParse(parts[0]) ?? 19;
       m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      endH = (h + 1) % 24;
+      endM = m;
+      durationHours = 1.0;
     }
 
     final startHStr = h.toString().padLeft(2, '0');
     final minStr = m.toString().padLeft(2, '0');
-    final endH = (h + 1) % 24;
     final endHStr = endH.toString().padLeft(2, '0');
+    final endMStr = endM.toString().padLeft(2, '0');
 
     return (
       timeStr: '$startHStr:$minStr',
       startTime: '$startHStr:$minStr',
-      endTime: '$endHStr:$minStr',
+      endTime: '$endHStr:$endMStr',
+      durationHours: durationHours,
     );
   }
 
@@ -157,6 +201,7 @@ class ChatbotService {
     required String sport,
     required String date,
     required String startTime,
+    double durationHours = 1.0,
   }) {
     // 1. Resolve Venue object from SeedData
     Venue? venue;
@@ -269,10 +314,13 @@ class ChatbotService {
       break;
     }
 
+    final unitPrice = calculatedPrice > 0 ? calculatedPrice : 180000;
+    final totalPrice = (unitPrice * (durationHours > 0 ? durationHours : 1.0)).toInt();
+
     if (!found) {
       return (
         courtNumber: null,
-        price: calculatedPrice > 0 ? calculatedPrice : 180000,
+        price: totalPrice,
         courtName: '',
         isAvailable: false,
       );
@@ -280,7 +328,7 @@ class ChatbotService {
 
     return (
       courtNumber: bestCourt,
-      price: calculatedPrice > 0 ? calculatedPrice : 180000,
+      price: totalPrice,
       courtName: 'Sân $bestCourt',
       isAvailable: true,
     );
@@ -306,6 +354,20 @@ class ChatbotService {
     final sport = rawCard['sport']?.toString() ?? 'Cầu lông';
     final date = rawCard['date']?.toString() ?? 'Hôm nay';
     final startTime = rawCard['startTime']?.toString() ?? '19:00';
+    final endTime = rawCard['endTime']?.toString();
+    double durationHours = (rawCard['durationHours'] as num?)?.toDouble() ?? 1.0;
+    if (durationHours <= 0 || (rawCard['durationHours'] == null && endTime != null && endTime.isNotEmpty)) {
+      final sParts = startTime.split(':');
+      final eParts = (endTime ?? '').split(':');
+      if (sParts.length >= 2 && eParts.length >= 2) {
+        final sH = int.tryParse(sParts[0]) ?? 19;
+        final sM = int.tryParse(sParts[1]) ?? 0;
+        final eH = int.tryParse(eParts[0]) ?? (sH + 1);
+        final eM = int.tryParse(eParts[1]) ?? 0;
+        final diff = ((eH * 60 + eM) - (sH * 60 + sM)) / 60.0;
+        if (diff > 0) durationHours = diff;
+      }
+    }
 
     final courtInfo = findAvailableCourtAndPrice(
       venueId: venueId,
@@ -313,6 +375,7 @@ class ChatbotService {
       sport: sport,
       date: date,
       startTime: startTime,
+      durationHours: durationHours,
     );
 
     if (!courtInfo.isAvailable) {
@@ -785,8 +848,12 @@ class ChatbotService {
       );
     }
 
-    // 1. Follow-up / Booking modification intent ("đổi sang 20h", "chuyển sang 20h", "lùi lại 20h", "20h thì sao")
+    // 1. Follow-up / Booking modification intent ("đổi sang 20h", "chuyển sang 20h", "lùi lại 20h", "20h thì sao", "19h30 - 21h30")
     final hasPendingOrRecent = pendingBooking != null || latestBookingCard != null;
+    final hasTimeRangePattern = RegExp(
+      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?',
+      caseSensitive: false,
+    ).hasMatch(text);
     final changeTimeMatch = RegExp(
       r'(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(tối|sáng|chiều)?|'
       r'^(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|nhé|nha)|'
@@ -794,11 +861,11 @@ class ChatbotService {
       caseSensitive: false,
     ).firstMatch(text);
 
-    if (hasPendingOrRecent && changeTimeMatch != null) {
+    if (hasPendingOrRecent && (changeTimeMatch != null || hasTimeRangePattern)) {
       final existing = latestBookingCard ?? pendingBooking!;
-      final venueId = existing['venueId']?.toString() ?? 'venue_01';
-      final venueName = existing['venueName']?.toString() ?? 'CLB Cầu Lông Tao Đàn';
-      final sport = existing['sport']?.toString() ?? 'Cầu lông';
+      final venueId = existing['venueId']?.toString() ?? (context?.venueId ?? 'venue_01');
+      final venueName = existing['venueName']?.toString() ?? (context?.venueName ?? 'CLB Cầu Lông Tao Đàn');
+      final sport = existing['sport']?.toString() ?? (context?.sport ?? 'Cầu lông');
 
       final parsedTime = parseTime(text, defaultTime: existing['startTime']?.toString() ?? '19:00');
       final parsedDate = parseDate(text);
@@ -812,6 +879,7 @@ class ChatbotService {
         sport: sport,
         date: dateUsed,
         startTime: parsedTime.startTime,
+        durationHours: parsedTime.durationHours,
       );
 
       if (courtInfo.isAvailable) {
@@ -823,6 +891,7 @@ class ChatbotService {
           'time': parsedTime.timeStr,
           'startTime': parsedTime.startTime,
           'endTime': parsedTime.endTime,
+          'durationHours': parsedTime.durationHours,
           'court': courtInfo.courtName,
           'price': newTotalPrice,
           'basePrice': courtInfo.price,
@@ -1537,6 +1606,7 @@ class ChatbotService {
       r'đặt\s*sân|book|thuê\s*sân|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|'
       r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|thể\s*thao)|kiểm\s*tra\s*sân|'
       r'lấy\s*sân|muốn\s*sân|cần\s*sân|'
+      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?|'
       r'(?:cầu\s*lông|pickleball|bóng\s*đá).*(?:\d{1,2}\s*h|tối|sáng|chiều|sân)|'
       r'(?:\d{1,2}\s*h|tối|sáng|chiều).*(?:cầu\s*lông|pickleball|bóng\s*đá)|'
       r'🏸|🏓|⚽',
@@ -1661,6 +1731,7 @@ class ChatbotService {
         sport: sport,
         date: parsedDate.dateStr,
         startTime: parsedTime.startTime,
+        durationHours: parsedTime.durationHours,
       );
 
       // Do NOT create booking card if all courts are booked or maintenance
@@ -1688,6 +1759,7 @@ class ChatbotService {
         'time': parsedTime.timeStr,
         'startTime': parsedTime.startTime,
         'endTime': parsedTime.endTime,
+        'durationHours': parsedTime.durationHours,
         'court': courtInfo.courtName,
         'price': courtInfo.price,
       };

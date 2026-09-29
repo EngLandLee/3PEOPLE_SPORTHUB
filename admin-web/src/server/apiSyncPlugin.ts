@@ -877,12 +877,22 @@ export function apiSyncPlugin(): Plugin {
                 /ngày\s*(?:bao\s*nhiêu|mấy)|mấy\s*giờ/i.test(lowerMsg);
 
               const isRecruitment = !isDateTimeQuery && (Boolean(imageUrl) || /tuyển\s*thành\s*viên|tuyển\s*người|tìm\s*bạn|ghép\s*kèo|tìm\s*kèo|kèo\s*giao\s*lưu|cần\s*người|cần\s*thành\s*viên|tuyển\s*thêm/i.test(lowerMsg));
-              const isBooking = !isDateTimeQuery && (lowerMsg.includes('đặt') ||
+              const hasTimeRange = /(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?/i.test(lowerMsg);
+              const hasTimeChange = /(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?/i.test(lowerMsg) ||
+                /^(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|nhé|nha)?$/i.test(lowerMsg.trim());
+
+              const isBooking = !isDateTimeQuery && (
+                hasTimeRange ||
+                hasTimeChange ||
+                (Boolean(context?.venueId) && /(\d{1,2})(?:h|:)/i.test(lowerMsg)) ||
+                lowerMsg.includes('đặt') ||
                 lowerMsg.includes('book') ||
                 lowerMsg.includes('tìm sân') ||
                 lowerMsg.includes('giữ chỗ') ||
                 lowerMsg.includes('thuê sân') ||
                 lowerMsg.includes('sân trống') ||
+                lowerMsg.includes('còn sân') ||
+                lowerMsg.includes('lấy sân') ||
                 lowerMsg.includes('cầu lông') ||
                 lowerMsg.includes('pickleball') ||
                 lowerMsg.includes('bóng đá') ||
@@ -941,13 +951,13 @@ export function apiSyncPlugin(): Plugin {
                   const isPickle = lowerMsg.includes('pickleball') || (!lowerMsg.includes('cầu lông') && preferred.includes('pickleball'));
                   sport = isPickle ? 'Pickleball' : 'Cầu lông';
                   price = sport === 'Pickleball' ? 220000 : 160000;
-                } else if (context?.venueId && context.venueId !== 'venue_01') {
-                  const foundVenue = (store.venues || DEFAULT_SYNC_VENUES).find(v => v.id === context.venueId);
+                } else if (context?.venueId) {
+                  const foundVenue = (store.venues || DEFAULT_SYNC_VENUES).find(v => v.id === context.venueId || (context.venueId === 'venue_01' && v.id === 'venue_q1_04'));
                   if (foundVenue) {
                     venueId = foundVenue.id;
                     venueName = foundVenue.name;
                     price = foundVenue.baseHourlyRate;
-                    sport = foundVenue.sports.includes('badminton') ? 'Cầu lông' : (foundVenue.sports.includes('pickleball') ? 'Pickleball' : 'Bóng đá');
+                    sport = (context?.sport) ? context.sport : (foundVenue.sports.includes('badminton') ? 'Cầu lông' : (foundVenue.sports.includes('pickleball') ? 'Pickleball' : 'Bóng đá'));
                   }
                 } else {
                   const preferred = (context?.sport || context?.preferredSport || '').toLowerCase();
@@ -988,38 +998,83 @@ export function apiSyncPlugin(): Plugin {
 
                 let startH = 19;
                 let startM = 0;
+                let endH = 20;
+                let endM = 0;
+                let durationHours = 1.0;
+
+                const rangeMatch = (message || '').match(/(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?/i);
                 const timeChangeMatch = (message || '').match(/(?:đổi|chuyển|dời)\s*(?:sang|qua|lịch)?\s*(\d{1,2})(?:h|:)?/i) ||
                   (message || '').match(/(?:hay|còn)\s*(\d{1,2})(?:h|:)?\s*thì\s*sao/i);
-                const hMatch = timeChangeMatch || (message || '').match(/(\d{1,2})(?:h|:)(\d{2})?/i);
-                if (hMatch) {
-                  startH = parseInt(hMatch[1], 10);
-                  startM = parseInt(hMatch[2] || '0', 10);
-                  const isEvening = /tối|đêm/i.test(lowerMsg);
-                  const isAfternoon = /chiều/i.test(lowerMsg);
+                const hMatch = timeChangeMatch || (message || '').match(/(\d{1,2})(?:h|:)(\d{2})?\s*(sáng|trưa|chiều|tối)?/i);
+
+                if (rangeMatch) {
+                  startH = parseInt(rangeMatch[1], 10);
+                  startM = parseInt(rangeMatch[2] || '0', 10);
+                  endH = parseInt(rangeMatch[3], 10);
+                  endM = parseInt(rangeMatch[4] || '0', 10);
+                  const period = rangeMatch[5]?.toLowerCase();
+                  const isEvening = period === 'tối' || /tối|đêm/i.test(lowerMsg);
+                  const isAfternoon = period === 'chiều' || /chiều/i.test(lowerMsg);
                   if ((isEvening || isAfternoon) && startH > 0 && startH < 12) {
                     startH += 12;
                   }
+                  if ((isEvening || isAfternoon) && endH > 0 && endH < 12) {
+                    endH += 12;
+                  }
+                  if (endH < startH && startH >= 12 && endH < 12) {
+                    endH += 12;
+                  }
+                  const diffMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                  if (diffMinutes > 0) {
+                    durationHours = diffMinutes / 60.0;
+                  }
+                } else if (hMatch) {
+                  startH = parseInt(hMatch[1], 10);
+                  startM = parseInt(hMatch[2] || '0', 10);
+                  const period = hMatch[3]?.toLowerCase();
+                  const isEvening = period === 'tối' || /tối|đêm/i.test(lowerMsg);
+                  const isAfternoon = period === 'chiều' || /chiều/i.test(lowerMsg);
+                  if ((isEvening || isAfternoon) && startH > 0 && startH < 12) {
+                    startH += 12;
+                  }
+                  endH = (startH + 1) % 24;
+                  endM = startM;
+                  durationHours = 1.0;
+                } else {
+                  endH = (startH + 1) % 24;
+                  endM = startM;
+                  durationHours = 1.0;
                 }
+
                 const hStr = startH.toString().padStart(2, '0');
                 const mStr = startM.toString().padStart(2, '0');
+                const endHStr = endH.toString().padStart(2, '0');
+                const endMStr = endM.toString().padStart(2, '0');
                 time = `${hStr}:${mStr}`;
-                const endH = (startH + 1) % 24;
                 const startTime = `${hStr}:${mStr}`;
-                const endTime = `${endH.toString().padStart(2, '0')}:${mStr}`;
+                const endTime = `${endHStr}:${endMStr}`;
                 courtNum = findAvailableCourtForTime(venueId, startTime, sport, targetDateStr);
 
                 // Dynamically sync price with actual slot and peak hours if time was specified or for specific court
-                if (hMatch) {
+                if (rangeMatch || hMatch) {
                   const isPeak = startH >= 17 && startH < 21;
                   const matchedCourt = (store.courts || []).find(c =>
                     (c.venueId === venueId || (venueId === 'venue_01' && c.venueId === 'venue_01') || (venueId === 'venue_q1_04' && c.venueId === 'venue_01')) &&
                     c.courtNumber === courtNum
                   );
+                  let unitRate = 180000;
                   if (matchedCourt) {
-                    price = (isPeak && matchedCourt.peakPrice) ? matchedCourt.peakPrice : (matchedCourt.regularPrice || price);
+                    unitRate = (isPeak && matchedCourt.peakPrice) ? matchedCourt.peakPrice : (matchedCourt.regularPrice || matchedCourt.price || price);
+                  } else if (venueId === 'venue_q7_03') {
+                    unitRate = isPeak ? 420000 : 250000;
+                  } else if (venueId === 'venue_td_02') {
+                    unitRate = isPeak ? 220000 : 130000;
                   } else if (venueId === 'venue_01' || venueId === 'venue_q1_04') {
-                    price = isPeak ? (sport === 'Pickleball' ? 220000 : 180000) : (sport === 'Pickleball' ? 150000 : 120000);
+                    unitRate = isPeak ? (sport === 'Pickleball' ? 220000 : 180000) : (sport === 'Pickleball' ? 150000 : 120000);
+                  } else {
+                    unitRate = price;
                   }
+                  price = Math.round(unitRate * durationHours);
                 }
 
                 if (courtNum > 0) {
@@ -1033,7 +1088,9 @@ export function apiSyncPlugin(): Plugin {
                     time,
                     startTime,
                     endTime,
+                    durationHours,
                     price,
+                    basePrice: price,
                   };
                 } else {
                   actionCard = null;
@@ -1314,7 +1371,7 @@ export function apiSyncPlugin(): Plugin {
 [THỜI GIAN THỰC HỆ THỐNG]: Hôm nay là ${currentDayName}, ngày ${currentDateStr} (giờ hiện tại: ${currentTimeStr}). Khi người dùng hỏi ngày giờ, hoặc khi tư vấn lịch thi đấu, bạn BẮT BUỘC dùng mốc ngày thực tế này (${currentDateStr}). TUYỆT ĐỐI KHÔNG lấy các năm cũ như 2024 hay 2025.
 Quy tắc phản hồi:
 - Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (chỉ từ 1 đến 3 câu).
-- TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) để giả lập thẻ đặt sân, không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN NGAY]", "[⚽ ...]", "[🏸 ...]", "[Card: ...]".
+- TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) để giả lập thẻ đặt sân, không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN NGAY]", "[NHẤN ĐỂ ĐẶT NGAY]", "[Xem giờ khác]", "[📅 Xem giờ khác]", "👉 [NHẤN ĐỂ ĐẶT NGAY]", "[⚽ ...]", "[🏸 ...]", "[Card: ...]".
 - Giao diện ứng dụng SportHub đã tự động hiển thị thẻ đặt sân và các nút gợi ý bấm nhanh (quick suggestions) bên dưới.
 - Khi người dùng muốn đặt sân: Giới thiệu ngắn gọn tên sân, khung giờ và nhắc họ nhấn nút đặt ngay trên thẻ.
 - Khi người dùng muốn đặt thêm dịch vụ/nước uống/ống cầu: Xác nhận số lượng, phụ phí và báo nhân viên sân sẽ chuẩn bị sẵn khi tới.
@@ -1375,7 +1432,8 @@ Quy tắc phản hồi:
                       cleanReply = cleanReply
                         .replace(/\|[^\n]+\|\n\|[\s:-|]+\|\n(?:\|[^\n]+\|\n?)+/g, '')
                         .replace(/\|[^\n|]+\|/g, '')
-                        .replace(/\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|Thẻ\s*đặt\s*sân|Thẻ\s*dịch\s*vụ|Nút|Button|Card)[^\]]*\]/gi, '')
+                        .replace(/👉\s*\[[^\]]+\]/gi, '')
+                        .replace(/\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|📅|Thẻ|Nút|Button|Card|Nhấn|Bấm|Đặt|Xem|Khung)[^\]]*\]/gi, '')
                         .replace(/^\s*-{3,}\s*$/gm, '')
                         .replace(/\n{3,}/g, '\n\n')
                         .trim();

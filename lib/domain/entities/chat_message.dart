@@ -21,16 +21,18 @@ class ChatContext {
     this.currentRoute,
     this.venueId,
     this.venueName,
-    this.sport,
+    String? sport,
+    String? preferredSport,
     this.availableSlots,
     this.isGuest,
     this.recentBookingIds,
-  });
+  }) : sport = sport ?? preferredSport;
 
   /// Alias getters for compatibility with various spec naming conventions
   String? get activeVenueId => venueId;
   String? get activeVenueName => venueName;
   String? get selectedSport => sport;
+  String? get preferredSport => sport;
 
   factory ChatContext.fromJson(Map<String, dynamic> json) {
     return ChatContext(
@@ -77,6 +79,7 @@ class ChatContext {
     String? venueId,
     String? venueName,
     String? sport,
+    String? preferredSport,
     List<String>? availableSlots,
     bool? isGuest,
     List<String>? recentBookingIds,
@@ -89,7 +92,7 @@ class ChatContext {
       currentRoute: currentRoute ?? this.currentRoute,
       venueId: venueId ?? this.venueId,
       venueName: venueName ?? this.venueName,
-      sport: sport ?? this.sport,
+      sport: sport ?? preferredSport ?? this.sport,
       availableSlots: availableSlots ?? this.availableSlots,
       isGuest: isGuest ?? this.isGuest,
       recentBookingIds: recentBookingIds ?? this.recentBookingIds,

@@ -60,5 +60,55 @@ Chào anh An! Em đề xuất sân CLB Cầu Lông Tao Đàn nhé!
       expect(response.quickSuggestions, contains('📢 Đăng lên Bảng tin Cộng đồng'));
       expect(response.text, contains('bài đăng tuyển thành viên'));
     });
+
+    test('parseTime handles time range like 19h30 - 21h30 with 2.0 durationHours', () {
+      final parsed = ChatbotService.parseTime('19h30 - 21h30');
+      expect(parsed.startTime, equals('19:30'));
+      expect(parsed.endTime, equals('21:30'));
+      expect(parsed.durationHours, equals(2.0));
+
+      final parsedEvening = ChatbotService.parseTime('7h - 9h tối');
+      expect(parsedEvening.startTime, equals('19:00'));
+      expect(parsedEvening.endTime, equals('21:00'));
+      expect(parsedEvening.durationHours, equals(2.0));
+    });
+
+    test('cleanReply strips [NHẤN ĐỂ ĐẶT NGAY] and [📅 Xem giờ khác]', () {
+      const hallucinated = '''
+Dạ em kiểm tra khung giờ 19:30 - 21:30 tối nay tại Sân Bóng Đá Mini Nam Sài Gòn còn Sân 2 trống ạ!
+- Giá: 500.000đ/giờ
+👉 [NHẤN ĐỂ ĐẶT NGAY]
+[📅 Xem giờ khác]
+Anh có muốn đặt khung giờ này không ạ?
+''';
+      final cleaned = ChatbotService.cleanReply(hallucinated);
+      expect(cleaned, isNot(contains('[NHẤN ĐỂ ĐẶT NGAY]')));
+      expect(cleaned, isNot(contains('[📅 Xem giờ khác]')));
+      expect(cleaned, isNot(contains('👉 [')));
+      expect(cleaned, contains('Dạ em kiểm tra khung giờ 19:30 - 21:30'));
+    });
+
+    test('Local engine handles time range 19h30 - 21h30 at football venue with 2x price', () async {
+      ChatbotService.instance.resetMessages();
+
+      final context = ChatContext(
+        venueId: 'venue_q7_03',
+        venueName: 'Sân Bóng Đá Mini Nam Sài Gòn',
+        sport: 'Bóng đá',
+        userName: 'Lê Quốc Anh',
+      );
+
+      final response = await ChatbotService.instance.sendMessage(
+        '19h30 - 21h30',
+        context: context,
+      );
+
+      expect(response.actionCard, isNotNull);
+      expect(response.actionCard!['type'], equals('booking_card'));
+      expect(response.actionCard!['startTime'], equals('19:30'));
+      expect(response.actionCard!['endTime'], equals('21:30'));
+      expect(response.actionCard!['durationHours'], equals(2.0));
+      expect(response.actionCard!['price'], equals(840000));
+    });
   });
 }

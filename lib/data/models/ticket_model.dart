@@ -33,6 +33,8 @@ class TicketModel {
 
   String get timeSlot => '$startTime - $endTime';
   String get venueImage => SportImageCatalog.getDefaultImageForSport(sportType);
+  bool get isValid => status != 'cancelled';
+  bool get isExpired => status == 'completed' || status == 'expired';
 
   Map<String, dynamic> toMap() {
     return {

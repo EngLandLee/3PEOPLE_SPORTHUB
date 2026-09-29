@@ -715,59 +715,81 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                     Row(
                       children: [
                         // User Avatar
-                        GestureDetector(
-                          key: const Key('header_user_avatar'),
-                          onTap: () =>
-                              MainNavigationController.switchToTab?.call(3),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.secondary
-                                ],
-                              ),
-                              border: Border.all(
-                                  color: AppColors.cardBorder, width: 2),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'QA',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  fontSize: 14,
+                        ValueListenableBuilder<UserProfile>(
+                          valueListenable: UserProfileStore.instance.profileNotifier,
+                          builder: (context, userProfile, _) {
+                            final words = userProfile.fullName
+                                .trim()
+                                .split(RegExp(r'\s+'))
+                                .where((w) => w.isNotEmpty)
+                                .toList();
+                            final initials = words.isEmpty
+                                ? 'U'
+                                : (words.length == 1
+                                    ? words.first[0].toUpperCase()
+                                    : '${words.first[0]}${words.last[0]}'.toUpperCase());
+                            return GestureDetector(
+                              key: const Key('header_user_avatar'),
+                              onTap: () =>
+                                  MainNavigationController.switchToTab?.call(3),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.secondary
+                                    ],
+                                  ),
+                                  border: Border.all(
+                                      color: AppColors.cardBorder, width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    initials,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(width: 10),
                         // Brand and Greeting
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'SportHub',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              Text(
-                                'Chào Quốc Anh 👋',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+                          child: ValueListenableBuilder<UserProfile>(
+                            valueListenable: UserProfileStore.instance.profileNotifier,
+                            builder: (context, userProfile, _) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'SportHub',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Chào ${userProfile.fullName} 👋',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                         // Quick Theme Toggle Button
@@ -3962,6 +3984,20 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
   }
 
   Widget _buildPricingTiers() {
+    final mainSport = widget.venue.sportTypes.isNotEmpty
+        ? widget.venue.sportTypes.first
+        : 'badminton';
+    final regularPrice = ShiftSlotGenerator.calculateSlotPrice(
+      sportType: mainSport,
+      startTime: '09:00',
+      venueBaseRate: widget.venue.hourlyRate,
+    ).toInt();
+    final peakPrice = ShiftSlotGenerator.calculateSlotPrice(
+      sportType: mainSport,
+      startTime: '19:00',
+      venueBaseRate: widget.venue.hourlyRate,
+    ).toInt();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -4030,9 +4066,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                           style: TextStyle(
                               fontSize: 11, color: AppColors.textSecondary)),
                       const SizedBox(height: 8),
-                      const Text(
-                        '120.000 đ/giờ',
-                        style: TextStyle(
+                      Text(
+                        '${CurrencyFormatter.format(regularPrice)}/giờ',
+                        style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.secondary),
@@ -4088,7 +4124,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                               fontSize: 11, color: AppColors.textSecondary)),
                       const SizedBox(height: 8),
                       Text(
-                        '150.000 đ/giờ',
+                        '${CurrencyFormatter.format(peakPrice)}/giờ',
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -8444,8 +8480,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       district: _selectedDistrict,
       playTimePreference: _selectedTime,
     );
-    _nameController.clear();
-    _phoneController.clear();
+    final updated = UserProfileStore.instance.profile;
+    _nameController.text = updated.fullName;
+    _phoneController.text = updated.phone;
+    ChatbotService.instance.updateContext(
+      ChatbotService.instance.currentContext?.copyWith(
+            userName: updated.fullName,
+            preferredSport: _selectedSport,
+          ) ??
+          ChatContext(
+            userName: updated.fullName,
+            preferredSport: _selectedSport,
+          ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -8606,6 +8653,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         UserProfileStore.instance.profileNotifier.value = user;
                         _nameController.text = user.fullName;
                         _phoneController.text = user.phone;
+                        ChatbotService.instance.updateContext(
+                          ChatbotService.instance.currentContext?.copyWith(
+                                userName: user.fullName,
+                                preferredSport: user.preferredSport,
+                              ) ??
+                              ChatContext(
+                                userName: user.fullName,
+                                preferredSport: user.preferredSport,
+                              ),
+                        );
                         if (user.userId == 'user_owner_01') {
                           VenueOwnerStore.instance.toggleOwnerMode(true);
                         }
@@ -9124,24 +9181,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD700).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFFFD700).withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: const Text(
-                    '⭐ Thành viên VIP',
-                    style: TextStyle(
-                      color: Color(0xFFFFD700),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
+                Builder(
+                  builder: (context) {
+                    final String vipLabel;
+                    final Color vipColor;
+                    if (profile.matchesPlayed >= 20) {
+                      vipLabel = '⭐ Thành viên VIP';
+                      vipColor = const Color(0xFFFFD700);
+                    } else if (profile.matchesPlayed >= 10) {
+                      vipLabel = '🥇 Thành viên Vàng';
+                      vipColor = const Color(0xFFFFA500);
+                    } else {
+                      vipLabel = '🌱 Thành viên Mới';
+                      vipColor = Colors.green;
+                    }
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: vipColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: vipColor.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        vipLabel,
+                        style: TextStyle(
+                          color: vipColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -9527,12 +9600,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
         const SizedBox(height: 10),
-        _buildActivityCard(
-          title: 'Vé đã đặt',
-          subtitle: '1 vé khả dụng • Vé QR offline',
-          icon: Icons.confirmation_number_rounded,
-          iconColor: AppColors.primary,
-          onTap: () => MainNavigationController.switchToTab?.call(2),
+        ValueListenableBuilder<List<TicketModel>>(
+          valueListenable: TicketStore.instance.ticketsNotifier,
+          builder: (context, tickets, _) {
+            final validTickets =
+                tickets.where((t) => t.isValid && !t.isExpired).length;
+            return _buildActivityCard(
+              title: 'Vé đã đặt',
+              subtitle: '$validTickets vé khả dụng • Vé QR offline',
+              icon: Icons.confirmation_number_rounded,
+              iconColor: AppColors.primary,
+              onTap: () => MainNavigationController.switchToTab?.call(2),
+            );
+          },
         ),
       ],
     );

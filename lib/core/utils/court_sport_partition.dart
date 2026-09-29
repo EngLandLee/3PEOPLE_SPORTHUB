@@ -40,6 +40,15 @@ class CourtSportPartition {
     if (venue.sportTypes.length <= 1) {
       final sport = venue.sportTypes.isNotEmpty ? venue.sportTypes.first : 'badminton';
       final label = _sportLabel(sport);
+      final String priceRange;
+      if (sport == 'football') {
+        priceRange = '250k - 420k';
+      } else if (sport == 'pickleball') {
+        priceRange = '130k - 220k';
+      } else {
+        final base = venue.hourlyRate > 0 ? venue.hourlyRate : 160000.0;
+        priceRange = '${(base * 0.5 / 1000).toInt()}k - ${(base * 1.125 / 1000).toInt()}k';
+      }
       return [
         SportZone(
           zoneId: 'zone_${venue.id}_$sport',
@@ -48,7 +57,7 @@ class CourtSportPartition {
           facilityDescription: 'Tiêu chuẩn thi đấu chất lượng cao',
           badgeText: 'Chuyên nghiệp',
           courtNumbers: List.generate(venue.courtCount, (i) => i + 1),
-          priceRangeDisplay: '${(venue.hourlyRate * 0.55 / 1000).toInt()}k - ${(venue.hourlyRate * 1.125 / 1000).toInt()}k',
+          priceRangeDisplay: priceRange,
         ),
       ];
     }
