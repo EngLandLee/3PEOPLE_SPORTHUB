@@ -6,9 +6,11 @@ import 'package:http/http.dart' as http;
 import '../../data/models/ticket_model.dart';
 import '../../domain/entities/chat_message.dart';
 export '../../domain/entities/chat_message.dart';
+import '../../domain/entities/court_slot_item.dart';
 import '../../domain/entities/time_slot.dart';
 import '../../domain/entities/venue.dart';
 import '../state/ticket_store.dart';
+import '../state/venue_owner_store.dart';
 import '../utils/court_sport_partition.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/seed_data.dart';
@@ -1047,28 +1049,61 @@ class ChatbotService {
     final isOwner = context?.userRole == 'owner';
     if (isOwner) {
       if (lower.contains('doanh thu')) {
+        final slots = VenueOwnerStore.instance.slots;
+        final appSlots = slots.where((s) => s.status == CourtSlotStatus.bookedApp).toList();
+        final manualSlots = slots.where((s) => s.status == CourtSlotStatus.reservedManual).toList();
+
+        final appCount = appSlots.length;
+        final double appRevenue = appSlots.fold(0.0, (sum, s) => sum + s.price);
+
+        final manualCount = manualSlots.length;
+        final double manualRevenue = manualSlots.fold(0.0, (sum, s) => sum + s.price);
+
+        const double addOnsRevenue = 690000.0;
+        const int addOnsGroups = 4; // Pocari, Aquafina, Quấn cán, Thuê vợt
+
+        final int totalCourtBookings = appCount + manualCount;
+        final double totalRevenue = appRevenue + manualRevenue + addOnsRevenue;
+        final int totalTransactions = totalCourtBookings + addOnsGroups;
+
+        final vName = context?.venueName ?? VenueOwnerStore.instance.activeVenueName;
+        final ownerName = (context?.userName != null && context!.userName!.trim().isNotEmpty)
+            ? context.userName!
+            : 'chủ sân';
+
+        final formattedTotal = CurrencyFormatter.format(totalRevenue);
+        final formattedApp = CurrencyFormatter.format(appRevenue);
+        final formattedManual = CurrencyFormatter.format(manualRevenue);
+        final formattedAddOns = CurrencyFormatter.format(addOnsRevenue);
+
+        final greeting = ownerName.toLowerCase().startsWith('chủ sân')
+            ? 'Thưa $ownerName'
+            : 'Kính chào $ownerName';
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: '📊 **Báo cáo Doanh thu hôm nay (CLB Tao Đàn):**\n\n'
-              '• Tổng doanh thu dự kiến: **1.480.000đ**\n'
-              '• Đặt qua SportHub: **4 lượt** (940.000đ)\n'
-              '• Đặt tại quầy / Khách quen: **3 lượt** (540.000đ)\n'
+          text: '📊 **Báo cáo Doanh thu hôm nay ($vName):**\n\n'
+              '• $greeting, tổng doanh thu thực tế hôm nay đạt **$formattedTotal** '
+              '(từ $totalCourtBookings lượt đặt sân và dịch vụ phụ).\n'
+              '• Đặt qua SportHub App: **$appCount lượt** ($formattedApp)\n'
+              '• Đặt tại quầy / Khách quen: **$manualCount lượt** ($formattedManual)\n'
+              '• Dịch vụ phụ (Nước, Cầu, Thuê vợt): **$formattedAddOns**\n'
               '• Tỷ lệ thanh toán online: **100% qua VietQR**',
           sender: 'assistant',
           timestamp: DateTime.now(),
-          actionCard: const {
+          actionCard: {
             'type': 'table_card',
             'title': 'Bảng Phân Tích Doanh Thu',
-            'subtitle': 'Cập nhật theo thời gian thực',
+            'subtitle': 'Cập nhật theo thời gian thực ($vName)',
             'icon': 'revenue',
-            'headers': ['Kênh đặt', 'Số lượt', 'Doanh thu', 'Hình thức TT'],
+            'headers': const ['Kênh đặt', 'Số lượng', 'Doanh thu', 'Hình thức TT'],
             'rows': [
-              ['SportHub App', '4 lượt', '940.000đ', '100% VietQR'],
-              ['Tại quầy / Khách quen', '3 lượt', '540.000đ', 'Tiền mặt / CK'],
-              ['Dịch vụ phụ (Nước, Cầu)', '5 đơn', '180.000đ', 'Tại quầy'],
-              ['TỔNG DOANH THU', '12 lượt', '1.660.000đ', 'Đã đối soát'],
+              ['SportHub App', '$appCount lượt', formattedApp, '100% VietQR'],
+              ['Tại quầy / Khách quen', '$manualCount lượt', formattedManual, 'Tiền mặt / CK'],
+              ['Dịch vụ phụ (Nước, Cầu)', '$addOnsGroups nhóm', formattedAddOns, 'Tại quầy'],
+              ['TỔNG DOANH THU', '$totalTransactions mục', formattedTotal, 'Đã đối soát'],
             ],
-            'footer': '💡 Tiền từ đơn đặt qua app được quyết toán tự động về tài khoản VietQR của sân.',
+            'footer': '💡 Số liệu đồng bộ theo thời gian thực với tab Báo Cáo Doanh Thu của sân.',
           },
           quickSuggestions: const [
             'Tình trạng sân hôm nay',
@@ -1078,27 +1113,90 @@ class ChatbotService {
         );
       }
       if (lower.contains('check-in') || lower.contains('soát vé') || lower.contains('chờ check-in')) {
+        final slots = VenueOwnerStore.instance.slots;
+        final appSlots = slots
+            .where((s) => s.status == CourtSlotStatus.bookedApp && s.ticketId != null)
+            .toList();
+
+        final pendingSlots = appSlots
+            .where((s) => !VenueOwnerStore.instance.isCheckedIn(s.ticketId!))
+            .toList();
+        final checkedInSlots = appSlots
+            .where((s) => VenueOwnerStore.instance.isCheckedIn(s.ticketId!))
+            .toList();
+
+        final vName = context?.venueName ?? VenueOwnerStore.instance.activeVenueName;
+
+        final rows = <List<String>>[];
+        final textBuffer = StringBuffer('🎫 **Danh sách vé Check-in hôm nay ($vName):**\n\n');
+
+        if (pendingSlots.isEmpty) {
+          textBuffer.writeln('• Hiện tại không có vé nào đang chờ check-in. Tất cả khách đặt online đã nhận sân!');
+        } else {
+          textBuffer.writeln('• Có **${pendingSlots.length} vé** đang chờ khách tới nhận sân:\n');
+          for (int i = 0; i < pendingSlots.length; i++) {
+            final s = pendingSlots[i];
+            final sportLabel = s.sportType == 'pickleball'
+                ? 'Pickleball'
+                : (s.sportType == 'football' ? 'Bóng đá' : 'Cầu lông');
+            final startTime = s.timeRange.split(' - ').first;
+            textBuffer.writeln(
+                '${i + 1}. **${s.ticketId}** - ${s.customerName ?? 'Khách đặt App'} (${s.courtName} lúc $startTime - $sportLabel)');
+            rows.add([
+              s.ticketId!,
+              s.customerName ?? 'Khách đặt App',
+              '${s.courtName} ($sportLabel)',
+              startTime,
+              'Chờ check-in',
+            ]);
+          }
+        }
+
+        // Add checked-in rows
+        for (final s in checkedInSlots) {
+          final sportLabel = s.sportType == 'pickleball'
+              ? 'Pickleball'
+              : (s.sportType == 'football' ? 'Bóng đá' : 'Cầu lông');
+          final startTime = s.timeRange.split(' - ').first;
+          rows.add([
+            s.ticketId!,
+            s.customerName ?? 'Khách đặt App',
+            '${s.courtName} ($sportLabel)',
+            startTime,
+            'Đã nhận sân',
+          ]);
+        }
+
+        // Add manual walk-in rows
+        final manualBooked = slots.where((s) => s.status == CourtSlotStatus.reservedManual).take(2);
+        for (final s in manualBooked) {
+          final sportLabel = s.sportType == 'pickleball'
+              ? 'Pickleball'
+              : (s.sportType == 'football' ? 'Bóng đá' : 'Cầu lông');
+          final startTime = s.timeRange.split(' - ').first;
+          rows.add([
+            'QUAY-${s.slotId.length >= 4 ? s.slotId.substring(s.slotId.length - 4) : "00"}',
+            s.customerName ?? 'Khách tại quầy',
+            '${s.courtName} ($sportLabel)',
+            startTime,
+            'Đã nhận sân',
+          ]);
+        }
+
+        textBuffer.writeln('\n👉 Bạn có thể dùng mục **Soát vé QR** trên thanh điều hướng để quét mã vé khi khách tới quầy.');
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: '🎫 **Danh sách vé chờ Check-in hôm nay:**\n\n'
-              '1. **SH-8291** - Nguyễn Văn An (Sân 1 lúc 18:00 - Cầu lông)\n'
-              '2. **SH-8292** - Trần Thuỳ Linh (Sân 1 lúc 19:00 - Cầu lông)\n'
-              '3. **SH-7714** - Lê Minh (Sân 5 lúc 18:00 - Pickleball)\n\n'
-              '👉 Bạn có thể dùng mục **Soát vé QR** trên thanh điều hướng để quét mã vé khi khách tới quầy.',
+          text: textBuffer.toString().trim(),
           sender: 'assistant',
           timestamp: DateTime.now(),
-          actionCard: const {
+          actionCard: {
             'type': 'table_card',
             'title': 'Bảng Vé Chờ Check-in Hôm Nay',
-            'subtitle': 'Danh sách khách đặt qua ứng dụng',
+            'subtitle': 'Cập nhật theo thời gian thực ($vName)',
             'icon': 'ticket',
-            'headers': ['Mã vé', 'Khách hàng', 'Sân & Môn', 'Giờ', 'Trạng thái'],
-            'rows': [
-              ['SH-8291', 'Nguyễn Văn An', 'Sân 1 (Cầu lông)', '18:00', 'Chờ check-in'],
-              ['SH-8292', 'Trần Thuỳ Linh', 'Sân 1 (Cầu lông)', '19:00', 'Chờ check-in'],
-              ['SH-7714', 'Lê Minh', 'Sân 5 (Pickleball)', '18:00', 'Chờ check-in'],
-              ['SH-6520', 'Chú Ba (Quầy)', 'Sân 2 (Cầu lông)', '17:00', 'Đã nhận sân'],
-            ],
+            'headers': const ['Mã vé', 'Khách hàng', 'Sân & Môn', 'Giờ', 'Trạng thái'],
+            'rows': rows,
             'footer': '💡 Bấm mục Soát vé QR trên thanh điều hướng để quét mã vé cho khách khi tới sân.',
           },
           quickSuggestions: const [
@@ -1108,32 +1206,70 @@ class ChatbotService {
         );
       }
       if (lower.contains('tình trạng sân') || lower.contains('lịch sân') || lower.contains('sơ đồ')) {
+        final slots = VenueOwnerStore.instance.slots;
+        final vName = context?.venueName ?? VenueOwnerStore.instance.activeVenueName;
+
+        // Group by court name
+        final courtMap = <String, List<CourtSlotItem>>{};
+        for (final s in slots) {
+          courtMap.putIfAbsent(s.courtName, () => []).add(s);
+        }
+
+        int totalSlots = slots.length;
+        int totalBooked = slots.where((s) => s.status == CourtSlotStatus.bookedApp || s.status == CourtSlotStatus.reservedManual).length;
+        int totalMaintenance = slots.where((s) => s.status == CourtSlotStatus.maintenance).length;
+        double occupancyRate = totalSlots > 0 ? (totalBooked / totalSlots * 100) : 0.0;
+
+        final rows = <List<String>>[];
+        for (final entry in courtMap.entries) {
+          final cName = entry.key;
+          final cSlots = entry.value;
+          final bookedCount = cSlots.where((s) => s.status == CourtSlotStatus.bookedApp || s.status == CourtSlotStatus.reservedManual).length;
+          final sport = cSlots.first.sportType == 'pickleball'
+              ? 'Pickleball'
+              : (cSlots.first.sportType == 'football' ? 'Bóng đá' : 'Cầu lông');
+          final isMaint = cSlots.any((s) => s.status == CourtSlotStatus.maintenance);
+          final peakBusy = cSlots.where((s) => s.isPeakHour && (s.status == CourtSlotStatus.bookedApp || s.status == CourtSlotStatus.reservedManual)).length;
+
+          String statusDesc;
+          if (isMaint) {
+            statusDesc = 'Có giờ bảo trì';
+          } else if (peakBusy >= 3) {
+            statusDesc = 'Kín giờ vàng (18h-21h)';
+          } else if (bookedCount > 0) {
+            statusDesc = 'Còn trống';
+          } else {
+            statusDesc = 'Trống toàn bộ';
+          }
+
+          rows.add([
+            cName,
+            sport,
+            '06:00 - 22:00',
+            '$bookedCount/${cSlots.length} slot',
+            statusDesc,
+          ]);
+        }
+
+        final text = '🏟️ **Tình trạng cụm sân $vName hôm nay:**\n\n'
+            '• Tổng số sân: **${courtMap.length} sân** (${slots.length} khung giờ hoạt động)\n'
+            '• Suất đã được đặt: **$totalBooked suất** (Tỷ lệ lấp đầy: **${occupancyRate.toStringAsFixed(1)}%**)\n'
+            '• Khung giờ bảo trì: **$totalMaintenance suất**\n'
+            '• Giờ cao điểm tối (17:00 - 21:00): Các sân trung tâm đang đạt tỷ lệ lấp đầy cao nhất.';
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: '🏟️ **Tình trạng cụm sân Tao Đàn hôm nay:**\n\n'
-              '• Tổng số sân: **8 sân** (Sân 1-4 Cầu lông, Sân 5-8 Pickleball)\n'
-              '• Suất đã được đặt: **7 suất** (Tỷ lệ lấp đầy: 85% khung giờ tối)\n'
-              '• Giờ vàng (18:00 - 20:00): **Kín 100% sân 1, sân 2 và sân 5**\n'
-              '• Sân bảo trì định kỳ: **Sân 4 (12h) & Sân 7 (14h)**',
+          text: text,
           sender: 'assistant',
           timestamp: DateTime.now(),
-          actionCard: const {
+          actionCard: {
             'type': 'table_card',
-            'title': 'Bảng Tình Trạng 8 Sân Tao Đàn',
-            'subtitle': 'Khung giờ hoạt động 06:00 - 22:00',
+            'title': 'Bảng Tình Trạng Sân Hôm Nay',
+            'subtitle': 'Khung giờ hoạt động 06:00 - 22:00 ($vName)',
             'icon': 'court',
-            'headers': ['Sân', 'Môn thể thao', 'Giờ mở', 'Lấp đầy', 'Trạng thái'],
-            'rows': [
-              ['Sân 1', 'Cầu lông', '06:00 - 22:00', '8/16 slot', 'Kín 18h-20h'],
-              ['Sân 2', 'Cầu lông', '06:00 - 22:00', '7/16 slot', 'Kín 17h-19h'],
-              ['Sân 3', 'Cầu lông', '06:00 - 22:00', '5/16 slot', 'Còn trống'],
-              ['Sân 4', 'Cầu lông', '06:00 - 22:00', '4/16 slot', 'Bảo trì 12h'],
-              ['Sân 5', 'Pickleball', '06:00 - 22:00', '9/16 slot', 'Kín 18h-21h'],
-              ['Sân 6', 'Pickleball', '06:00 - 22:00', '6/16 slot', 'Còn trống'],
-              ['Sân 7', 'Pickleball', '06:00 - 22:00', '3/16 slot', 'Bảo trì 14h'],
-              ['Sân 8', 'Pickleball', '06:00 - 22:00', '5/16 slot', 'Còn trống'],
-            ],
-            'footer': '💡 Khung giờ tối 18h-21h đã kín 85% công suất.',
+            'headers': const ['Sân', 'Môn thể thao', 'Giờ mở', 'Lấp đầy', 'Trạng thái'],
+            'rows': rows,
+            'footer': '💡 Tỷ lệ lấp đầy toàn cơ sở đạt ${occupancyRate.toStringAsFixed(1)}%.',
           },
           quickSuggestions: const [
             'Doanh thu hôm nay',

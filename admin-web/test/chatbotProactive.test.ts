@@ -131,7 +131,7 @@ describe('Chatbot Proactive Recommendation', { timeout: 25000 }, () => {
     expect(data.actionCard.venueId).toBe('venue_q7_03');
     expect(data.actionCard.venueName).toContain('Nam Sài Gòn');
     expect(data.actionCard.sport).toBe('Bóng đá');
-    expect(data.actionCard.price).toBe(280000);
+    expect(data.actionCard.price).toBe(250000);
   });
 
   it('resolves Tan Binh Arena from message', async () => {

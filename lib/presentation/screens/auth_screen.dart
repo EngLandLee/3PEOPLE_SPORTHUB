@@ -96,6 +96,9 @@ class _AuthScreenState extends State<AuthScreen> {
       skillLevel: 'Beginner',
       district: 'Bình Thạnh',
       playTimePreference: 'Buổi tối (18:00 - 21:00)',
+      matchesPlayed: 0,
+      reputationRating: 5.0,
+      onTimeRate: 100,
     );
 
     final result = AuthStore.instance.stageRegistration(

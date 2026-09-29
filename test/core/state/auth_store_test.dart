@@ -100,6 +100,9 @@ void main() {
     expect(otpResult.success, isTrue);
     expect(authStore.state.isAuthenticated, isTrue);
     expect(authStore.currentUser?.phone, equals('0933 111 222'));
+    expect(authStore.currentUser?.matchesPlayed, equals(0));
+    expect(authStore.currentUser?.reputationRating, equals(5.0));
+    expect(authStore.currentUser?.onTimeRate, equals(100));
     expect(authStore.hasPendingOtp, isFalse);
   });
 

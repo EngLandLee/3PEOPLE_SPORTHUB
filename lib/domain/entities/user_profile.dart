@@ -18,9 +18,9 @@ class UserProfile {
     required this.skillLevel,
     required this.district,
     required this.playTimePreference,
-    this.matchesPlayed = 18,
-    this.reputationRating = 4.9,
-    this.onTimeRate = 98,
+    this.matchesPlayed = 0,
+    this.reputationRating = 5.0,
+    this.onTimeRate = 100,
   });
 
   UserProfile copyWith({

@@ -34,6 +34,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('quick_login_user_demo_02')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('quick_login_user_demo_02')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('quick_login_user_demo_02')));
     await tester.pumpAndSettle();
 
@@ -41,6 +43,8 @@ void main() {
     expect(AuthStore.instance.currentUser?.fullName, equals('Lê Minh'));
 
     // Switch to Linh
+    await tester.ensureVisible(find.byKey(const Key('quick_login_user_demo_03')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('quick_login_user_demo_03')));
     await tester.pumpAndSettle();
 
@@ -159,6 +163,9 @@ void main() {
 
     expect(AuthStore.instance.state.isAuthenticated, isTrue);
     expect(AuthStore.instance.currentUser?.fullName, equals('Trần Nam'));
+    expect(AuthStore.instance.currentUser?.matchesPlayed, equals(0));
+    expect(AuthStore.instance.currentUser?.reputationRating, equals(5.0));
+    expect(AuthStore.instance.currentUser?.onTimeRate, equals(100));
     expect(callbackFired, isTrue);
   });
 

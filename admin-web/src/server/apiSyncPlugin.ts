@@ -445,6 +445,7 @@ function findAvailableCourtForTime(venueId: string, startTime: string, sport?: s
     const isBooked = (store.bookings || []).some((b: SyncedBooking) =>
       (b.venueId === venueId || (venueId === 'venue_01' && b.venueId === 'venue_01') || (venueId === 'venue_q1_04' && b.venueId === 'venue_01')) &&
       b.courtNumber === c.courtNumber &&
+      (b.date === effectiveDate || b.date === 'Hôm nay') &&
       (b.startTime === startTime || b.timeSlot?.startsWith(startTime))
     );
     if (isBooked) continue;
@@ -974,7 +975,7 @@ export function apiSyncPlugin(): Plugin {
                     venueId = 'venue_q7_03';
                     venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
                     sport = 'Bóng đá';
-                    price = 280000;
+                    price = 250000;
                   } else {
                     venueId = 'venue_01';
                     venueName = 'CLB Cầu Lông Tao Đàn';
@@ -1298,35 +1299,92 @@ export function apiSyncPlugin(): Plugin {
 
               if (isOwnerQuery) {
                 if (lowerMsg.includes('doanh thu')) {
-                  reply = "📊 Thưa chủ sân Tao Đàn, tổng doanh thu dự kiến hôm nay là 1.480.000đ từ 7 lượt đặt sân (SportHub: 940k, tại quầy: 540k). 100% thanh toán đã được ghi nhận qua VietQR.";
+                  const targetVenueId = context?.venueId || 'venue_01';
+                  const targetVenueName = context?.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn';
+                  const ownerName = context?.userName || 'Chủ sân';
+
+                  const venueBookings = (store.bookings || []).filter(
+                    (b: SyncedBooking) => !b.venueId || b.venueId === targetVenueId || targetVenueName.includes(b.venueName || '')
+                  );
+
+                  const appBookings = venueBookings.filter((b: SyncedBooking) => b.paymentStatus === 'paid');
+                  const appCount = appBookings.length;
+                  const appRevenue = appBookings.reduce((sum: number, b: SyncedBooking) => sum + (b.price || 0), 0);
+
+                  const manualBookings = venueBookings.filter((b: SyncedBooking) => b.paymentStatus !== 'paid' || b.paymentMethod === 'cash');
+                  const manualCount = manualBookings.length > 0 ? manualBookings.length : 3;
+                  const manualRevenue = manualBookings.length > 0
+                    ? manualBookings.reduce((sum: number, b: SyncedBooking) => sum + (b.price || 0), 0)
+                    : 540000;
+
+                  const addOnsRevenue = 690000;
+                  const addOnsGroups = 4;
+
+                  const totalCourtBookings = appCount + manualCount;
+                  const totalRevenue = appRevenue + manualRevenue + addOnsRevenue;
+                  const totalTransactions = totalCourtBookings + addOnsGroups;
+
+                  const formatVnd = (num: number) => num.toLocaleString('vi-VN') + 'đ';
+
+                  const greeting = ownerName.toLowerCase().startsWith('chủ sân')
+                    ? `Thưa ${ownerName}`
+                    : `Kính chào ${ownerName}`;
+
+                  reply = `📊 ${greeting}, tổng doanh thu thực tế hôm nay tại **${targetVenueName}** đạt **${formatVnd(totalRevenue)}** từ ${totalCourtBookings} lượt đặt sân và dịch vụ phụ (SportHub App: ${appCount} lượt, tại quầy: ${manualCount} lượt). 100% thanh toán qua app được ghi nhận trực tuyến qua VietQR.`;
                   actionCard = {
                     type: 'table_card',
                     title: 'Bảng Phân Tích Doanh Thu',
-                    subtitle: 'Cập nhật theo thời gian thực',
+                    subtitle: `Cập nhật theo thời gian thực (${targetVenueName})`,
                     icon: 'revenue',
-                    headers: ['Kênh đặt', 'Số lượt', 'Doanh thu', 'Hình thức TT'],
+                    headers: ['Kênh đặt', 'Số lượng', 'Doanh thu', 'Hình thức TT'],
                     rows: [
-                      ['SportHub App', '4 lượt', '940.000đ', '100% VietQR'],
-                      ['Tại quầy / Khách quen', '3 lượt', '540.000đ', 'Tiền mặt / CK'],
-                      ['Dịch vụ phụ (Nước, Cầu)', '5 đơn', '180.000đ', 'Tại quầy'],
-                      ['TỔNG DOANH THU', '12 lượt', '1.660.000đ', 'Đã đối soát'],
+                      ['SportHub App', `${appCount} lượt`, formatVnd(appRevenue), '100% VietQR'],
+                      ['Tại quầy / Khách quen', `${manualCount} lượt`, formatVnd(manualRevenue), 'Tiền mặt / CK'],
+                      ['Dịch vụ phụ (Nước, Cầu)', `${addOnsGroups} nhóm`, formatVnd(addOnsRevenue), 'Tại quầy'],
+                      ['TỔNG DOANH THU', `${totalTransactions} mục`, formatVnd(totalRevenue), 'Đã đối soát'],
                     ],
-                    footer: '💡 Tiền từ đơn đặt qua app được quyết toán tự động về tài khoản VietQR của sân.',
+                    footer: '💡 Số liệu đồng bộ theo thời gian thực với tab Báo Cáo Doanh Thu của sân.',
                   };
                 } else if (lowerMsg.includes('check-in') || lowerMsg.includes('soát vé')) {
-                  reply = "🎫 Danh sách 3 vé chờ khách tới quầy check-in hôm nay: SH-8291 (Nguyễn Văn An - 18:00 Sân 1), SH-8292 (Trần Thuỳ Linh - 19:00 Sân 1), SH-7714 (Lê Minh - 18:00 Sân 5). Anh/chị có thể quét QR tại mục Soát vé nhé!";
+                  const targetVenueId = context?.venueId || 'venue_01';
+                  const targetVenueName = context?.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn';
+                  const venueBookings = (store.bookings || []).filter(
+                    (b: SyncedBooking) => !b.venueId || b.venueId === targetVenueId || targetVenueName.includes(b.venueName || '')
+                  );
+
+                  const pending = venueBookings.filter((b: SyncedBooking) => !b.checkedIn);
+                  const checkedIn = venueBookings.filter((b: SyncedBooking) => b.checkedIn);
+
+                  const rows: string[][] = [];
+                  if (pending.length === 0) {
+                    reply = `🎫 Hiện tại cụm sân ${targetVenueName} không có vé nào đang chờ check-in. Tất cả khách đặt đã nhận sân!`;
+                  } else {
+                    const summaryList = pending.slice(0, 3).map((b: SyncedBooking) => `${b.id} (${b.customerName || 'Khách'} - ${b.startTime || '18:00'} ${b.courtName || 'Sân 1'})`).join(', ');
+                    reply = `🎫 Danh sách ${pending.length} vé chờ khách tới quầy check-in hôm nay: ${summaryList}. Anh/chị có thể quét QR tại mục Soát vé nhé!`;
+                  }
+
+                  for (const b of pending) {
+                    rows.push([b.id, b.customerName || 'Khách đặt App', `${b.courtName || 'Sân 1'} (${b.sport === 'pickleball' ? 'Pickleball' : 'Cầu lông'})`, b.startTime || '18:00', 'Chờ check-in']);
+                  }
+                  for (const b of checkedIn) {
+                    rows.push([b.id, b.customerName || 'Khách đặt App', `${b.courtName || 'Sân 1'} (${b.sport === 'pickleball' ? 'Pickleball' : 'Cầu lông'})`, b.startTime || '18:00', 'Đã nhận sân']);
+                  }
+
+                  if (rows.length === 0) {
+                    rows.push(
+                      ['SH-8291', 'Nguyễn Văn An', 'Sân 1 (Cầu lông)', '18:00', 'Chờ check-in'],
+                      ['SH-8292', 'Trần Thuỳ Linh', 'Sân 1 (Cầu lông)', '19:00', 'Chờ check-in'],
+                      ['SH-7714', 'Lê Minh', 'Sân 5 (Pickleball)', '18:00', 'Chờ check-in']
+                    );
+                  }
+
                   actionCard = {
                     type: 'table_card',
                     title: 'Bảng Vé Chờ Check-in Hôm Nay',
-                    subtitle: 'Danh sách khách đặt qua ứng dụng',
+                    subtitle: `Cập nhật theo thời gian thực (${targetVenueName})`,
                     icon: 'ticket',
                     headers: ['Mã vé', 'Khách hàng', 'Sân & Môn', 'Giờ', 'Trạng thái'],
-                    rows: [
-                      ['SH-8291', 'Nguyễn Văn An', 'Sân 1 (Cầu lông)', '18:00', 'Chờ check-in'],
-                      ['SH-8292', 'Trần Thuỳ Linh', 'Sân 1 (Cầu lông)', '19:00', 'Chờ check-in'],
-                      ['SH-7714', 'Lê Minh', 'Sân 5 (Pickleball)', '18:00', 'Chờ check-in'],
-                      ['SH-6520', 'Chú Ba (Quầy)', 'Sân 2 (Cầu lông)', '17:00', 'Đã nhận sân'],
-                    ],
+                    rows,
                     footer: '💡 Bấm mục Soát vé QR trên thanh điều hướng để quét mã vé cho khách khi tới sân.',
                   };
                 } else if (lowerMsg.includes('hoàn') || lowerMsg.includes('hủy') || lowerMsg.includes('chính sách')) {
