@@ -487,5 +487,64 @@ void main() {
       expect(reply.hasActionCard, isTrue);
       expect(reply.actionCard?['isPaid'], isTrue);
     });
+
+    test('sanitizeServerActionCard switches booked Sân 1 to Sân 2 with 420k price for Nam Sài Gòn at 19:30', () {
+      final rawCard = {
+        'type': 'booking_card',
+        'venueId': 'venue_q7_03',
+        'venueName': 'Sân Bóng Đá Mini Nam Sài Gòn',
+        'sport': 'Bóng đá',
+        'court': 'Sân 1',
+        'date': 'Hôm nay',
+        'time': '19:30',
+        'startTime': '19:30',
+        'endTime': '20:30',
+        'price': 380000,
+      };
+
+      final (sanitized, reply) = ChatbotService.sanitizeServerActionCard(
+        rawCard,
+        originalReply: 'Em đã chọn cho mình Sân 1 với giá 380.000đ nhé!',
+      );
+
+      expect(sanitized, isNotNull);
+      expect(sanitized?['court'], 'Sân 2');
+      expect(sanitized?['price'], 420000);
+      expect(reply, contains('Sân 2'));
+      expect(reply, contains('420.000đ'));
+    });
+
+    test('sendMessage sanitizes server response when Sân 1 is booked', () async {
+      service.resetMessages();
+      service.httpClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'reply': 'Em đã chọn Sân 1 giá 380.000đ ạ',
+            'actionCard': {
+              'type': 'booking_card',
+              'venueId': 'venue_q7_03',
+              'venueName': 'Sân Bóng Đá Mini Nam Sài Gòn',
+              'sport': 'Bóng đá',
+              'court': 'Sân 1',
+              'date': 'Hôm nay',
+              'time': '19:30',
+              'startTime': '19:30',
+              'endTime': '20:30',
+              'price': 380000,
+            },
+            'quickSuggestions': ['⚡ Đặt ngay'],
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final reply = await service.sendMessage('đặt sân bóng đá Quận 7 lúc 19h30');
+      expect(reply.actionCard?['court'], 'Sân 2');
+      expect(reply.actionCard?['price'], 420000);
+      expect(reply.text, contains('Sân 2'));
+      expect(service.pendingBooking?['court'], 'Sân 2');
+      expect(service.pendingBooking?['price'], 420000);
+    });
   });
 }

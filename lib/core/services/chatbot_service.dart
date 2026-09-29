@@ -286,6 +286,69 @@ class ChatbotService {
     );
   }
 
+  /// Validates and synchronizes actionCard from server with client slot availability.
+  /// If the court is actually booked or on maintenance, it auto-switches to the first available court
+  /// or removes the action card if completely unavailable.
+  static (Map<String, dynamic>?, String?) sanitizeServerActionCard(
+    Map<String, dynamic>? rawCard, {
+    String? originalReply,
+  }) {
+    if (rawCard == null) return (null, originalReply);
+    if (rawCard['type'] != 'booking_card') return (rawCard, originalReply);
+
+    // If it's a payment check card (already has isPaid), preserve it
+    if (rawCard['isPaid'] == true) {
+      return (rawCard, originalReply);
+    }
+
+    final venueId = rawCard['venueId']?.toString() ?? 'venue_01';
+    final venueName = rawCard['venueName']?.toString() ?? 'CLB Cầu Lông Tao Đàn';
+    final sport = rawCard['sport']?.toString() ?? 'Cầu lông';
+    final date = rawCard['date']?.toString() ?? 'Hôm nay';
+    final startTime = rawCard['startTime']?.toString() ?? '19:00';
+
+    final courtInfo = findAvailableCourtAndPrice(
+      venueId: venueId,
+      venueName: venueName,
+      sport: sport,
+      date: date,
+      startTime: startTime,
+    );
+
+    if (!courtInfo.isAvailable) {
+      final fallbackReply =
+          'Rất tiếc, các sân môn $sport tại $venueName vào khung giờ $startTime ($date) đều đã được đặt kín hoặc đang bảo trì rồi ạ.\n\nAnh/chị có thể tham khảo các khung giờ khác hoặc chuyển sang cụm sân lân cận nhé!';
+      return (null, fallbackReply);
+    }
+
+    final sanitized = Map<String, dynamic>.from(rawCard);
+    final prevCourt = sanitized['court']?.toString();
+    final prevPrice = (sanitized['price'] as num?)?.toInt();
+    sanitized['court'] = courtInfo.courtName;
+
+    // Check if add-ons exist
+    final addonsTotal = (sanitized['addonsTotal'] as num?)?.toInt() ?? 0;
+    sanitized['basePrice'] = courtInfo.price;
+    sanitized['price'] = courtInfo.price + addonsTotal;
+
+    var sanitizedReply = originalReply;
+    if (sanitizedReply != null) {
+      if (prevCourt != null && prevCourt != courtInfo.courtName) {
+        sanitizedReply = sanitizedReply.replaceAll(prevCourt, courtInfo.courtName);
+      }
+      if (prevPrice != null && prevPrice != sanitized['price']) {
+        final oldP = prevPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+        final newP = (sanitized['price'] as int).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+        sanitizedReply = sanitizedReply
+            .replaceAll('$oldP đ', '$newP đ')
+            .replaceAll('$oldPđ', '$newPđ')
+            .replaceAll(oldP, newP);
+      }
+    }
+
+    return (sanitized, sanitizedReply);
+  }
+
   ValueNotifier<List<ChatMessage>>? _messagesNotifier;
   /// Reactive notifier holding the list of conversation messages
   ValueNotifier<List<ChatMessage>> get messagesNotifier =>
@@ -573,14 +636,26 @@ class ChatbotService {
                   ? rawSuggestions.map((e) => e.toString()).toList()
                   : null;
 
+              final rawCard = data['actionCard'] is Map<String, dynamic>
+                  ? Map<String, dynamic>.from(data['actionCard'] as Map)
+                  : null;
+              final (sanitizedCard, sanitizedReply) = sanitizeServerActionCard(
+                rawCard,
+                originalReply: cleanReply(data['reply'].toString()),
+              );
+
+              if (sanitizedCard != null && sanitizedCard['type'] == 'booking_card') {
+                pendingBooking = sanitizedCard;
+              } else if (rawCard != null && rawCard['type'] == 'booking_card' && sanitizedCard == null) {
+                pendingBooking = null;
+              }
+
               assistantMessage = ChatMessage(
                 id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-                text: cleanReply(data['reply'].toString()),
+                text: sanitizedReply ?? cleanReply(data['reply'].toString()),
                 sender: 'assistant',
                 timestamp: DateTime.now(),
-                actionCard: data['actionCard'] is Map<String, dynamic>
-                    ? Map<String, dynamic>.from(data['actionCard'] as Map)
-                    : null,
+                actionCard: sanitizedCard,
                 quickSuggestions: quickSuggestions,
               );
             }
@@ -608,14 +683,26 @@ class ChatbotService {
                       : null;
 
                   serverBaseUrl = baseUrl;
+                  final rawCard = data['actionCard'] is Map<String, dynamic>
+                      ? Map<String, dynamic>.from(data['actionCard'] as Map)
+                      : null;
+                  final (sanitizedCard, sanitizedReply) = sanitizeServerActionCard(
+                    rawCard,
+                    originalReply: cleanReply(data['reply'].toString()),
+                  );
+
+                  if (sanitizedCard != null && sanitizedCard['type'] == 'booking_card') {
+                    pendingBooking = sanitizedCard;
+                  } else if (rawCard != null && rawCard['type'] == 'booking_card' && sanitizedCard == null) {
+                    pendingBooking = null;
+                  }
+
                   assistantMessage = ChatMessage(
                     id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-                    text: cleanReply(data['reply'].toString()),
+                    text: sanitizedReply ?? cleanReply(data['reply'].toString()),
                     sender: 'assistant',
                     timestamp: DateTime.now(),
-                    actionCard: data['actionCard'] is Map<String, dynamic>
-                        ? Map<String, dynamic>.from(data['actionCard'] as Map)
-                        : null,
+                    actionCard: sanitizedCard,
                     quickSuggestions: quickSuggestions,
                   );
                   break;
