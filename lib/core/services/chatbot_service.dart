@@ -2394,14 +2394,13 @@ class ChatbotService {
     // 8. Booking intent (Expanded)
     final bookingRegex = RegExp(
       r'đặt\s*(?:sân|chỗ|lịch|luôn|ngay|hộ|giúp)?|dat\s*(?:san|cho|lich|luon|ngay|ho|giup)?|book|thuê\s*(?:sân)?|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|chốt\s*(?:sân|kèo)?|'
-      r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|thể\s*thao)|kiểm\s*tra\s*sân|'
+      r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|đá\s*bóng|đá\s*banh|thể\s*thao)|kiểm\s*tra\s*sân|'
       r'lấy\s*sân|muốn\s*sân|cần\s*sân|'
       r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?|'
       r'(\d{1,2})\s*(?:h|giờ|gio)?\s*(?:(?:rưỡi|ruoi)|(?:kém|kem)\s*\d{1,2})\s*(?:sáng|trưa|chiều|tối|sang|trua|chieu|toi)?|'
-      r'(?:cầu\s*lông|pickleball|bóng\s*đá).*(?:\d{1,2}\s*h|tối|sáng|chiều|sân)|'
-      r'(?:\d{1,2}\s*h|tối|sáng|chiều).*(?:cầu\s*lông|pickleball|bóng\s*đá)|'
+      r'(?:cầu\s*lông|pickleball|bóng\s*đá|đá\s*bóng|đá\s*banh).*(?:\d{1,2}\s*h|tối|sáng|chiều|sân|gần|quận)|'
+      r'(?:\d{1,2}\s*h|tối|sáng|chiều|gần|tìm).*(?:cầu\s*lông|pickleball|bóng\s*đá|đá\s*bóng|đá\s*banh)|'
       r'🏸|🏓|⚽',
-      caseSensitive: false,
     );
     const defaultQuickSuggestions = [
       '🏸 Cầu lông Q.1 (19h)',
@@ -2502,25 +2501,54 @@ class ChatbotService {
           sport = 'Tennis';
         }
       } else {
-        final preferred = (context?.sport ?? '').toLowerCase();
-        if (lower.contains('bóng đá') ||
+        final preferred = (context?.sport ?? context?.preferredSport ?? '').toLowerCase();
+        final hasFootball = lower.contains('bóng đá') ||
+            lower.contains('đá bóng') ||
+            lower.contains('đá banh') ||
             lower.contains('football') ||
             lower.contains('soccer') ||
+            lower.contains('futsal') ||
             lower.contains('⚽') ||
-            (!lower.contains('cầu lông') && (preferred.contains('bóng') || preferred.contains('football')))) {
+            normalizedLower.contains('bong da') ||
+            normalizedLower.contains('da bong') ||
+            normalizedLower.contains('da banh');
+
+        final hasPickleball = lower.contains('pickleball') ||
+            lower.contains('pickle') ||
+            lower.contains('🏓') ||
+            normalizedLower.contains('pickle');
+
+        final hasBadminton = lower.contains('cầu lông') ||
+            lower.contains('badminton') ||
+            lower.contains('đánh cầu') ||
+            lower.contains('🏸') ||
+            normalizedLower.contains('cau long') ||
+            normalizedLower.contains('danh cau');
+
+        if (hasFootball) {
           venueId = 'venue_q7_03';
           venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
           sport = 'Bóng đá';
-        } else if (lower.contains('pickleball') ||
-            lower.contains('🏓') ||
-            (!lower.contains('cầu lông') && preferred.contains('pickleball'))) {
+        } else if (hasPickleball) {
           venueId = 'venue_td_02';
           venueName = 'Thảo Điền Pickleball Hub';
           sport = 'Pickleball';
+        } else if (hasBadminton) {
+          venueId = 'venue_01';
+          venueName = 'CLB Cầu Lông Tao Đàn';
+          sport = 'Cầu lông';
         } else if (lower.contains('tennis') || lower.contains('quần vợt')) {
           venueId = 'venue_01';
           venueName = 'CLB Cầu Lông Tao Đàn';
           sport = 'Tennis';
+        } else if (preferred.contains('bóng') || preferred.contains('football')) {
+          venueId = 'venue_q7_03';
+          venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
+          sport = 'Bóng đá';
+        } else if (preferred.contains('pickleball')) {
+          venueId = 'venue_td_02';
+          venueName = 'Thảo Điền Pickleball Hub';
+          sport = 'Pickleball';
         } else {
           venueId = 'venue_01';
           venueName = 'CLB Cầu Lông Tao Đàn';
@@ -2575,7 +2603,19 @@ class ChatbotService {
         sender: 'assistant',
         timestamp: DateTime.now(),
         actionCard: actionCard,
-        quickSuggestions: defaultQuickSuggestions,
+        quickSuggestions: sport == 'Bóng đá'
+            ? [
+                '⚽ Sân bóng đá mini Q.7',
+                '⚽ Sân bóng đá An Phú Q.2',
+                '🎫 Xem vé của tôi',
+              ]
+            : (sport == 'Pickleball'
+                ? [
+                    '🏓 Pickleball Thảo Điền (19h)',
+                    '🏓 Sân Pickleball gần tôi',
+                    '🎫 Xem vé của tôi',
+                  ]
+                : defaultQuickSuggestions),
       );
     }
 

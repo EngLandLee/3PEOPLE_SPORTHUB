@@ -1183,6 +1183,33 @@ export function apiSyncPlugin(): Plugin {
 
               const preferredSportContext = String(context.sport || context.preferredSport || '').toLowerCase();
               const isOwner = isAuthorizedOwner(context, req);
+
+              const lowerMsg = (message || '').toLowerCase();
+              const normalizedMsg = stripVietnameseDiacritics(lowerMsg);
+
+              const hasFootball = lowerMsg.includes('bóng đá') ||
+                lowerMsg.includes('đá bóng') ||
+                lowerMsg.includes('đá banh') ||
+                lowerMsg.includes('football') ||
+                lowerMsg.includes('soccer') ||
+                lowerMsg.includes('futsal') ||
+                lowerMsg.includes('⚽') ||
+                normalizedMsg.includes('bong da') ||
+                normalizedMsg.includes('da bong') ||
+                normalizedMsg.includes('da banh');
+
+              const hasPickleball = lowerMsg.includes('pickleball') ||
+                lowerMsg.includes('pickle') ||
+                lowerMsg.includes('🏓') ||
+                normalizedMsg.includes('pickle');
+
+              const hasBadminton = lowerMsg.includes('cầu lông') ||
+                lowerMsg.includes('badminton') ||
+                lowerMsg.includes('đánh cầu') ||
+                lowerMsg.includes('🏸') ||
+                normalizedMsg.includes('cau long') ||
+                normalizedMsg.includes('danh cau');
+
               let quickSuggestions = isOwner
                 ? [
                     "📊 Doanh thu hôm nay",
@@ -1190,22 +1217,42 @@ export function apiSyncPlugin(): Plugin {
                     "🏟️ Tình trạng sân",
                     "📋 Chính sách hoàn hủy",
                   ]
-                : (preferredSportContext.includes('pickleball')
+                : hasFootball
                     ? [
-                        "🏓 Pickleball Thảo Điền (19h)",
-                        "🏓 Sân Pickleball gần tôi",
-                        "🏸 Cầu lông Bình Thạnh",
-                        "⚽ Bóng đá mini Q.7",
+                        "⚽ Sân bóng đá mini Q.7",
+                        "⚽ Sân bóng đá An Phú Q.2",
+                        "🎫 Xem vé của tôi",
                       ]
-                    : [
-                        "🏸 Cầu lông Q.1 (19h)",
-                        "🏓 Pickleball Thảo Điền",
-                        "🏸 Cầu lông Bình Thạnh",
-                        "⚽ Bóng đá mini Q.7",
-                      ]);
-
-              const lowerMsg = (message || '').toLowerCase();
-              const normalizedMsg = stripVietnameseDiacritics(lowerMsg);
+                    : hasPickleball
+                        ? [
+                            "🏓 Pickleball Thảo Điền (19h)",
+                            "🏓 Sân Pickleball gần tôi",
+                            "🎫 Xem vé của tôi",
+                          ]
+                        : hasBadminton
+                            ? [
+                                "🏸 Cầu lông Q.1 (19h)",
+                                "🏸 Cầu lông Bình Thạnh",
+                                "🎫 Xem vé của tôi",
+                              ]
+                            : (preferredSportContext.includes('bóng')
+                                ? [
+                                    "⚽ Sân bóng đá mini Q.7",
+                                    "⚽ Sân bóng đá An Phú Q.2",
+                                    "🎫 Xem vé của tôi",
+                                  ]
+                                : (preferredSportContext.includes('pickleball')
+                                    ? [
+                                        "🏓 Pickleball Thảo Điền (19h)",
+                                        "🏓 Sân Pickleball gần tôi",
+                                        "🎫 Xem vé của tôi",
+                                      ]
+                                    : [
+                                        "🏸 Cầu lông Q.1 (19h)",
+                                        "🏓 Pickleball Thảo Điền",
+                                        "🏸 Cầu lông Bình Thạnh",
+                                        "⚽ Bóng đá mini Q.7",
+                                      ]));
               const now = new Date();
               const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
               const currentDayName = days[now.getDay()];
@@ -1238,7 +1285,12 @@ export function apiSyncPlugin(): Plugin {
                 lowerMsg.includes('cầu lông') ||
                 lowerMsg.includes('pickleball') ||
                 lowerMsg.includes('bóng đá') ||
+                lowerMsg.includes('đá bóng') ||
+                lowerMsg.includes('đá banh') ||
                 lowerMsg.includes('football') ||
+                normalizedMsg.includes('da bong') ||
+                normalizedMsg.includes('da banh') ||
+                normalizedMsg.includes('bong da') ||
                 lowerMsg.includes('thảo điền') ||
                 lowerMsg.includes('thao dien') ||
                 lowerMsg.includes('bình thạnh') ||
@@ -1323,20 +1375,31 @@ export function apiSyncPlugin(): Plugin {
                   }
                 } else {
                   const preferred = (context?.sport || context?.preferredSport || '').toLowerCase();
-                  const isExplicitBadminton = lowerMsg.includes('cầu lông') || lowerMsg.includes('badminton');
-                  const isExplicitPickleball = lowerMsg.includes('pickleball');
-                  const isExplicitFootball = lowerMsg.includes('bóng đá') || lowerMsg.includes('football');
-
-                  if (isExplicitPickleball || (!isExplicitBadminton && !isExplicitFootball && preferred.includes('pickleball'))) {
-                    venueId = 'venue_td_02';
-                    venueName = 'Thảo Điền Pickleball Hub';
-                    sport = 'Pickleball';
-                    price = 200000;
-                  } else if (isExplicitFootball || (!isExplicitBadminton && !isExplicitPickleball && (preferred.includes('bóng đá') || preferred.includes('football')))) {
+                  if (hasFootball) {
                     venueId = 'venue_q7_03';
                     venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
                     sport = 'Bóng đá';
                     price = 250000;
+                  } else if (hasPickleball) {
+                    venueId = 'venue_td_02';
+                    venueName = 'Thảo Điền Pickleball Hub';
+                    sport = 'Pickleball';
+                    price = 200000;
+                  } else if (hasBadminton) {
+                    venueId = 'venue_01';
+                    venueName = 'CLB Cầu Lông Tao Đàn';
+                    sport = 'Cầu lông';
+                    price = 160000;
+                  } else if (preferred.includes('bóng') || preferred.includes('football')) {
+                    venueId = 'venue_q7_03';
+                    venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
+                    sport = 'Bóng đá';
+                    price = 250000;
+                  } else if (preferred.includes('pickleball')) {
+                    venueId = 'venue_td_02';
+                    venueName = 'Thảo Điền Pickleball Hub';
+                    sport = 'Pickleball';
+                    price = 200000;
                   } else {
                     venueId = 'venue_01';
                     venueName = 'CLB Cầu Lông Tao Đàn';
