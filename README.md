@@ -5,13 +5,13 @@
 
 ---
 
-## 👥 THÔNG TIN NHÓM PHÁT TRIỂN & PHÂN CÔNG NHÁNH (TEAM CONTRIBUTIONS)
+## 👥 THÀNH VIÊN NHÓM & PHÂN CÔNG ĐÓNG GÓP (TEAM COLLABORATORS)
 
-| STT | Họ và Tên | Vai trò chính | Nhánh Git phụ trách | Nhiệm vụ đảm nhiệm |
+| STT | GitHub Username / Họ Tên | Vai trò chuyên môn | Nhánh Git phụ trách | Nhiệm vụ chính |
 | :---: | :--- | :--- | :--- | :--- |
-| **1** | **Lê Quốc Anh** *(Trưởng nhóm)* | AI Chatbot Core & Backend Gateway | `feature/chatbot-multi-agent` | • Kiến trúc Dual-Mode Hybrid AI (FPT Cloud Gemma 26B + Local Intent Engine).<br>• Bộ bóc tách ngôn ngữ tự nhiên, giờ khẩu ngữ, đa ý định và an toàn Guardrails.<br>• Viết API Sync Gateway (`apiSyncPlugin.ts`) và cấu hình quyền Android. |
-| **2** | **Nguyễn Văn An** | Flutter UI/UX & Booking Flow | `feature/booking-vietqr-ui` | • Xây dựng giao diện ma trận sân `VisualCourtMatrix` và `VenueDetailScreen`.<br>• Thiết kế thẻ tương tác Native `ChatBookingCard`, tích hợp thư viện `qr_flutter`.<br>• Xử lý luồng chọn dịch vụ phụ (Add-ons) và lọc môn thể thao đa năng. |
-| **3** | **Trần Minh Đức** | State Management & Partner Portal | `feature/owner-dashboard-sync` | • Quản lý trạng thái Reactive qua Event Bus `TicketStore` và `VenueSyncService`.<br>• Xây dựng phân hệ Chủ sân (`OwnerManagementTab`) tra cứu doanh thu và check-in.<br>• Phát triển Web Admin Portal (React 19 + TypeScript + Tailwind CSS). |
+| **1** | **`aoi0701`** | Flutter UI/UX & Booking Flow | `feature/booking-vietqr-ui` | • Xây dựng giao diện ma trận sân `VisualCourtMatrix` và `VenueDetailScreen`.<br>• Thiết kế thẻ tương tác Native `ChatBookingCard`, tích hợp thư viện `qr_flutter`.<br>• Xử lý luồng chọn dịch vụ phụ (Add-ons) và lọc môn thể thao đa năng. |
+| **2** | **`HoangThien1304`** | State Management & Partner Portal | `feature/owner-dashboard-sync` | • Quản lý trạng thái Reactive qua Event Bus `TicketStore` và `VenueSyncService`.<br>• Xây dựng phân hệ Chủ sân (`OwnerManagementTab`) tra cứu doanh thu và check-in.<br>• Phát triển Web Admin Portal (React 19 + TypeScript + Tailwind CSS). |
+| **3** | **`DO MINH NHAT`** (`matnhinhod-pixel`) | AI Chatbot Core & Matchmaking | `feature/chatbot-multi-agent` | • Kiến trúc Dual-Mode Hybrid AI (FPT Cloud Gemma 26B + Local Intent Engine).<br>• Xây dựng Agent Ghép Kèo Vision (`RecruitmentCard`) và bộ lọc ngôn ngữ tự nhiên/không dấu.<br>• Xây dựng API Sync Gateway (`apiSyncPlugin.ts`) và xử lý xung đột thanh toán/hủy vé. |
 
 ---
 
@@ -65,8 +65,8 @@ flowchart LR
 
 ### Bước 1: Clone mã nguồn từ GitHub
 ```bash
-git clone https://github.com/EngLandLee/Laptrinhdidong.git
-cd Laptrinhdidong
+git clone https://github.com/EngLandLee/3PEOPLE_SPORTHUB.git
+cd 3PEOPLE_SPORTHUB
 git checkout main
 ```
 
