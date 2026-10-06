@@ -1531,80 +1531,84 @@ export function apiSyncPlugin(): Plugin {
               }
 
               // 3. Add-on services / extra items (nước uống, bù khoáng, ống cầu, thuê vợt...)
-              const hasAddon = /nước|khoáng|bù khoáng|pocari|aquafina|ống cầu|quả cầu|hộp cầu|thuê vợt|vợt|áo bib|bóng|đặt thêm|thêm/i.test(lowerMsg);
-              const addons: string[] = [];
+              const hasAddon = /nước|khoáng|bù khoáng|pocari|aquafina|ống cầu|quả cầu|hộp cầu|thuê vợt|vợt|áo bib|bóng|đặt thêm|thêm|giảm|bớt|bỏ|không lấy|thôi không/i.test(lowerMsg) ||
+                /nuoc|khoang|pocari|aquafina|ong cau|qua cau|thue vot|vot|bong|giam|bot|bo|khong lay|thoi khong/i.test(normalizedMsg);
               const itemsDesc: string[] = [];
-              let addonCounts: Record<string, number> = {};
               const requestedAddonCounts: Record<string, number> = {};
-              const isDecrement = /bo\s*bot|bot|bo|khong\s*(?:lay|thue|can)|thoi\s*khong|huy|tru/i.test(normalizedMsg);
-              let addonsTotal = 0;
+              const isDecrement = /giam|bo\s*bot|bot|bo|khong\s*(?:lay|thue|can)|thoi\s*khong|huy|tru/i.test(normalizedMsg);
+
               const pendingCard = context.pendingBooking && typeof context.pendingBooking === 'object'
                 ? context.pendingBooking as Record<string, unknown>
                 : undefined;
-              Object.assign(addonCounts, sanitizeAddonCounts(pendingCard?.addonCounts));
+              const addonCounts: Record<string, number> = sanitizeAddonCounts(pendingCard?.addonCounts);
 
               if (hasAddon) {
                 // 3.1 Mineral water / Pocari
                 const waterMatch = (message || '').match(/(\d+)?\s*(?:chai|lon|bình)?\s*(?:nước\s*bù\s*khoáng|pocari|nước\s*khoáng|nước\s*suối|nước)/i);
                 if (waterMatch) {
-                  const qty = parseAddonQuantity(waterMatch[1]);
-                  if (qty !== undefined) {
-                    const itemPrice = ADDON_PRICES.drink_pocari * qty;
-                    addons.push(`${qty}x Pocari Sweat Bù Khoáng (+${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    itemsDesc.push(`${qty} chai nước Pocari bù khoáng (${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    addonCounts.drink_pocari = (addonCounts.drink_pocari || 0) + qty;
-                    requestedAddonCounts.drink_pocari = qty;
-                  }
+                  const qty = parseAddonQuantity(waterMatch[1]) || 1;
+                  itemsDesc.push(`${qty} chai nước Pocari bù khoáng`);
+                  requestedAddonCounts.drink_pocari = qty;
                 }
 
                 // 3.2 Shuttlecocks (ống cầu / quả cầu)
                 const shuttleMatch = (message || '').match(/(\d+)?\s*(?:ống|hộp|trái|quả)?\s*(?:cầu\s*lông|ống\s*cầu|quả\s*cầu|hộp\s*cầu|cầu)/i);
                 if (shuttleMatch && !shuttleMatch[0].toLowerCase().includes('sân cầu lông')) {
-                  const qty = parseAddonQuantity(shuttleMatch[1]);
-                  if (qty !== undefined) {
-                    const isSingle = /quả|trái/i.test(shuttleMatch[0]) && !/ống|hộp/i.test(shuttleMatch[0]);
-                    const unitPrice = isSingle ? ADDON_PRICES.gear_shuttle_single : ADDON_PRICES.gear_shuttle_tube;
-                    const itemPrice = unitPrice * qty;
-                    const unitLabel = isSingle ? 'quả cầu lông' : 'ống cầu lông Hải Yến';
-                    addons.push(`${qty}x ${isSingle ? 'Quả Cầu Lông' : 'Ống Cầu Lông Hải Yến'} (+${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    itemsDesc.push(`${qty} ${unitLabel} (${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    const key = isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube';
-                    addonCounts[key] = (addonCounts[key] || 0) + qty;
-                    requestedAddonCounts[isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube'] = qty;
-                  }
+                  const qty = parseAddonQuantity(shuttleMatch[1]) || 1;
+                  const isSingle = /quả|trái/i.test(shuttleMatch[0]) && !/ống|hộp/i.test(shuttleMatch[0]);
+                  const unitLabel = isSingle ? 'quả cầu lông' : 'ống cầu lông Hải Yến';
+                  itemsDesc.push(`${qty} ${unitLabel}`);
+                  const key = isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube';
+                  requestedAddonCounts[key] = qty;
                 }
 
                 // 3.3 Rackets (vợt)
                 const racketMatch = (message || '').match(/(\d+)?\s*(?:cây|chiếc|cặp)?\s*(?:vợt\s*cầu\s*lông|vợt\s*pickleball|vợt)/i);
                 if (racketMatch) {
-                  const qty = parseAddonQuantity(racketMatch[1]);
-                  if (qty !== undefined) {
-                    const itemPrice = ADDON_PRICES.rent_badminton * qty;
-                    addons.push(`${qty}x Vợt Cầu Lông Yonex (+${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    itemsDesc.push(`${qty} cây vợt (${itemPrice.toLocaleString('vi-VN')}đ)`);
-                    addonCounts.rent_badminton = (addonCounts.rent_badminton || 0) + qty;
-                    requestedAddonCounts.rent_badminton = qty;
-                  }
+                  const qty = parseAddonQuantity(racketMatch[1]) || 1;
+                  itemsDesc.push(`${qty} cây vợt`);
+                  requestedAddonCounts.rent_badminton = qty;
                 }
-              if (isDecrement && Object.keys(requestedAddonCounts).length > 0) {
-                const removeAll = /khong\s*(?:lay|thue|can)|thoi\s*khong|huy/i.test(normalizedMsg);
-                for (const [key, quantity] of Object.entries(requestedAddonCounts)) {
-                  if (removeAll || (addonCounts[key] || 0) <= quantity) {
-                    delete addonCounts[key];
-                  } else {
-                    addonCounts[key] -= quantity;
+
+                // Apply additions or decrements
+                if (isDecrement) {
+                  const removeAll = /khong\s*(?:lay|thue|can)|thoi\s*khong|huy/i.test(normalizedMsg);
+                  for (const [key, quantity] of Object.entries(requestedAddonCounts)) {
+                    if (removeAll || (addonCounts[key] || 0) <= quantity) {
+                      delete addonCounts[key];
+                    } else {
+                      addonCounts[key] = (addonCounts[key] || 0) - quantity;
+                    }
+                  }
+                } else {
+                  for (const [key, quantity] of Object.entries(requestedAddonCounts)) {
+                    addonCounts[key] = Math.min((addonCounts[key] || 0) + quantity, 100);
                   }
                 }
               }
-              for (const key of Object.keys(addonCounts)) {
-                addonCounts[key] = Math.min(addonCounts[key], 100);
+
+              // Recompute addons display strings and total
+              const addons: string[] = [];
+              if (addonCounts.drink_pocari && addonCounts.drink_pocari > 0) {
+                const c = addonCounts.drink_pocari * ADDON_PRICES.drink_pocari;
+                addons.push(`${addonCounts.drink_pocari}x Pocari Sweat Bù Khoáng (+${c.toLocaleString('vi-VN')}đ)`);
               }
-              if (isDecrement) addons.length = 0;
-              addonsTotal = Object.entries(addonCounts).reduce(
+              if (addonCounts.gear_shuttle_tube && addonCounts.gear_shuttle_tube > 0) {
+                const c = addonCounts.gear_shuttle_tube * ADDON_PRICES.gear_shuttle_tube;
+                addons.push(`${addonCounts.gear_shuttle_tube}x Ống Cầu Lông Hải Yến (+${c.toLocaleString('vi-VN')}đ)`);
+              }
+              if (addonCounts.gear_shuttle_single && addonCounts.gear_shuttle_single > 0) {
+                const c = addonCounts.gear_shuttle_single * ADDON_PRICES.gear_shuttle_single;
+                addons.push(`${addonCounts.gear_shuttle_single}x Quả Cầu Lông (+${c.toLocaleString('vi-VN')}đ)`);
+              }
+              if (addonCounts.rent_badminton && addonCounts.rent_badminton > 0) {
+                const c = addonCounts.rent_badminton * ADDON_PRICES.rent_badminton;
+                addons.push(`${addonCounts.rent_badminton}x Vợt Cầu Lông Yonex (+${c.toLocaleString('vi-VN')}đ)`);
+              }
+              const addonsTotal = Object.entries(addonCounts).reduce(
                 (sum, [key, quantity]) => sum + (ADDON_PRICES[key] || 0) * quantity,
                 0,
               );
-              }
 
               let reply = isBooking
                 ? (courtNum > 0
@@ -1642,7 +1646,9 @@ export function apiSyncPlugin(): Plugin {
                   addonCounts,
                 };
 
-                reply = `Dạ, em đã ghi nhận thêm dịch vụ cho ${context?.userName || 'anh/chị'}: ${itemsDesc.join(' và ')}. Phụ phí dịch vụ là ${addonsTotal.toLocaleString('vi-VN')}đ. Nhân viên sân ${effectiveVenueName} sẽ chuẩn bị sẵn sàng khi mình tới nhé!`;
+                reply = isDecrement
+                  ? `Dạ vâng, em đã điều chỉnh giảm ${itemsDesc.join(' và ')} trong đơn đặt sân của ${context?.userName ? `anh ${context.userName}` : 'anh/chị'} rồi ạ. Phụ phí dịch vụ mới là ${addonsTotal.toLocaleString('vi-VN')}đ, tổng thanh toán là ${grandTotal.toLocaleString('vi-VN')}đ nhé!`
+                  : `Dạ, em đã ghi nhận thêm dịch vụ cho ${context?.userName || 'anh/chị'}: ${itemsDesc.join(' và ')}. Phụ phí dịch vụ là ${addonsTotal.toLocaleString('vi-VN')}đ. Nhân viên sân ${effectiveVenueName} sẽ chuẩn bị sẵn sàng khi mình tới nhé!`;
               } else if (isRecruitment) {
                 // Extract realistic player counts if mentioned (e.g., "cần 2 người", "tuyển 1 bạn")
                 const needCountMatch = (message || '').match(/(?:cần|tuyển|tìm)\s*(?:thêm)?\s*(\d+)\s*(?:người|bạn|thành\s*viên|slot)/i);

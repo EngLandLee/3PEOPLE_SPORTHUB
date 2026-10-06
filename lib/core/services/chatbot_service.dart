@@ -578,11 +578,32 @@ class ChatbotService {
     // server-provided total (or arbitrary map keys/quantities).
     final addonCounts = _sanitizeAddonCounts(sanitized['addonCounts']);
     final addonsTotal = _calculateAddonTotal(addonCounts);
+    final recomputedAddons = <String>[];
+    if (addonCounts.containsKey('drink_pocari') && addonCounts['drink_pocari']! > 0) {
+      final q = addonCounts['drink_pocari']!;
+      final c = q * 15000;
+      recomputedAddons.add('${q}x Pocari Sweat Bù Khoáng (+${CurrencyFormatter.format(c)})');
+    }
+    if (addonCounts.containsKey('gear_shuttle_tube') && addonCounts['gear_shuttle_tube']! > 0) {
+      final q = addonCounts['gear_shuttle_tube']!;
+      final c = q * 240000;
+      recomputedAddons.add('${q}x Ống Cầu Lông Hải Yến (+${CurrencyFormatter.format(c)})');
+    }
+    if (addonCounts.containsKey('gear_shuttle_single') && addonCounts['gear_shuttle_single']! > 0) {
+      final q = addonCounts['gear_shuttle_single']!;
+      final c = q * 22000;
+      recomputedAddons.add('${q}x Quả Cầu Lông (+${CurrencyFormatter.format(c)})');
+    }
+    if (addonCounts.containsKey('rent_badminton') && addonCounts['rent_badminton']! > 0) {
+      final q = addonCounts['rent_badminton']!;
+      final c = q * 30000;
+      recomputedAddons.add('${q}x Vợt Cầu Lông Yonex (+${CurrencyFormatter.format(c)})');
+    }
+    sanitized['addons'] = recomputedAddons;
     sanitized['addonCounts'] = addonCounts;
     sanitized['addonsTotal'] = addonsTotal;
     sanitized['basePrice'] = courtInfo.price;
     sanitized['price'] = courtInfo.price + addonsTotal;
-
     var sanitizedReply = originalReply;
     if (sanitizedReply != null) {
       if (prevCourt != null && prevCourt != courtInfo.courtName) {
