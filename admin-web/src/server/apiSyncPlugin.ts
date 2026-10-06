@@ -560,20 +560,59 @@ function loadSyncStore(): SyncStoreData {
       const raw = fs.readFileSync(storePath, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.courts)) {
-        if (!Array.isArray(parsed.venues) || parsed.venues.length === 0) {
+        let hasUpdates = false;
+        if (!Array.isArray(parsed.venues) || parsed.venues.length < DEFAULT_SYNC_VENUES.length) {
           parsed.venues = [...DEFAULT_SYNC_VENUES];
+          hasUpdates = true;
         }
         if (!Array.isArray(parsed.bookings) || parsed.bookings.length === 0) {
           parsed.bookings = [...DEFAULT_SYNC_BOOKINGS];
+          hasUpdates = true;
         }
         if (!parsed.chatbotConfig) {
           parsed.chatbotConfig = { ...DEFAULT_CHATBOT_CONFIG };
+          hasUpdates = true;
         }
-        if (!Array.isArray(parsed.chatbotFaqs) || parsed.chatbotFaqs.length <= 1) {
+        if (!Array.isArray(parsed.chatbotFaqs) || parsed.chatbotFaqs.length < DEFAULT_CHATBOT_FAQS.length) {
           parsed.chatbotFaqs = [...DEFAULT_CHATBOT_FAQS];
+          hasUpdates = true;
         }
         if (!Array.isArray(parsed.chatbotConversations)) {
           parsed.chatbotConversations = [];
+        }
+
+        // Ensure courts for the 3 new venues are present in parsed.courts
+        const existingCourtIds = new Set(parsed.courts.map((c: SyncedCourt) => c.id));
+        const newVenueCourts: SyncedCourt[] = [
+          { id: 'court_pn_01', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+          { id: 'court_pn_02', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+          { id: 'court_pn_03', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+          { id: 'court_pn_04', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+          { id: 'court_pn_05', venueId: 'venue_pn_06', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 170000, peakPrice: 220000 },
+          { id: 'court_pn_06', venueId: 'venue_pn_06', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 170000, peakPrice: 220000 },
+          { id: 'court_q2_01', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 01', sport: 'football', courtNumber: 1, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+          { id: 'court_q2_02', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 02', sport: 'football', courtNumber: 2, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+          { id: 'court_q2_03', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 03', sport: 'football', courtNumber: 3, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+          { id: 'court_q2_04', venueId: 'venue_q2_07', name: 'Sân Bóng Đá 04', sport: 'football', courtNumber: 4, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+          { id: 'court_q10_01', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+          { id: 'court_q10_02', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+          { id: 'court_q10_03', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+          { id: 'court_q10_04', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+          { id: 'court_q10_05', venueId: 'venue_q10_08', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+          { id: 'court_q10_06', venueId: 'venue_q10_08', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+          { id: 'court_q10_07', venueId: 'venue_q10_08', name: 'Sân Pickleball 07', sport: 'pickleball', courtNumber: 7, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+          { id: 'court_q10_08', venueId: 'venue_q10_08', name: 'Sân Pickleball 08', sport: 'pickleball', courtNumber: 8, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+        ];
+        for (const c of newVenueCourts) {
+          if (!existingCourtIds.has(c.id)) {
+            parsed.courts.push(c);
+            hasUpdates = true;
+          }
+        }
+
+        if (hasUpdates) {
+          parsed.timestamp = Date.now();
+          saveSyncStore(parsed);
         }
         return parsed;
       }
@@ -620,6 +659,27 @@ function loadSyncStore(): SyncStoreData {
     { id: 'court_tb_06', venueId: 'venue_tb_05', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 200000, peakPrice: 250000 },
     { id: 'court_tb_07', venueId: 'venue_tb_05', name: 'Sân Bóng Đá Mini 07', sport: 'football', courtNumber: 7, isActive: true, regularPrice: 300000, peakPrice: 400000 },
     { id: 'court_tb_08', venueId: 'venue_tb_05', name: 'Sân Bóng Đá Mini 08', sport: 'football', courtNumber: 8, isActive: true, regularPrice: 300000, peakPrice: 400000 },
+    // Phú Nhuận Club (6 courts)
+    { id: 'court_pn_01', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+    { id: 'court_pn_02', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+    { id: 'court_pn_03', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+    { id: 'court_pn_04', venueId: 'venue_pn_06', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 160000, peakPrice: 180000 },
+    { id: 'court_pn_05', venueId: 'venue_pn_06', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 170000, peakPrice: 220000 },
+    { id: 'court_pn_06', venueId: 'venue_pn_06', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 170000, peakPrice: 220000 },
+    // An Phú Q.2 Football (4 courts)
+    { id: 'court_q2_01', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 01', sport: 'football', courtNumber: 1, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+    { id: 'court_q2_02', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 02', sport: 'football', courtNumber: 2, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+    { id: 'court_q2_03', venueId: 'venue_q2_07', name: 'Sân Bóng Đá Mini 03', sport: 'football', courtNumber: 3, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+    { id: 'court_q2_04', venueId: 'venue_q2_07', name: 'Sân Bóng Đá 04', sport: 'football', courtNumber: 4, isActive: true, regularPrice: 270000, peakPrice: 320000 },
+    // Kỳ Hòa Q.10 (8 courts)
+    { id: 'court_q10_01', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 01', sport: 'badminton', courtNumber: 1, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+    { id: 'court_q10_02', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 02', sport: 'badminton', courtNumber: 2, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+    { id: 'court_q10_03', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 03', sport: 'badminton', courtNumber: 3, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+    { id: 'court_q10_04', venueId: 'venue_q10_08', name: 'Sân Cầu Lông 04', sport: 'badminton', courtNumber: 4, isActive: true, regularPrice: 170000, peakPrice: 190000 },
+    { id: 'court_q10_05', venueId: 'venue_q10_08', name: 'Sân Pickleball 05', sport: 'pickleball', courtNumber: 5, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_q10_06', venueId: 'venue_q10_08', name: 'Sân Pickleball 06', sport: 'pickleball', courtNumber: 6, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_q10_07', venueId: 'venue_q10_08', name: 'Sân Pickleball 07', sport: 'pickleball', courtNumber: 7, isActive: true, regularPrice: 180000, peakPrice: 220000 },
+    { id: 'court_q10_08', venueId: 'venue_q10_08', name: 'Sân Pickleball 08', sport: 'pickleball', courtNumber: 8, isActive: true, regularPrice: 180000, peakPrice: 220000 },
   ];
 
   return {
