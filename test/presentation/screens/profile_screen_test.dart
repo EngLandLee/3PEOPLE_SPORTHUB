@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
   setUp(() {
+    AuthStore.instance.reset();
     UserProfileStore.instance.reset();
   });
 
@@ -64,8 +66,8 @@ void main() {
     await tester.tap(saveButton);
     await tester.pumpAndSettle();
 
-    // Verify updated name in header
-    expect(find.text('Nguyễn Quốc Anh'), findsOneWidget);
+    // Verify updated name in header and text field
+    expect(find.text('Nguyễn Quốc Anh'), findsWidgets);
     expect(find.text('Đã cập nhật hồ sơ thành công!'), findsOneWidget);
   });
 

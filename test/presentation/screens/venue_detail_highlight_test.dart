@@ -162,6 +162,41 @@ void main() {
         isTrue);
   });
 
+  testWidgets(
+      'VenueDetailScreen auto-selects both consecutive slots for 2-hour booking into BookingBloc',
+      (tester) async {
+    final venue = SeedData.sampleVenues.first;
+    final bookingBloc = BookingBloc();
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<BookingBloc>.value(value: bookingBloc),
+        ],
+        child: MaterialApp(
+          home: VenueDetailScreen(
+            venue: venue,
+            initialDate: DateTime(2026, 9, 6),
+            targetCourtNumber: 1,
+            targetStartTime: '18:00',
+            targetEndTime: '20:00',
+            initialViewMode: 'court_map',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(bookingBloc.state, isA<BookingSlotsUpdated>());
+    final state = bookingBloc.state as BookingSlotsUpdated;
+    final court1Slots = state.selectedSlots.where((s) => s.courtNumber == 1).toList();
+    expect(court1Slots.length, 2);
+    expect(court1Slots.any((s) => s.startTime == '18:00'), isTrue);
+    expect(court1Slots.any((s) => s.startTime == '19:00'), isTrue);
+  });
+
   testWidgets('VenueDetailScreen switches filter when targetSport is provided',
       (tester) async {
     final multiSportVenue = SeedData.sampleVenues.firstWhere(

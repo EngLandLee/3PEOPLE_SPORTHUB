@@ -203,9 +203,37 @@ class VenueSyncService {
         if (bStartTime == startTime || bTimeSlot.startsWith(startTime)) {
           return true;
         }
+        // Support multi-hour booking overlap (e.g. 18:00 - 20:00 blocks both 18:00 and 19:00)
+        final slotStartMin = _parseTimeToMinutes(startTime);
+        String bookingEndTime = b['endTime']?.toString() ?? '';
+        if (bookingEndTime.isEmpty && bTimeSlot.contains('-')) {
+          final slotParts = bTimeSlot.split('-');
+          if (slotParts.length >= 2) {
+            bookingEndTime = slotParts[1].trim();
+          }
+        }
+        final bookingStartMin = _parseTimeToMinutes(
+            bStartTime.isNotEmpty ? bStartTime : bTimeSlot.split('-').first.trim());
+        final bookingEndMin = _parseTimeToMinutes(bookingEndTime);
+
+        if (slotStartMin != null && bookingStartMin != null && bookingEndMin != null) {
+          if (slotStartMin >= bookingStartMin && slotStartMin < bookingEndMin) {
+            return true;
+          }
+        }
       }
     }
     return false;
+  }
+
+  static int? _parseTimeToMinutes(String? timeStr) {
+    if (timeStr == null || timeStr.trim().isEmpty) return null;
+    final parts = timeStr.trim().split(':');
+    if (parts.isEmpty) return null;
+    final h = int.tryParse(parts[0]);
+    if (h == null) return null;
+    final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    return h * 60 + m;
   }
 
   /// Creates a new booking, persists locally and syncs with Web Admin Portal (/api/bookings)

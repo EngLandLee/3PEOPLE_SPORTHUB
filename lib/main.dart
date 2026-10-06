@@ -1966,6 +1966,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       _triggerCourtHighlightAndSelection(
         widget.targetCourtNumber!,
         widget.targetStartTime,
+        endTime: widget.targetEndTime,
       );
     }
   }
@@ -1992,7 +1993,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     super.dispose();
   }
 
-  void _triggerCourtHighlightAndSelection(int courtNumber, String? startTime, {bool selectSlot = true}) {
+  void _triggerCourtHighlightAndSelection(
+    int courtNumber,
+    String? startTime, {
+    String? endTime,
+    double durationHours = 1.0,
+    bool selectSlot = true,
+  }) {
     if (mounted) {
       setState(() {
         _highlightedCourtNumber = courtNumber;
@@ -2024,20 +2031,58 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (selectSlot) {
-        final matching = _slots.where((s) =>
-            s.courtNumber == courtNumber &&
-            (startTime == null || s.startTime == startTime)).toList();
-        if (matching.isNotEmpty) {
-          final slotToSelect = matching.first;
-          if (slotToSelect.isAvailable) {
-            final bookingBloc = context.read<BookingBloc>();
-            final currentState = bookingBloc.state;
-            final alreadySelected = currentState is BookingSlotsUpdated &&
-                currentState.selectedSlots.length == 1 &&
-                currentState.selectedSlots.first.id == slotToSelect.id;
-            if (!alreadySelected) {
-              bookingBloc.add(ClearSelectedSlotsEvent());
-              bookingBloc.add(ToggleSlotEvent(slotToSelect));
+        int? parseMinutes(String? t) {
+          if (t == null) return null;
+          final p = t.trim().split(':');
+          if (p.isEmpty) return null;
+          final h = int.tryParse(p[0]);
+          if (h == null) return null;
+          final m = p.length > 1 ? (int.tryParse(p[1]) ?? 0) : 0;
+          return h * 60 + m;
+        }
+
+        final startMin = parseMinutes(startTime);
+        final endMin = parseMinutes(endTime) ??
+            (startMin != null
+                ? startMin + (durationHours * 60).round()
+                : null);
+
+        List<TimeSlot> matching = [];
+        if (startMin != null && endMin != null && endMin > startMin) {
+          matching = _slots.where((s) {
+            if (s.courtNumber != courtNumber) return false;
+            final sStart = parseMinutes(s.startTime);
+            final sEnd = parseMinutes(s.endTime);
+            if (sStart == null || sEnd == null) return false;
+            return sStart >= startMin && sEnd <= endMin;
+          }).toList();
+        }
+
+        if (matching.isEmpty) {
+          matching = _slots
+              .where((s) =>
+                  s.courtNumber == courtNumber &&
+                  (startTime == null || s.startTime == startTime))
+              .toList();
+        }
+
+        final availableToSelect =
+            matching.where((s) => s.isAvailable).toList();
+        if (availableToSelect.isNotEmpty) {
+          final bookingBloc = context.read<BookingBloc>();
+          final currentState = bookingBloc.state;
+          final currentSelectedIds = (currentState is BookingSlotsUpdated)
+              ? currentState.selectedSlots.map((s) => s.id).toSet()
+              : <String>{};
+          final targetIds = availableToSelect.map((s) => s.id).toSet();
+
+          final isSame = currentSelectedIds.length == targetIds.length &&
+              currentSelectedIds.containsAll(targetIds);
+
+          if (!isSame) {
+            bookingBloc.add(ClearSelectedSlotsEvent());
+            for (final slot in availableToSelect) {
+              bookingBloc.add(ToggleSlotEvent(slot));
             }
           }
         }
@@ -2068,6 +2113,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     final startTime = actionCard['startTime']?.toString() ??
         actionCard['time']?.toString() ??
         '19:00';
+    final endTime = actionCard['endTime']?.toString();
+    final durationHours =
+        (actionCard['durationHours'] as num?)?.toDouble() ?? 1.0;
     final rawSport = actionCard['sport']?.toString() ?? 'badminton';
     final sport = rawSport.toLowerCase().contains('pickleball')
         ? 'pickleball'
@@ -2091,6 +2139,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               venue: targetVenue,
               targetCourtNumber: courtNumber,
               targetStartTime: startTime,
+              targetEndTime: endTime,
               targetSport: sport,
               initialViewMode: 'court_map',
               initialAddonCounts: parsedAddonCounts,
@@ -2143,7 +2192,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       });
 
       context.read<BookingBloc>().add(ClearSelectedSlotsEvent());
-      _triggerCourtHighlightAndSelection(courtNumber, startTime, selectSlot: false);
+      _triggerCourtHighlightAndSelection(
+        courtNumber,
+        startTime,
+        endTime: endTime,
+        durationHours: durationHours,
+        selectSlot: false,
+      );
 
       final displayCourt =
           courtStr.startsWith('Sân') ? courtStr : 'Sân $courtStr';
@@ -2195,7 +2250,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       _slots = _getDynamicSlots();
     });
 
-    _triggerCourtHighlightAndSelection(courtNumber, startTime);
+    _triggerCourtHighlightAndSelection(
+      courtNumber,
+      startTime,
+      endTime: endTime,
+      durationHours: durationHours,
+    );
   }
 
   List<TimeSlot> _getDynamicSlots() {
@@ -8560,15 +8620,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -8675,10 +8737,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 10),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
-  }
+  },
+);
+}
 
   Widget _buildGuestHeaderCard() {
     return Container(
@@ -9185,7 +9249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context) {
                     final String vipLabel;
                     final Color vipColor;
-                    if (profile.matchesPlayed >= 20) {
+                    if (profile.matchesPlayed >= 15) {
                       vipLabel = '⭐ Thành viên VIP';
                       vipColor = const Color(0xFFFFD700);
                     } else if (profile.matchesPlayed >= 10) {

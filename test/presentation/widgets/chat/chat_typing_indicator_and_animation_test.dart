@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
-import 'package:sporthub/domain/entities/chat_message.dart';
 import 'package:sporthub/presentation/widgets/chat/chat_message_bubble.dart';
 import 'package:sporthub/presentation/widgets/chat/chat_typing_indicator.dart';
 

@@ -90,7 +90,44 @@ class ChatbotService {
       durationHours = diff > 0 ? diff : 1.0;
       matched = true;
     } else {
-      // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
+      // Pattern 1.1: rưỡi, e.g. 5 rưỡi chiều, 5h rưỡi, 7 rưỡi tối, 17 rưỡi
+      final ruoiMatch = RegExp(
+        r'(\d{1,2})\s*(?:h|giờ)?\s*rưỡi\s*(sáng|trưa|chiều|tối)?',
+        caseSensitive: false,
+      ).firstMatch(text);
+      // Pattern 1.2: kém, e.g. 7h kém 15, 7 giờ kém 20, 19h kém 15
+      final kemMatch = RegExp(
+        r'(\d{1,2})\s*(?:h|giờ)?\s*kém\s*(\d{1,2})\s*(sáng|trưa|chiều|tối)?',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (ruoiMatch != null) {
+        h = int.tryParse(ruoiMatch.group(1)!) ?? 19;
+        m = 30;
+        final period = ruoiMatch.group(2)?.toLowerCase();
+        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+          h += 12;
+        } else if (period == 'sáng' && h == 12) {
+          h = 0;
+        }
+        endH = (h + 1) % 24;
+        endM = m;
+        durationHours = 1.0;
+        matched = true;
+      } else if (kemMatch != null) {
+        final rawH = int.tryParse(kemMatch.group(1)!) ?? 19;
+        final kemM = int.tryParse(kemMatch.group(2)!) ?? 15;
+        h = (rawH - 1 + 24) % 24;
+        m = (60 - kemM) % 60;
+        final period = kemMatch.group(3)?.toLowerCase();
+        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+          h += 12;
+        }
+        endH = (h + 1) % 24;
+        endM = m;
+        durationHours = 1.0;
+        matched = true;
+      } else {
+        // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
       final hMatch = RegExp(
         r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
         caseSensitive: false,
@@ -124,6 +161,7 @@ class ChatbotService {
         }
       }
     }
+  }
 
     if (!matched) {
       final parts = defaultTime.split(':');
@@ -176,6 +214,16 @@ class ChatbotService {
       );
     }
 
+    if (lower.contains('cuối tuần')) {
+      final daysUntilSaturday = (DateTime.saturday - now.weekday + 7) % 7;
+      final target = now.add(Duration(days: daysUntilSaturday == 0 ? 7 : daysUntilSaturday));
+      final dateStr =
+          '${target.year}-${target.month.toString().padLeft(2, '0')}-${target.day.toString().padLeft(2, '0')}';
+      return (
+        dateStr: dateStr,
+        displayDate: 'Thứ Bảy (${target.day.toString().padLeft(2, '0')}/${target.month.toString().padLeft(2, '0')})',
+      );
+    }
     final dateMatch = RegExp(r'ngày\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{4}))?').firstMatch(text);
     if (dateMatch != null) {
       final d = int.tryParse(dateMatch.group(1)!) ?? now.day;
@@ -263,13 +311,25 @@ class ChatbotService {
             ? 'football'
             : 'badminton');
 
-    final calculatedPrice = ShiftSlotGenerator.calculateSlotPrice(
-      sportType: sportKey,
-      startTime: startTime,
-      venueBaseRate: venue.hourlyRate,
-    ).toInt();
+    final totalHours = (durationHours > 0 ? durationHours : 1.0).ceil();
+    final startParts = startTime.split(':');
+    final startH = int.tryParse(startParts[0]) ?? 19;
+    final startM = startParts.length > 1 ? (int.tryParse(startParts[1]) ?? 0) : 0;
 
-    // 6. Find first court that is active & matching sport & not booked
+    int calculatedPriceSum = 0;
+    for (int i = 0; i < totalHours; i++) {
+      final currentH = startH + i;
+      final slotTimeStr =
+          '${currentH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}';
+      final p = ShiftSlotGenerator.calculateSlotPrice(
+        sportType: sportKey,
+        startTime: slotTimeStr,
+        venueBaseRate: venue.hourlyRate,
+      ).toInt();
+      calculatedPriceSum += p > 0 ? p : 180000;
+    }
+
+    // 6. Find first court that is active & matching sport & not booked for ALL hours
     int bestCourt = 1;
     bool found = false;
 
@@ -293,31 +353,59 @@ class ChatbotService {
       );
       if (!isCourtActive) continue;
 
-      // Check slot generated status (ShiftSlotGenerator)
-      final matching = slots.where((s) => s.courtNumber == c && s.startTime == startTime);
-      if (matching.isNotEmpty &&
-          (matching.first.status == SlotStatus.booked ||
-              matching.first.status == SlotStatus.locked)) {
-        continue;
+      bool courtFreeForAllHours = true;
+      for (int i = 0; i < totalHours; i++) {
+        final currentH = startH + i;
+        final slotTimeStr =
+            '${currentH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}';
+
+        // Check runtime bookings
+        final isBooked = VenueSyncService.instance.isSlotBooked(
+          venueId: venue.id,
+          courtNumber: c,
+          date: dateStr,
+          startTime: slotTimeStr,
+          venueName: venue.name,
+        );
+        if (isBooked) {
+          courtFreeForAllHours = false;
+          break;
+        }
+
+        // Check slot generated status (ShiftSlotGenerator)
+        final slotShift =
+            currentH < 12 ? 'morning' : (currentH < 17 ? 'afternoon' : 'evening');
+        final currentSlots = slotShift == shift
+            ? slots
+            : ShiftSlotGenerator.generateSlots(
+                date: dateStr,
+                courtCount: venue.courtCount,
+                shift: slotShift,
+                minuteOffset: minuteOffset,
+                venue: venue,
+              );
+        final matching = currentSlots
+            .where((s) => s.courtNumber == c && s.startTime == slotTimeStr);
+        if (matching.isNotEmpty &&
+            (matching.first.status == SlotStatus.booked ||
+                matching.first.status == SlotStatus.locked)) {
+          courtFreeForAllHours = false;
+          break;
+        }
       }
 
-      // Check runtime bookings
-      final isBooked = VenueSyncService.instance.isSlotBooked(
-        venueId: venue.id,
-        courtNumber: c,
-        date: dateStr,
-        startTime: startTime,
-        venueName: venue.name,
-      );
-      if (isBooked) continue;
+      if (!courtFreeForAllHours) continue;
 
       bestCourt = c;
       found = true;
       break;
     }
 
-    final unitPrice = calculatedPrice > 0 ? calculatedPrice : 180000;
-    final totalPrice = (unitPrice * (durationHours > 0 ? durationHours : 1.0)).toInt();
+    final effectivePrice =
+        calculatedPriceSum > 0 ? calculatedPriceSum : (180000 * totalHours);
+    final totalPrice = durationHours < totalHours
+        ? (effectivePrice * (durationHours / totalHours)).toInt()
+        : effectivePrice;
 
     if (!found) {
       return (
@@ -474,6 +562,7 @@ class ChatbotService {
       }
     } catch (_) {}
     if (!urls.contains(serverBaseUrl)) urls.add(serverBaseUrl);
+    if (!urls.contains('http://10.0.2.2:5173')) urls.add('http://10.0.2.2:5173');
     if (!urls.contains('http://127.0.0.1:5173')) urls.add('http://127.0.0.1:5173');
     if (!urls.contains('http://localhost:5173')) urls.add('http://localhost:5173');
     if (!urls.contains('http://0.0.0.0:5173')) urls.add('http://0.0.0.0:5173');
@@ -539,6 +628,16 @@ class ChatbotService {
 
     messagesNotifier.value = updatedMessages;
 
+    if (pendingBooking != null) {
+      pendingBooking = {
+        ...pendingBooking!,
+        'isPaid': true,
+        'isBooked': true,
+        'bookingId': ticket.bookingId,
+        'ticketId': ticket.id,
+        if (ticket.courtNumber > 0) 'court': 'Sân ${ticket.courtNumber}',
+      };
+    }
     // 2. Add an assistant confirmation message to celebrate and respond back
     final courtLabel = ticket.courtNumber > 0 ? 'Sân ${ticket.courtNumber}' : 'Sân tiêu chuẩn';
     final formattedPrice = CurrencyFormatter.format(ticket.totalPrice);
@@ -786,10 +885,18 @@ class ChatbotService {
         // Fallback to local engine on error or timeout
       }
     }
+    // If local candidate dev servers were not reachable (e.g. mobile phone on Wi-Fi/4G),
+    // directly invoke FPT Cloud AI via public HTTPS endpoint
+    if (assistantMessage == null && !isTestEnvironment && effectiveHttpClient == null) {
+      assistantMessage = await _callFptCloudDirectly(
+        text,
+        effectiveContext,
+        imageUrl: imageUrl,
+      );
+    }
 
-        // Fallback to smart local intent engine if server didn't reply
-        assistantMessage ??= _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
-
+    // Fallback to smart local intent engine if neither server nor cloud replied
+    assistantMessage ??= _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
         addMessage(assistantMessage);
 
         // Asynchronously sync conversation to server
@@ -804,6 +911,25 @@ class ChatbotService {
   /// Processes intent locally with regex matching and smart entity extraction
   ChatMessage _processLocalIntent(String text, ChatContext? context, {String? imageUrl}) {
     final lower = text.toLowerCase();
+    // -1. Safety & Off-topic Guardrails check
+    final isOffTopic = RegExp(
+      r'bài\s*thơ|thơ\s*tình|\bthơ\b|\bcode\b|lập\s*trình|thuật\s*toán|giải\s*toán|chính\s*trị|bầu\s*cử|api\s*key|system\s*prompt|bẻ\s*khóa|hack\s*hệ\s*thống',
+      caseSensitive: false,
+    ).hasMatch(text);
+    if (isOffTopic) {
+      return ChatMessage(
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+        text: 'Dạ, em là trợ lý ảo SportHub AI chuyên về đặt sân và các hoạt động thể thao tại TP.HCM. Em xin phép chỉ hỗ trợ các câu hỏi liên quan đến sân bãi, lịch chơi và dịch vụ thể thao thôi nhé ạ!',
+        sender: 'assistant',
+        timestamp: DateTime.now(),
+        actionCard: null,
+        quickSuggestions: const [
+          '🏸 Cầu lông Q.1 (19h)',
+          '🏓 Pickleball Thảo Điền',
+          '⚽ Bóng đá mini Q.7',
+        ],
+      );
+    }
 
     // 0. Check date/time query first to prevent false matching on "bao nhiêu" in priceRegex
     final isDateTimeQuery = RegExp(
@@ -1468,8 +1594,12 @@ class ChatbotService {
     }
 
     // 5. Add-on services / extra items (nước uống, bù khoáng, ống cầu, thuê vợt...)
+    final isDecrement = RegExp(
+      r'bỏ\s*bớt|bớt|bỏ|không\s*(?:lấy|thuê|cần)|thôi\s*không|hủy\s*(?:bớt)?|trừ',
+      caseSensitive: false,
+    ).hasMatch(text);
     final addonCheckRegex = RegExp(
-      r'nước|khoáng|bù khoáng|pocari|aquafina|ống cầu|quả cầu|hộp cầu|thuê vợt|vợt|bóng|đặt thêm|thêm',
+      r'nước|khoáng|bù khoáng|pocari|aquafina|ống cầu|quả cầu|hộp cầu|thuê vợt|vợt|bóng|đặt thêm|thêm|bỏ\s*bớt|bớt|bỏ|không\s*(?:lấy|thuê|cần)|thôi\s*không',
       caseSensitive: false,
     );
 
@@ -1477,7 +1607,6 @@ class ChatbotService {
       final addons = <String>[];
       final itemsDesc = <String>[];
       final addonCounts = <String, int>{};
-      int addonsTotal = 0;
 
       // 5.1 Mineral water / Pocari
       final waterMatch = RegExp(
@@ -1489,7 +1618,6 @@ class ChatbotService {
         final itemPrice = 15000 * qty;
         addons.add('${qty}x Pocari Sweat Bù Khoáng (+${CurrencyFormatter.format(itemPrice)})');
         itemsDesc.add('$qty chai nước Pocari bù khoáng (${CurrencyFormatter.format(itemPrice)})');
-        addonsTotal += itemPrice;
         addonCounts['drink_pocari'] = (addonCounts['drink_pocari'] ?? 0) + qty;
       }
 
@@ -1498,7 +1626,11 @@ class ChatbotService {
         r'(\d+)?\s*(?:ống|hộp|trái|quả)?\s*(?:cầu\s*lông|ống\s*cầu|quả\s*cầu|hộp\s*cầu|cầu)',
         caseSensitive: false,
       ).firstMatch(text);
-      if (shuttleMatch != null && !shuttleMatch.group(0)!.toLowerCase().contains('sân')) {
+      final isPrecededByVot = shuttleMatch != null &&
+          text.substring(0, shuttleMatch.start).trim().toLowerCase().endsWith('vợt');
+      if (shuttleMatch != null &&
+          !shuttleMatch.group(0)!.toLowerCase().contains('sân') &&
+          !isPrecededByVot) {
         final qty = int.tryParse(shuttleMatch.group(1) ?? '1') ?? 1;
         final isSingle = RegExp(r'quả|trái', caseSensitive: false).hasMatch(shuttleMatch.group(0)!) &&
             !RegExp(r'ống|hộp', caseSensitive: false).hasMatch(shuttleMatch.group(0)!);
@@ -1507,7 +1639,6 @@ class ChatbotService {
         final unitLabel = isSingle ? 'quả cầu lông' : 'ống cầu lông Hải Yến';
         addons.add('${qty}x ${isSingle ? 'Quả Cầu Lông' : 'Ống Cầu Lông Hải Yến'} (+${CurrencyFormatter.format(itemPrice)})');
         itemsDesc.add('$qty $unitLabel (${CurrencyFormatter.format(itemPrice)})');
-        addonsTotal += itemPrice;
         final key = isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube';
         addonCounts[key] = (addonCounts[key] ?? 0) + qty;
       }
@@ -1522,7 +1653,6 @@ class ChatbotService {
         final itemPrice = 30000 * qty;
         addons.add('${qty}x Vợt Cầu Lông Yonex (+${CurrencyFormatter.format(itemPrice)})');
         itemsDesc.add('$qty cây vợt (${CurrencyFormatter.format(itemPrice)})');
-        addonsTotal += itemPrice;
         addonCounts['rent_badminton'] = (addonCounts['rent_badminton'] ?? 0) + qty;
       }
 
@@ -1580,7 +1710,20 @@ class ChatbotService {
 
         // Merge newly ordered addons with any existing addon counts
         for (final entry in addonCounts.entries) {
-          mergedAddonCounts[entry.key] = (mergedAddonCounts[entry.key] ?? 0) + entry.value;
+          if (isDecrement) {
+            final currentCount = mergedAddonCounts[entry.key] ?? 0;
+            final isTotalRemoval = lower.contains('không lấy') ||
+                lower.contains('thôi không') ||
+                lower.contains('không thuê') ||
+                lower.contains('hủy');
+            if (isTotalRemoval || currentCount <= entry.value) {
+              mergedAddonCounts.remove(entry.key);
+            } else {
+              mergedAddonCounts[entry.key] = currentCount - entry.value;
+            }
+          } else {
+            mergedAddonCounts[entry.key] = (mergedAddonCounts[entry.key] ?? 0) + entry.value;
+          }
         }
 
         // Recompute all addon strings and total cost
@@ -1634,9 +1777,13 @@ class ChatbotService {
 
         pendingBooking = actionCard;
 
+        final replyText = isDecrement
+            ? 'Dạ, em đã cập nhật giảm dịch vụ: đã bớt ${itemsDesc.join(' và ')}. Đơn đặt sân tại $venueName ($courtName, $time) có phụ phí dịch vụ mới là ${CurrencyFormatter.format(totalAddonsCost)}, tổng thanh toán là ${CurrencyFormatter.format(grandTotal)} ạ!'
+            : 'Dạ, em đã ghi nhận thêm dịch vụ cho anh/chị: ${itemsDesc.join(' và ')}. Đơn đặt sân tại $venueName ($courtName, $time) đã cập nhật phụ phí dịch vụ ${CurrencyFormatter.format(totalAddonsCost)}, tổng thanh toán là ${CurrencyFormatter.format(grandTotal)}. Nhân viên sân sẽ chuẩn bị sẵn sàng khi mình tới nhé!';
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-          text: 'Dạ, em đã ghi nhận thêm dịch vụ cho anh/chị: ${itemsDesc.join(' và ')}. Đơn đặt sân tại $venueName ($courtName, $time) đã cập nhật phụ phí dịch vụ ${CurrencyFormatter.format(totalAddonsCost)}, tổng thanh toán là ${CurrencyFormatter.format(grandTotal)}. Nhân viên sân sẽ chuẩn bị sẵn sàng khi mình tới nhé!',
+          text: replyText,
           sender: 'assistant',
           timestamp: DateTime.now(),
           actionCard: actionCard,
@@ -1651,8 +1798,12 @@ class ChatbotService {
     }
 
     // 6. Pricing query (Context-aware)
+    final hasBookingIntent = RegExp(
+      r'đặt|book|giữ\s*chỗ|lấy\s*sân|chốt|lấy\s*cho',
+      caseSensitive: false,
+    ).hasMatch(text);
     final priceRegex = RegExp(r'giá|bao nhiêu|bảng giá|chi phí', caseSensitive: false);
-    if (priceRegex.hasMatch(text)) {
+    if (priceRegex.hasMatch(text) && !hasBookingIntent) {
       final s = context?.sport?.toLowerCase() ?? '';
       final isPickle = lower.contains('pickleball') || lower.contains('🏓') || s.contains('pickleball');
       final isFoot = lower.contains('bóng đá') || lower.contains('football') || lower.contains('soccer') || lower.contains('⚽') || s.contains('football') || s.contains('bóng');
@@ -1727,8 +1878,60 @@ class ChatbotService {
     }
 
     // 7. Cancellation / Policy query
+    final isCancelBooking = RegExp(
+      r'hủy\s*(?:vé|đơn|lịch|suất)?|xóa\s*vé',
+      caseSensitive: false,
+    ).hasMatch(text);
+    final codeMatch = RegExp(r'(?:BK|SH)[a-zA-Z0-9_-]+', caseSensitive: false).firstMatch(text);
     final policyRegex = RegExp(r'hủy|đổi lịch|chính sách', caseSensitive: false);
+
     if (policyRegex.hasMatch(text)) {
+      if (isCancelBooking && codeMatch != null) {
+        final code = codeMatch.group(0)!;
+        final tickets = TicketStore.instance.tickets;
+        final targetTicket = tickets.cast<TicketModel?>().firstWhere(
+          (t) => t != null && (t.bookingId.toLowerCase() == code.toLowerCase() || t.id.toLowerCase() == code.toLowerCase()),
+          orElse: () => null,
+        );
+
+        if (targetTicket != null) {
+          TicketStore.instance.updateTicketStatus(targetTicket.id, 'cancelled');
+          final refundPrice = targetTicket.totalPrice.toInt();
+          return ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text: '🎉 **Xác nhận hủy vé thành công!**\n\n'
+                'Dạ em đã xử lý hủy đơn đặt sân mã **${targetTicket.bookingId}** tại **${targetTicket.venueName}** (${targetTicket.startTime} - ${targetTicket.endTime}, ngày ${targetTicket.matchDate}).\n'
+                '• **Số tiền hoàn lại:** ${CurrencyFormatter.format(refundPrice)} (100% qua phương thức thanh toán ban đầu).\n'
+                '• **Trạng thái vé:** Đã hủy (Cancelled).\n\n'
+                'Khung giờ đã được giải phóng trên hệ thống. Hẹn gặp lại anh/chị trong các trận đấu sau nhé! 🏸⚽🏓',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+            actionCard: {
+              'type': 'cancellation_card',
+              'bookingId': targetTicket.bookingId,
+              'venueName': targetTicket.venueName,
+              'refundAmount': refundPrice,
+              'status': 'cancelled',
+            },
+            quickSuggestions: const [
+              '🎫 Xem vé của tôi',
+              '🏸 Đặt sân mới',
+            ],
+          );
+        } else {
+          return ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text: 'Dạ em không tìm thấy đơn đặt sân nào với mã **$code** trong danh sách vé của mình. Anh/chị vui lòng kiểm tra lại trong mục **Vé của tôi** nhé!',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+            quickSuggestions: const [
+              '🎫 Xem vé của tôi',
+              'Chính sách hoàn hủy',
+            ],
+          );
+        }
+      }
+
       return ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
         text: 'Chính sách SportHub: Quý khách được phép hủy hoặc đổi lịch miễn phí trước 24 giờ so với giờ chơi. Nếu hủy trong vòng 12-24 giờ, hỗ trợ hoàn tiền 50% hoặc bảo lưu suất chơi.',
@@ -1737,9 +1940,317 @@ class ChatbotService {
       );
     }
 
+    // 7.5. Court schedule / Available time slots query (e.g. "sân 1 hôm nay còn khung giờ nào", "Tao Đàn còn giờ nào trống")
+    final scheduleQueryRegex = RegExp(
+      r'khung\s*giờ\s*(?:nào|trống)|còn\s*(?:những\s*)?(?:khung\s*)?giờ\s*nào|'
+      r'trống\s*(?:những\s*)?giờ\s*nào|giờ\s*nào\s*trống|giờ\s*nào\s*còn|'
+      r'lịch\s*(?:sân|trống)|trống\s*lúc\s*nào|có\s*những\s*giờ\s*nào|'
+      r'thời\s*gian\s*nào\s*trống|mấy\s*giờ\s*còn|còn\s*trống\s*không|'
+      r'kiểm\s*tra\s*(?:sân|khung\s*giờ).*(?:giờ|lịch|trống)|'
+      r'sân\s*\d+.*(?:còn|trống|giờ|lịch)|(?:còn|trống|giờ|lịch).*sân\s*\d+',
+      caseSensitive: false,
+    );
+
+    if (scheduleQueryRegex.hasMatch(text)) {
+      final courtMatch = RegExp(r'sân\s*(\d+)', caseSensitive: false).firstMatch(text);
+      final targetCourtNumber =
+          courtMatch != null ? int.tryParse(courtMatch.group(1)!) : null;
+
+      final parsedDate = parseDate(text);
+      final dateStr = parsedDate.dateStr;
+      final displayDate = parsedDate.displayDate;
+
+      Venue? targetVenue;
+      for (final v in SeedData.sampleVenues) {
+        if (lower.contains(v.name.toLowerCase()) ||
+            (v.district.isNotEmpty && lower.contains(v.district.toLowerCase()))) {
+          targetVenue = v;
+          break;
+        }
+      }
+      if (targetVenue == null) {
+        if (lower.contains('bình thạnh') || lower.contains('binh thanh')) {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+              (v) => v.id == 'venue_bt_01',
+              orElse: () => SeedData.sampleVenues.first);
+        } else if (lower.contains('thảo điền') ||
+            lower.contains('thao dien') ||
+            lower.contains('thủ đức') ||
+            lower.contains('thu duc')) {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+              (v) => v.id == 'venue_td_02',
+              orElse: () => SeedData.sampleVenues.first);
+        } else if (lower.contains('tân bình') || lower.contains('tan binh')) {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+              (v) => v.id == 'venue_tb_05',
+              orElse: () => SeedData.sampleVenues.first);
+        } else if (lower.contains('quận 7') ||
+            lower.contains('quan 7') ||
+            lower.contains('q7') ||
+            lower.contains('nam sài gòn')) {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+              (v) => v.id == 'venue_q7_03',
+              orElse: () => SeedData.sampleVenues.first);
+        } else if (context?.venueId != null && context!.venueId!.isNotEmpty) {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+              (v) => v.id == context.venueId,
+              orElse: () => SeedData.sampleVenues.first);
+        } else {
+          targetVenue = SeedData.sampleVenues.firstWhere(
+            (v) =>
+                v.name.toLowerCase().contains('tao đàn') || v.id == 'venue_01',
+            orElse: () => SeedData.sampleVenues.first,
+          );
+        }
+      }
+
+      final allGeneratedSlots = <TimeSlot>[];
+      for (final shift in ['morning', 'afternoon', 'evening']) {
+        final sList = ShiftSlotGenerator.generateSlots(
+          date: dateStr,
+          courtCount: targetVenue.courtCount,
+          shift: shift,
+          minuteOffset: ':00',
+          venue: targetVenue,
+        );
+        allGeneratedSlots.addAll(sList);
+      }
+
+      final availableSlots = allGeneratedSlots.where((slot) {
+        if (targetCourtNumber != null && slot.courtNumber != targetCourtNumber) {
+          return false;
+        }
+        final isCourtActive = VenueSyncService.instance.isCourtActive(
+          venueId: targetVenue!.id,
+          courtNumber: slot.courtNumber,
+          venueName: targetVenue.name,
+        );
+        if (!isCourtActive) return false;
+        if (slot.status != SlotStatus.available) return false;
+        final isBooked = VenueSyncService.instance.isSlotBooked(
+          venueId: targetVenue.id,
+          courtNumber: slot.courtNumber,
+          date: dateStr,
+          startTime: slot.startTime,
+          venueName: targetVenue.name,
+        );
+        return !isBooked;
+      }).toList();
+
+      final courtLabel =
+          targetCourtNumber != null ? 'Sân $targetCourtNumber' : 'các sân';
+
+      if (availableSlots.isEmpty) {
+        // If user asked for a specific court that is maintenance/booked, check other courts at the venue
+        final otherCourtsSlots = allGeneratedSlots.where((slot) {
+          if (slot.courtNumber == targetCourtNumber) return false;
+          final isCourtActive = VenueSyncService.instance.isCourtActive(
+            venueId: targetVenue!.id,
+            courtNumber: slot.courtNumber,
+            venueName: targetVenue.name,
+          );
+          if (!isCourtActive) return false;
+          if (slot.status != SlotStatus.available) return false;
+          final isBooked = VenueSyncService.instance.isSlotBooked(
+            venueId: targetVenue.id,
+            courtNumber: slot.courtNumber,
+            date: dateStr,
+            startTime: slot.startTime,
+            venueName: targetVenue.name,
+          );
+          return !isBooked;
+        }).toList();
+
+        if (otherCourtsSlots.isNotEmpty) {
+          final otherEveningSlots = otherCourtsSlots
+              .where((s) => (int.tryParse(s.startTime.split(':').first) ?? 0) >= 17)
+              .toList();
+          final otherAfternoonSlots = otherCourtsSlots
+              .where((s) {
+                final h = int.tryParse(s.startTime.split(':').first) ?? 0;
+                return h >= 12 && h < 17;
+              })
+              .toList();
+          final otherMorningSlots = otherCourtsSlots
+              .where((s) => (int.tryParse(s.startTime.split(':').first) ?? 0) < 12)
+              .toList();
+
+          final otherCourtsNumbers =
+              otherCourtsSlots.map((s) => s.courtNumber).toSet().toList()..sort();
+          final otherCourtsLabel =
+              otherCourtsNumbers.map((c) => 'Sân $c').join(', ');
+
+          final buffer = StringBuffer();
+          buffer.writeln(
+              'Dạ, em kiểm tra thấy **$courtLabel** tại **${targetVenue.name}** trong ngày **$displayDate** hiện đang bảo trì hoặc đã kín lịch.');
+          buffer.writeln(
+              'Tuy nhiên, cụm sân vẫn còn **$otherCourtsLabel** có các khung giờ trống sau ạ:\n');
+
+          if (otherEveningSlots.isNotEmpty) {
+            buffer.writeln('🌙 **Buổi tối (giờ vàng):**');
+            for (final s in otherEveningSlots.take(4)) {
+              buffer.writeln(
+                  '• Sân ${s.courtNumber}: ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+            }
+            buffer.writeln();
+          }
+          if (otherAfternoonSlots.isNotEmpty) {
+            buffer.writeln('☀️ **Buổi chiều:**');
+            for (final s in otherAfternoonSlots.take(3)) {
+              buffer.writeln(
+                  '• Sân ${s.courtNumber}: ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+            }
+            buffer.writeln();
+          }
+          if (otherMorningSlots.isNotEmpty) {
+            buffer.writeln('🌅 **Buổi sáng:**');
+            for (final s in otherMorningSlots.take(3)) {
+              buffer.writeln(
+                  '• Sân ${s.courtNumber}: ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+            }
+            buffer.writeln();
+          }
+
+          buffer.write(
+              'Anh/chị có thể nhấn nút đặt gợi ý bên dưới để em lên đơn giữ chỗ ngay nhé!');
+
+          final suggestedTimes = <String>[];
+          for (final s in otherEveningSlots.take(2)) {
+            suggestedTimes.add('⚡ Đặt Sân ${s.courtNumber} ${s.startTime}');
+          }
+          if (suggestedTimes.length < 3 && otherAfternoonSlots.isNotEmpty) {
+            suggestedTimes.add(
+                '⚡ Đặt Sân ${otherAfternoonSlots.first.courtNumber} ${otherAfternoonSlots.first.startTime}');
+          }
+          suggestedTimes.add('🔍 Xem trên sơ đồ');
+
+          final tableRows = otherCourtsSlots.take(8).map((s) => [
+                '${s.startTime} - ${s.endTime}',
+                'Sân ${s.courtNumber}',
+                CurrencyFormatter.format(s.price),
+                'Còn trống',
+              ]).toList();
+
+          final actionCard = {
+            'type': 'table_card',
+            'title': 'Khung Giờ Trống $displayDate',
+            'subtitle': '${targetVenue.name} • $otherCourtsLabel',
+            'icon': 'calendar',
+            'headers': const ['Khung giờ', 'Sân', 'Giá', 'Trạng thái'],
+            'rows': tableRows,
+            'footer': '💡 $courtLabel bảo trì/kín, các sân khác sẵn sàng phục vụ.',
+          };
+
+          return ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text: buffer.toString(),
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+            actionCard: actionCard,
+            quickSuggestions: suggestedTimes,
+          );
+        }
+
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text:
+              'Dạ em kiểm tra thấy **$courtLabel** tại **${targetVenue.name}** trong ngày **$displayDate** hiện tại đã được đặt kín hoặc đang bảo trì tất cả các khung giờ rồi ạ.\n\nAnh/chị có thể tham khảo sang ngày mai hoặc cụm sân lân cận nhé!',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          quickSuggestions: const [
+            '📅 Xem ngày mai',
+            '🏟️ Cụm sân lân cận',
+            '🎫 Xem vé của tôi',
+          ],
+        );
+      }
+
+      final morningSlots = availableSlots
+          .where((s) => (int.tryParse(s.startTime.split(':').first) ?? 0) < 12)
+          .toList();
+      final afternoonSlots = availableSlots.where((s) {
+        final h = int.tryParse(s.startTime.split(':').first) ?? 0;
+        return h >= 12 && h < 17;
+      }).toList();
+      final eveningSlots = availableSlots
+          .where((s) => (int.tryParse(s.startTime.split(':').first) ?? 0) >= 17)
+          .toList();
+
+      final buffer = StringBuffer();
+      buffer.writeln(
+          'Dạ, em đã kiểm tra lịch **$courtLabel** tại **${targetVenue.name}** cho ngày **$displayDate**, hiện còn các khung giờ trống sau ạ:\n');
+
+      if (morningSlots.isNotEmpty) {
+        buffer.writeln('🌅 **Buổi sáng:**');
+        for (final s in morningSlots) {
+          buffer.writeln(
+              '• ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+        }
+        buffer.writeln();
+      }
+
+      if (afternoonSlots.isNotEmpty) {
+        buffer.writeln('☀️ **Buổi chiều:**');
+        for (final s in afternoonSlots) {
+          buffer.writeln(
+              '• ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+        }
+        buffer.writeln();
+      }
+
+      if (eveningSlots.isNotEmpty) {
+        buffer.writeln('🌙 **Buổi tối (giờ vàng):**');
+        for (final s in eveningSlots) {
+          buffer.writeln(
+              '• ${s.startTime} - ${s.endTime} (${CurrencyFormatter.format(s.price)})');
+        }
+        buffer.writeln();
+      }
+
+      buffer.write(
+          'Anh/chị có thể nhấn vào các nút gợi ý bên dưới hoặc nhắn khung giờ cụ thể để em lên đơn giữ chỗ ngay nhé!');
+
+      final suggestedTimes = <String>[];
+      for (final s in eveningSlots.take(2)) {
+        suggestedTimes.add(
+            '⚡ Đặt ${targetCourtNumber != null ? "Sân $targetCourtNumber " : "Sân ${s.courtNumber} "}${s.startTime}');
+      }
+      for (final s in afternoonSlots.take(1)) {
+        suggestedTimes.add(
+            '⚡ Đặt ${targetCourtNumber != null ? "Sân $targetCourtNumber " : "Sân ${s.courtNumber} "}${s.startTime}');
+      }
+      suggestedTimes.add('🔍 Xem trên sơ đồ');
+
+      final tableRows = availableSlots.take(8).map((s) => [
+            '${s.startTime} - ${s.endTime}',
+            'Sân ${s.courtNumber}',
+            CurrencyFormatter.format(s.price),
+            'Còn trống',
+          ]).toList();
+
+      final actionCard = {
+        'type': 'table_card',
+        'title': 'Khung Giờ Trống $displayDate',
+        'subtitle': '${targetVenue.name} • $courtLabel',
+        'icon': 'calendar',
+        'headers': const ['Khung giờ', 'Sân', 'Giá', 'Trạng thái'],
+        'rows': tableRows,
+        'footer': '💡 Danh sách đồng bộ theo thời gian thực với hệ thống sân.',
+      };
+
+      return ChatMessage(
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+        text: buffer.toString(),
+        sender: 'assistant',
+        timestamp: DateTime.now(),
+        actionCard: actionCard,
+        quickSuggestions: suggestedTimes,
+      );
+    }
+
     // 8. Booking intent (Expanded)
     final bookingRegex = RegExp(
-      r'đặt\s*sân|book|thuê\s*sân|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|'
+      r'đặt\s*(?:sân|chỗ|lịch|luôn|ngay|hộ|giúp)?|book|thuê\s*(?:sân)?|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|chốt\s*(?:sân|kèo)?|'
       r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|thể\s*thao)|kiểm\s*tra\s*sân|'
       r'lấy\s*sân|muốn\s*sân|cần\s*sân|'
       r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?|'
@@ -1979,5 +2490,75 @@ class ChatbotService {
     } catch (_) {
       // Fire-and-forget sync error handling
     }
+  }
+
+  /// Directly calls FPT Cloud AI when local dev proxy server is not reachable (e.g. mobile phone on 4G/Wi-Fi)
+  Future<ChatMessage?> _callFptCloudDirectly(
+    String text,
+    ChatContext? context, {
+    String? imageUrl,
+  }) async {
+    try {
+      final client = http.Client();
+      try {
+        final now = DateTime.now();
+        final days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        final dayName = days[now.weekday % 7];
+        final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+        final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+        // Generate native action card and suggestions from local intent parser
+        final localResult = _processLocalIntent(text, context, imageUrl: imageUrl);
+        final actionCard = localResult.actionCard;
+        final quickSuggestions = localResult.quickSuggestions;
+
+        final systemPrompt = '''Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
+[THỜI GIAN THỰC HỆ THỐNG]: Hôm nay là $dayName, ngày $dateStr (giờ hiện tại: $timeStr).
+Quy tắc phản hồi:
+- Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (chỉ từ 1 đến 3 câu).
+- TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) và không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN]".
+- Giao diện ứng dụng SportHub đã tự động hiển thị thẻ đặt sân và các nút gợi ý bên dưới.
+- Chỉ hỗ trợ các vấn đề thể thao, sân bãi, giá cả, ghép kèo tại TP.HCM. Từ chối các chủ đề ngoài lề.''';
+
+        final response = await client.post(
+          Uri.parse('https://mkp-api.fptcloud.com/v1/chat/completions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer sk-iJfjqbaiHQeKC5Hx-aplZpMUMzKD1yKXOI21yzupn_s=',
+          },
+          body: jsonEncode({
+            'model': 'gemma-4-26B-A4B-it',
+            'messages': [
+              {'role': 'system', 'content': systemPrompt},
+              {'role': 'user', 'content': text},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 300,
+          }),
+        ).timeout(const Duration(milliseconds: 5000));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(response.bodyBytes));
+          final content = data['choices']?[0]?['message']?['content']?.toString();
+          if (content != null && content.trim().isNotEmpty) {
+            final cleaned = cleanReply(content);
+            if (actionCard != null && actionCard['type'] == 'booking_card') {
+              pendingBooking = actionCard;
+            }
+            return ChatMessage(
+              id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+              text: cleaned,
+              sender: 'assistant',
+              timestamp: DateTime.now(),
+              actionCard: actionCard,
+              quickSuggestions: quickSuggestions,
+            );
+          }
+        }
+      } finally {
+        client.close();
+      }
+    } catch (_) {}
+    return null;
   }
 }

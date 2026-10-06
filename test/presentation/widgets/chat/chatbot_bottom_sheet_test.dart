@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
-import 'package:sporthub/domain/entities/chat_message.dart';
 import 'package:sporthub/main.dart';
 import 'package:sporthub/presentation/blocs/booking/booking_bloc.dart';
 import 'package:sporthub/presentation/widgets/chat/chatbot_bottom_sheet.dart';

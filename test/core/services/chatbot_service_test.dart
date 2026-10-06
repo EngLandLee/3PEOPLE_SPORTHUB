@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
+import 'package:sporthub/core/services/venue_sync_service.dart';
 import 'package:sporthub/core/state/ticket_store.dart';
 import 'package:sporthub/data/models/ticket_model.dart';
-import 'package:sporthub/domain/entities/chat_message.dart';
 
 void main() {
   group('ChatMessage Entity Tests', () {
@@ -148,11 +148,13 @@ void main() {
       service.resetMessages();
       service.httpClient = null;
       service.currentContext = null;
+      VenueSyncService.instance.bookingsNotifier.value = [];
     });
 
     tearDown(() {
       service.resetMessages();
       service.httpClient = null;
+      VenueSyncService.instance.bookingsNotifier.value = [];
     });
 
     test('singleton instance maintains state and manages messages', () {
@@ -489,6 +491,19 @@ void main() {
     });
 
     test('sanitizeServerActionCard switches booked Sân 1 to Sân 2 with 290k price for Nam Sài Gòn at 19:30', () {
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      VenueSyncService.instance.bookingsNotifier.value = [
+        {
+          'venueId': 'venue_q7_03',
+          'courtNumber': 1,
+          'date': todayStr,
+          'startTime': '19:30',
+          'endTime': '20:30',
+        },
+      ];
+
       final rawCard = {
         'type': 'booking_card',
         'venueId': 'venue_q7_03',
@@ -501,7 +516,6 @@ void main() {
         'endTime': '20:30',
         'price': 380000,
       };
-
       final (sanitized, reply) = ChatbotService.sanitizeServerActionCard(
         rawCard,
         originalReply: 'Em đã chọn cho mình Sân 1 với giá 380.000đ nhé!',
@@ -517,6 +531,18 @@ void main() {
 
     test('sendMessage sanitizes server response when Sân 1 is booked', () async {
       service.resetMessages();
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      VenueSyncService.instance.bookingsNotifier.value = [
+        {
+          'venueId': 'venue_q7_03',
+          'courtNumber': 1,
+          'date': todayStr,
+          'startTime': '19:30',
+          'endTime': '20:30',
+        },
+      ];
       service.httpClient = MockClient((request) async {
         return http.Response(
           jsonEncode({
@@ -547,6 +573,93 @@ void main() {
       expect(reply.text, contains(courtName));
       expect(service.pendingBooking?['court'], courtName);
       expect(service.pendingBooking?['price'], 290000);
+    });
+
+    test('findAvailableCourtAndPrice calculates 2-hour duration price and availability', () {
+      final courtInfo = ChatbotService.findAvailableCourtAndPrice(
+        venueId: 'venue_01',
+        venueName: 'CLB Cầu Lông Tao Đàn',
+        sport: 'Cầu lông',
+        date: 'Hôm nay',
+        startTime: '18:00',
+        durationHours: 2.0,
+      );
+
+      expect(courtInfo.isAvailable, isTrue);
+      expect(courtInfo.price, greaterThanOrEqualTo(240000));
+    });
+
+    test('isSlotBooked detects multi-hour booking interval overlap', () {
+      VenueSyncService.instance.bookingsNotifier.value = [
+        {
+          'venueId': 'venue_01',
+          'courtNumber': 1,
+          'date': '2026-09-30',
+          'startTime': '18:00',
+          'endTime': '20:00',
+          'timeSlot': '18:00 - 20:00',
+        }
+      ];
+
+      // Hour 1: 18:00 is booked
+      expect(
+        VenueSyncService.instance.isSlotBooked(
+          venueId: 'venue_01',
+          courtNumber: 1,
+          date: '2026-09-30',
+          startTime: '18:00',
+        ),
+        isTrue,
+      );
+
+      // Hour 2: 19:00 is ALSO booked due to interval overlap
+      expect(
+        VenueSyncService.instance.isSlotBooked(
+          venueId: 'venue_01',
+          courtNumber: 1,
+          date: '2026-09-30',
+          startTime: '19:00',
+        ),
+        isTrue,
+      );
+
+      // Hour 3: 20:00 is free
+      expect(
+        VenueSyncService.instance.isSlotBooked(
+          venueId: 'venue_01',
+          courtNumber: 1,
+          date: '2026-09-30',
+          startTime: '20:00',
+        ),
+        isFalse,
+      );
+    });
+
+    test('sendMessage responds with available time slots for court schedule query', () async {
+      service.resetMessages();
+      service.httpClient = null;
+
+      final reply = await service.sendMessage('Sân cầu A sân 1 hôm nay còn khung giờ nào');
+      expect(reply.isAssistant, isTrue);
+      expect(reply.text, contains('Sân 1'));
+      expect(reply.text, contains('khung giờ trống'));
+      expect(reply.hasActionCard, isTrue);
+      expect(reply.actionCard?['type'], 'table_card');
+      expect(reply.quickSuggestions, isNotNull);
+      expect(reply.quickSuggestions!.isNotEmpty, isTrue);
+      expect(reply.quickSuggestions!.any((s) => s.contains('Đặt')), isTrue);
+    });
+
+    test('sendMessage handles Tao Dan available slots inquiry', () async {
+      service.resetMessages();
+      service.httpClient = null;
+
+      final reply = await service.sendMessage('Tao Đàn hôm nay còn giờ nào trống');
+      expect(reply.isAssistant, isTrue);
+      expect(reply.text, contains('Tao Đàn'));
+      expect(reply.text, contains('khung giờ trống'));
+      expect(reply.hasActionCard, isTrue);
+      expect(reply.actionCard?['type'], 'table_card');
     });
   });
 }

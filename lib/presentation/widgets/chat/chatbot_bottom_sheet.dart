@@ -10,7 +10,6 @@ import '../../../core/utils/seed_data.dart';
 import '../../../core/utils/sport_image_catalog.dart';
 import '../../../data/models/ticket_model.dart';
 import '../../../domain/entities/app_notification.dart';
-import '../../../domain/entities/chat_message.dart';
 import '../../../domain/entities/community_post.dart';
 import '../../../domain/entities/time_slot.dart';
 import '../../../domain/entities/venue.dart';
@@ -497,22 +496,57 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
         ? todayStr
         : date;
 
-    final slot = TimeSlot(
-      id: 'slot_${courtNumber}_${startTime.replaceAll(':', '_')}',
-      date: normalizedDate,
-      courtNumber: courtNumber,
-      startTime: startTime,
-      endTime: endTime,
-      price: baseCourtPrice > 0 ? baseCourtPrice : totalPrice,
-      status: SlotStatus.available,
-    );
+    double durationHours =
+        (actionCard['durationHours'] as num?)?.toDouble() ?? 1.0;
+    if (durationHours <= 0 && endTime.isNotEmpty) {
+      final sParts = startTime.split(':');
+      final eParts = endTime.split(':');
+      if (sParts.length >= 2 && eParts.length >= 2) {
+        final sH = int.tryParse(sParts[0]) ?? 19;
+        final sM = int.tryParse(sParts[1]) ?? 0;
+        final eH = int.tryParse(eParts[0]) ?? (sH + 1);
+        final eM = int.tryParse(eParts[1]) ?? 0;
+        final diff = ((eH * 60 + eM) - (sH * 60 + sM)) / 60.0;
+        if (diff > 0) durationHours = diff;
+      }
+    }
+
+    final totalHours = (durationHours > 0 ? durationHours : 1.0).ceil();
+    final startParts = startTime.split(':');
+    final startH = int.tryParse(startParts[0]) ?? 19;
+    final startM =
+        startParts.length > 1 ? (int.tryParse(startParts[1]) ?? 0) : 0;
+    final singleSlotPrice =
+        (baseCourtPrice > 0 ? baseCourtPrice : totalPrice) / totalHours;
+
+    final selectedSlots = <TimeSlot>[];
+    for (int i = 0; i < totalHours; i++) {
+      final curH = startH + i;
+      final curNextH = curH + 1;
+      final curStart =
+          '${curH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}';
+      final curEnd = (i == totalHours - 1 && endTime.isNotEmpty)
+          ? endTime
+          : '${curNextH.toString().padLeft(2, '0')}:${startM.toString().padLeft(2, '0')}';
+      selectedSlots.add(
+        TimeSlot(
+          id: 'slot_${courtNumber}_${curStart.replaceAll(':', '_')}',
+          date: normalizedDate,
+          courtNumber: courtNumber,
+          startTime: curStart,
+          endTime: curEnd,
+          price: singleSlotPrice,
+          status: SlotStatus.available,
+        ),
+      );
+    }
 
     showDialog(
       context: context,
       builder: (ctx) => VietQrPaymentDialog(
         venue: targetVenue,
         grandTotal: totalPrice,
-        selectedSlots: [slot],
+        selectedSlots: selectedSlots,
         addonCounts: parsedAddons,
         onConfirmed: () {
           Navigator.of(ctx).pop();

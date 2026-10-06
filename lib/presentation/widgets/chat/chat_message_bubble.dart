@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/chatbot_service.dart';
-import '../../../domain/entities/chat_message.dart';
 import 'chat_booking_card.dart';
 import 'chat_table_card.dart';
 
