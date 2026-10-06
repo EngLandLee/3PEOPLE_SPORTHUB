@@ -2676,8 +2676,8 @@ class ChatbotService {
     try {
       final client = http.Client();
       try {
-        const apiKey = String.fromEnvironment('FPT_API_KEY');
-        if (apiKey.isEmpty) return null;
+        const envKey = String.fromEnvironment('FPT_API_KEY');
+        final apiKey = envKey.isNotEmpty ? envKey : 'sk-iJfjqbaiHQeKC5Hx-aplZpMUMzKD1yKXOI21yzupn_s=';
         final now = DateTime.now();
         final days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         final dayName = days[now.weekday % 7];

@@ -335,9 +335,11 @@ export const DEFAULT_SYNC_BOOKINGS: SyncedBooking[] = [
   },
 ];
 
+const DEFAULT_FPT_API_KEY = process.env.FPT_API_KEY || 'sk-iJfjqbaiHQeKC5Hx-aplZpMUMzKD1yKXOI21yzupn_s=';
+
 export const DEFAULT_CHATBOT_CONFIG: ChatbotConfig = {
   provider: 'fpt',
-  apiKey: '',
+  apiKey: DEFAULT_FPT_API_KEY,
   model: 'gemma-4-26B-A4B-it',
   systemPrompt: `Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
 Quy tắc phản hồi:
@@ -921,7 +923,7 @@ export function apiSyncPlugin(): Plugin {
                 : {};
               const imageUrl = typeof parsedBody.imageUrl === 'string' ? parsedBody.imageUrl : undefined;
               const config = store.chatbotConfig || DEFAULT_CHATBOT_CONFIG;
-              const apiKey = config.apiKey || '';
+              const apiKey = config.apiKey || DEFAULT_FPT_API_KEY;
               const model = config.model || 'gemma-4-26B-A4B-it';
 
               const preferredSportContext = String(context.sport || context.preferredSport || '').toLowerCase();
@@ -1679,7 +1681,7 @@ Quy tắc phản hồi:
             try {
               const body = bodyStr ? JSON.parse(bodyStr) : {};
               const config = store.chatbotConfig || DEFAULT_CHATBOT_CONFIG;
-              const apiKey = body.apiKey || config.apiKey || '';
+              const apiKey = body.apiKey || config.apiKey || DEFAULT_FPT_API_KEY;
               const model = body.model || config.model || 'gemma-4-26B-A4B-it';
               if (!apiKey) {
                 res.setHeader('Content-Type', 'application/json');
