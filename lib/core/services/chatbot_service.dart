@@ -2567,6 +2567,37 @@ class ChatbotService {
       );
     }
 
+    // 8.5. Profile Sport Preference Query (e.g. "đố bạn tôi thích chơi môn gì", "sở thích của tôi")
+    final isProfilePrefQuery = RegExp(
+      r'đố\s*(?:bạn|em|mày)?.*(?:thích|chơi)|tôi\s*(?:thích|yêu\s*thích)\s*(?:chơi)?\s*môn|môn\s*(?:thể\s*thao\s*)?(?:yêu\s*)?thích|sở\s*thích\s*(?:của\s*tôi)?',
+      caseSensitive: false,
+    ).hasMatch(text) || RegExp(
+      r'do\s*(?:ban|em)?.*thich|thich\s*mon|mon\s*yeu\s*thich|so\s*thich',
+      caseSensitive: false,
+    ).hasMatch(normalizedLower);
+
+    if (isProfilePrefQuery) {
+      final preferred = context?.sport ?? context?.preferredSport ?? 'Pickleball';
+      final sportIcon = preferred.toLowerCase().contains('pickle')
+          ? '🏓'
+          : (preferred.toLowerCase().contains('bóng') ? '⚽' : '🏸');
+      final userName = context?.userName?.trim();
+      final greeting = (userName != null && userName.isNotEmpty)
+          ? 'Chào anh $userName!'
+          : 'Dạ chào bạn!';
+      return ChatMessage(
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+        text: '$greeting Theo thông tin hồ sơ cá nhân, môn thể thao yêu thích nhất của anh là **$preferred** đúng không ạ! $sportIcon\n\nEm có thể hỗ trợ anh tìm các cụm sân $preferred chất lượng cao và xem lịch trống nhé!',
+        sender: 'assistant',
+        timestamp: DateTime.now(),
+        quickSuggestions: [
+          '$sportIcon $preferred Thảo Điền (19h)',
+          '$sportIcon Sân $preferred gần tôi',
+          '🎫 Xem vé của tôi',
+        ],
+      );
+    }
+
     // 9. Greeting
     final greetingRegex = RegExp(r'chào|hello|hi|bạn là ai', caseSensitive: false);
     if (greetingRegex.hasMatch(text)) {
@@ -2657,11 +2688,15 @@ class ChatbotService {
         final localResult = _processLocalIntent(text, context, imageUrl: imageUrl);
         final actionCard = localResult.actionCard;
         final quickSuggestions = localResult.quickSuggestions;
+        final userPrefSport = context?.sport ?? context?.preferredSport ?? 'Pickleball';
+        final userName = context?.userName ?? 'Khách hàng';
 
         final systemPrompt = '''Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
 [THỜI GIAN THỰC HỆ THỐNG]: Hôm nay là $dayName, ngày $dateStr (giờ hiện tại: $timeStr).
+[THÔNG TIN HỒ SƠ NGƯỜI DÙNG]: Tên khách hàng: $userName. Môn thể thao yêu thích trong hồ sơ: $userPrefSport.
 Quy tắc phản hồi:
 - Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (chỉ từ 1 đến 3 câu).
+- Khi người dùng hỏi về sở thích hay môn thể thao họ yêu thích, BẮT BUỘC trả lời đúng môn thể thao trong hồ sơ ($userPrefSport).
 - TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) và không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN]".
 - Giao diện ứng dụng SportHub đã tự động hiển thị thẻ đặt sân và các nút gợi ý bên dưới.
 - Chỉ hỗ trợ các vấn đề thể thao, sân bãi, giá cả, ghép kèo tại TP.HCM. Từ chối các chủ đề ngoài lề.''';

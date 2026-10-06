@@ -90,9 +90,13 @@ void main() {
     });
 
     test('handles date keyword "ngày mốt"', () async {
+      final now = DateTime.now();
+      final after = now.add(const Duration(days: 2));
+      final afterStr = '${after.day.toString().padLeft(2, '0')}/${after.month.toString().padLeft(2, '0')}';
+
       final msg = await service.sendMessage('Đặt sân bóng đá Tân Bình lúc 17h ngày mốt');
       expect(msg.hasActionCard, isTrue);
-      expect(msg.actionCard?['date'], contains('08/10'));
+      expect(msg.actionCard?['date'], contains(afterStr));
       expect(msg.actionCard?['sport'], 'Bóng đá');
       expect(msg.actionCard?['venueId'], 'venue_tb_05');
     });

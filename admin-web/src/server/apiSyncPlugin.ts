@@ -1359,9 +1359,29 @@ export function apiSyncPlugin(): Plugin {
                 const greeting = context?.userName ? `Chào ${context.userName}! ` : 'Dạ chào bạn! ';
                 reply = `${greeting}Hôm nay là **${currentDayName}, ngày ${currentDateStr}** (hiện tại là ${currentTimeStr}) ạ.\n\nEm có thể hỗ trợ mình tìm sân thể thao hoặc kiểm tra lịch thi đấu hôm nay không ạ?`;
               }
+              const isProfilePreferenceQuery = /(?:đố\s*(?:bạn|em|mày)?.*(?:thích|chơi)|tôi\s*(?:thích|yêu\s*thích)\s*(?:chơi)?\s*môn|môn\s*(?:thể\s*thao\s*)?(?:yêu\s*)?thích|sở\s*thích\s*(?:của\s*tôi)?)/i.test(lowerMsg) ||
+                /(?:thich\s*mon|mon\s*yeu\s*thich|so\s*thich|do\s*ban.*thich)/i.test(normalizedMsg);
 
-              const isPaymentStatusQuery = !isDateTimeQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
+              if (isProfilePreferenceQuery) {
+                actionCard = null;
+                const userPrefSport = context.sport || context.preferredSport || 'Pickleball';
+                const sportIcon = userPrefSport.toLowerCase().includes('pickle') ? '🏓' : (userPrefSport.toLowerCase().includes('bóng') ? '⚽' : '🏸');
+                const greeting = context?.userName ? `Chào anh ${context.userName}! ` : 'Dạ chào bạn! ';
+                reply = `${greeting}Theo thông tin trong hồ sơ cá nhân, môn thể thao yêu thích nhất của anh là **${userPrefSport}** đúng không ạ! ${sportIcon}\n\nEm có thể hỗ trợ anh tìm các cụm sân ${userPrefSport} chất lượng cao và kiểm tra lịch trống nhé!`;
+                quickSuggestions = userPrefSport.toLowerCase().includes('pickle')
+                  ? [
+                      "🏓 Pickleball Thảo Điền (19h)",
+                      "🏓 Sân Pickleball gần tôi",
+                      "🎫 Xem vé của tôi",
+                    ]
+                  : [
+                      "🏸 Cầu lông Q.1 (19h)",
+                      "🏸 Cầu lông Bình Thạnh",
+                      "🎫 Xem vé của tôi",
+                    ];
+              }
 
+              const isPaymentStatusQuery = !isDateTimeQuery && !isProfilePreferenceQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
               if (isPaymentStatusQuery) {
                 const latestBooking = (store.bookings || []).slice().reverse().find(b => b.paymentStatus === 'paid') || (store.bookings || []).slice().reverse()[0];
                 const isPaid = latestBooking?.paymentStatus === 'paid';
@@ -1582,8 +1602,9 @@ Quy tắc phản hồi:
                   } else if (context?.venueName) {
                     venueInfo = `Đang ở cụm sân: ${context.venueName}`;
                   }
-                  const promptContext = `[Hệ thống: ${userName}. Thời gian thực tế hiện tại: ${currentTimeStr} (${currentDayName}, ngày ${currentDateStr}). ${venueInfo}].\nNgười dùng: ${message}`;
-
+                  const userPrefSport = context?.sport || context?.preferredSport || 'Pickleball';
+                  const userSportInfo = `Môn thể thao yêu thích trong hồ sơ cá nhân: ${userPrefSport}.`;
+                  const promptContext = `[Hệ thống: ${userName}. ${userSportInfo} Thời gian thực tế hiện tại: ${currentTimeStr} (${currentDayName}, ngày ${currentDateStr}). ${venueInfo}].\nNgười dùng: ${message}`;
                   const fptRes = await fetch('https://mkp-api.fptcloud.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
