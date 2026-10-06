@@ -51,6 +51,78 @@ Quy tắc phản hồi:
   temperature: 0.7,
   isActive: true,
 };
+export const DEFAULT_FAQS: ChatbotFaq[] = [
+  {
+    id: 'faq_policy_01',
+    question: 'Chính sách hoàn hủy và đổi lịch tại SportHub như thế nào?',
+    answer: 'Khách hàng được hủy hoặc đổi lịch miễn phí trước 24 giờ so với giờ chơi (hoàn 100% tiền cọc). Nếu hủy trong vòng 12 - 24 giờ trước giờ chơi sẽ được hỗ trợ hoàn 50%. Hủy dưới 12 giờ không được hoàn tiền để bảo đảm nguồn thu cho chủ sân.',
+    category: 'Chung',
+    isActive: true,
+  },
+  {
+    id: 'faq_payment_02',
+    question: 'Làm thế nào để thanh toán tiền đặt sân qua VietQR?',
+    answer: 'Khi chatbot hoặc ứng dụng hiển thị thẻ đặt sân, bạn chỉ cần bấm nút "⚡ Đặt & Thanh toán VietQR". Ứng dụng sẽ tự động sinh mã VietQR động chuẩn ngân hàng NAPAS kèm đúng số tiền và nội dung chuyển khoản. Sau khi chuyển khoản thành công, hệ thống tự động giữ chỗ ngay lập tức.',
+    category: 'Chung',
+    isActive: true,
+  },
+  {
+    id: 'faq_opening_03',
+    question: 'Các cụm sân thể thao mở cửa từ mấy giờ đến mấy giờ?',
+    answer: 'Hầu hết các cụm sân đối tác SportHub (Tao Đàn, Bình Thạnh, Thảo Điền, Tân Bình, Nam Sài Gòn) mở cửa hoạt động liên tục từ 06:00 sáng đến 22:00 tối tất cả các ngày trong tuần (kể cả Thứ Bảy, Chủ Nhật và ngày lễ).',
+    category: 'Chung',
+    isActive: true,
+  },
+  {
+    id: 'faq_badminton_01',
+    question: 'Giá thuê sân cầu lông và khung giờ cao điểm tính như thế nào?',
+    answer: 'Giá thuê sân cầu lông dao động từ 100.000đ - 180.000đ/giờ. Khung giờ vàng cao điểm từ 17:00 - 21:00 các ngày trong tuần áp dụng mức giá 180.000đ/giờ tại cụm sân Tao Đàn và 150.000đ/giờ tại Bình Thạnh.',
+    category: 'Cầu lông',
+    isActive: true,
+  },
+  {
+    id: 'faq_badminton_02',
+    question: 'Sân cầu lông có cho thuê vợt và bán cầu lông tại quầy không?',
+    answer: 'Có đầy đủ tại quầy lễ tân: Thuê vợt cầu lông Yonex chất lượng cao giá 30.000đ/cây/buổi. Mua ống cầu lông Hải Yến giá 240.000đ/ống 12 quả (hoặc mua quả lẻ 22.000đ/quả). Nước bù khoáng Pocari Sweat 15.000đ/chai.',
+    category: 'Cầu lông',
+    isActive: true,
+  },
+  {
+    id: 'faq_badminton_03',
+    question: 'Quy định về giày dép khi vào sân thảm cầu lông chuyên dụng?',
+    answer: 'Khách chơi bắt buộc phải mang giày thể thao có đế chuyên dụng (đế kếp hoặc đế cao su non-marking) không để lại vệt đen nhằm bảo vệ bề mặt thảm PVC chuyên nghiệp.',
+    category: 'Cầu lông',
+    isActive: true,
+  },
+  {
+    id: 'faq_pickleball_01',
+    question: 'Giá thuê sân Pickleball Thảo Điền và dụng cụ thi đấu?',
+    answer: 'Giá thuê sân Pickleball tiêu chuẩn quốc tế tại Thảo Điền Hub dao động từ 130.000đ - 220.000đ/giờ (khung giờ tối 17:00 - 21:00 là 220.000đ/giờ). Có sẵn dịch vụ thuê vợt Pickleball carbon giá 40.000đ/cây và bóng thi đấu chuẩn USAPA.',
+    category: 'Pickleball',
+    isActive: true,
+  },
+  {
+    id: 'faq_pickleball_02',
+    question: 'Người mới bắt đầu (Newbie) có được hỗ trợ ghép kèo Pickleball không?',
+    answer: 'Bạn hoàn toàn có thể vào tab Cộng đồng hoặc gửi tin nhắn cho Chatbot để ghép kèo giao lưu trình độ 1.0 - 2.5. Các cụm sân Thảo Điền và Bình Thạnh luôn có câu lạc bộ sinh hoạt thường xuyên cho người mới.',
+    category: 'Pickleball',
+    isActive: true,
+  },
+  {
+    id: 'faq_football_01',
+    question: 'Giá thuê sân bóng đá mini 5 người và 7 người tại Quận 7 & Tân Bình?',
+    answer: 'Sân bóng đá mini cỏ nhân tạo Nam Sài Gòn (Q.7) và Tân Bình Arena có giá từ 250.000đ - 290.000đ/giờ cho sân 5 người (khung giờ vàng 17:00 - 21:00 là 290.000đ/giờ). Miễn phí mượn bóng thi đấu tiêu chuẩn và áo bib phân chia đội.',
+    category: 'Bóng đá',
+    isActive: true,
+  },
+  {
+    id: 'faq_football_02',
+    question: 'Quy định về loại giày thi đấu trên sân cỏ nhân tạo?',
+    answer: 'Khuyến khích sử dụng giày đế đinh dăm cao su TF (Turf) để đảm bảo độ bám sân và an toàn khớp gối. Nghiêm cấm sử dụng giày đinh sắt FG/SG trên mặt sân cỏ nhân tạo.',
+    category: 'Bóng đá',
+    isActive: true,
+  },
+];
 
 function getInitialState(): ChatbotStoreState {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -69,7 +141,7 @@ function getInitialState(): ChatbotStoreState {
 
   return {
     config: { ...DEFAULT_CONFIG },
-    faqs: [],
+    faqs: [...DEFAULT_FAQS],
     conversations: [],
   };
 }
