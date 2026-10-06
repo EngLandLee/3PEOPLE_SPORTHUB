@@ -2444,6 +2444,18 @@ class ChatbotService {
         } else {
           sport = 'Cầu lông';
         }
+      } else if (lower.contains('phú nhuận') || lower.contains('phu nhuan')) {
+        venueId = 'venue_pn_06';
+        venueName = 'CLB Cầu Lông & Pickleball Phú Nhuận Club';
+        sport = lower.contains('pickleball') || lower.contains('🏓') ? 'Pickleball' : 'Cầu lông';
+      } else if (lower.contains('an phú') || lower.contains('an phu') || lower.contains('quận 2') || lower.contains('quan 2') || lower.contains('q2') || lower.contains('q.2')) {
+        venueId = 'venue_q2_07';
+        venueName = 'Sân Bóng Đá Cỏ Nhân Tạo An Phú - Quận 2';
+        sport = 'Bóng đá';
+      } else if (lower.contains('kỳ hòa') || lower.contains('ky hoa') || lower.contains('quận 10') || lower.contains('quan 10') || lower.contains('q10') || lower.contains('q.10')) {
+        venueId = 'venue_q10_08';
+        venueName = 'Trung Tâm Thể Thao Kỳ Hòa - Quận 10';
+        sport = lower.contains('pickleball') || lower.contains('🏓') ? 'Pickleball' : 'Cầu lông';
       } else if (lower.contains('quận 7') ||
           lower.contains('quan 7') ||
           lower.contains('q7') ||

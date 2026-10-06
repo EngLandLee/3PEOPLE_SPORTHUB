@@ -258,6 +258,51 @@ export const DEFAULT_SYNC_VENUES: SyncedVenue[] = [
     totalCourts: 10,
     description: 'Khu liên hợp thể thao quy mô 10 sân: bóng đá cỏ nhân tạo, cầu lông và pickleball.',
   },
+  {
+    id: 'venue_pn_06',
+    name: 'CLB Cầu Lông & Pickleball Phú Nhuận Club',
+    address: '18A Phan Đăng Lưu, Phường 3, Quận Phú Nhuận, TP. HCM',
+    district: 'Phú Nhuận',
+    hotline: '028 3995 1234',
+    sports: ['badminton', 'pickleball'],
+    openTime: '06:00',
+    closeTime: '22:30',
+    baseHourlyRate: 160000,
+    imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800',
+    isActive: true,
+    totalCourts: 6,
+    description: 'Cụm sân cầu lông thảm PVC và sân pickleball ngoài trời có mái che hiện đại tại trung tâm Phú Nhuận.',
+  },
+  {
+    id: 'venue_q2_07',
+    name: 'Sân Bóng Đá Cỏ Nhân Tạo An Phú - Quận 2',
+    address: '88 Song Hành, Phường An Phú, TP. Thủ Đức, TP. HCM',
+    district: 'Thủ Đức',
+    hotline: '0912 666 888',
+    sports: ['football'],
+    openTime: '06:00',
+    closeTime: '23:30',
+    baseHourlyRate: 270000,
+    imageUrl: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800',
+    isActive: true,
+    totalCourts: 4,
+    description: 'Cụm sân bóng đá mini 5-7 người cỏ nhân tạo sợi kim cương, hệ thống đèn LED cao cấp chống chói.',
+  },
+  {
+    id: 'venue_q10_08',
+    name: 'Trung Tâm Thể Thao Kỳ Hòa - Quận 10',
+    address: '796 Sư Vạn Hạnh, Phường 12, Quận 10, TP. HCM',
+    district: 'Quận 10',
+    hotline: '028 3865 5678',
+    sports: ['badminton', 'pickleball'],
+    openTime: '05:30',
+    closeTime: '22:00',
+    baseHourlyRate: 170000,
+    imageUrl: 'https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=800',
+    isActive: true,
+    totalCourts: 8,
+    description: 'Tổ hợp thể thao Kỳ Hòa với khuôn viên râm mát, bãi đỗ xe ô tô rộng rãi và căn tin phục vụ giải khát.',
+  },
 ];
 
 const getSyncTodayStr = (offsetDays = 0) => {
@@ -352,10 +397,11 @@ Quy tắc phản hồi:
 };
 
 export const DEFAULT_CHATBOT_FAQS: ChatbotFaq[] = [
+  // --- CATEGORY: CHUNG ---
   {
     id: 'faq_policy_01',
     question: 'Chính sách hoàn hủy và đổi lịch tại SportHub như thế nào?',
-    answer: 'Khách hàng được hủy hoặc đổi lịch miễn phí trước 24 giờ so với giờ chơi (hoàn 100% tiền cọc). Nếu hủy trong vòng 12 - 24 giờ trước giờ chơi sẽ được hỗ trợ hoàn 50%. Hủy dưới 12 giờ không được hoàn tiền để bảo đảm nguồn thu cho chủ sân.',
+    answer: 'Khách hàng được hủy hoặc đổi lịch miễn phí trước 24 giờ so với giờ chơi (hoàn 100% tiền cọc). Nếu hủy trong vòng 12 - 24 giờ trước giờ chơi sẽ được hỗ trợ hoàn 50%. Hủy dưới 12 giờ không được hoàn tiền để bảo đảm quyền lợi và nguồn thu cho chủ sân.',
     category: 'Chung',
     isActive: true,
   },
@@ -369,56 +415,139 @@ export const DEFAULT_CHATBOT_FAQS: ChatbotFaq[] = [
   {
     id: 'faq_opening_03',
     question: 'Các cụm sân thể thao mở cửa từ mấy giờ đến mấy giờ?',
-    answer: 'Hầu hết các cụm sân đối tác SportHub (Tao Đàn, Bình Thạnh, Thảo Điền, Tân Bình, Nam Sài Gòn) mở cửa hoạt động liên tục từ 06:00 sáng đến 22:00 tối tất cả các ngày trong tuần (kể cả Thứ Bảy, Chủ Nhật và ngày lễ).',
+    answer: 'Hầu hết các cụm sân đối tác SportHub (Tao Đàn, Bình Thạnh, Thảo Điền, Tân Bình, Nam Sài Gòn, Phú Nhuận, Kỳ Hòa) mở cửa hoạt động liên tục từ 06:00 sáng đến 22:00 - 23:00 tối tất cả các ngày trong tuần (kể cả Thứ Bảy, Chủ Nhật và ngày lễ).',
     category: 'Chung',
     isActive: true,
   },
   {
+    id: 'faq_checkin_04',
+    question: 'Quy trình nhận sân và Check-in tại quầy lễ tân như thế nào?',
+    answer: 'Khi đến sân, bạn chỉ cần mở mục "Vé của tôi" trên ứng dụng SportHub và đưa mã QR trên vé cho nhân viên lễ tân quét xác nhận (check-in) trong 3 giây để nhận sân và dụng cụ.',
+    category: 'Chung',
+    isActive: true,
+  },
+  {
+    id: 'faq_partner_05',
+    question: 'Làm thế nào để đăng ký trở thành Chủ sân đối tác (Partner) của SportHub?',
+    answer: 'Chủ cụm sân có thể truy cập cổng Web Admin tại địa chỉ portal, chọn Đăng ký đối tác và cung cấp thông tin sân bãi. Sau khi đội ngũ SportHub thẩm định trong 24h, bạn sẽ được cấp tài khoản điều hành ma trận đặt sân và quản trị doanh thu tự động.',
+    category: 'Chung',
+    isActive: true,
+  },
+  {
+    id: 'faq_parking_06',
+    question: 'Các cụm sân có chỗ gửi xe ô tô và phòng tắm nóng lạnh không?',
+    answer: 'Tất cả các cụm sân đối tác chuẩn của SportHub (Kỳ Hòa Q.10, Tân Bình Arena, Thảo Điền Hub, Bình Thạnh Sport) đều có bãi đỗ xe ô tô có người trông giữ và phòng thay đồ kèm tắm nóng lạnh miễn phí cho người chơi.',
+    category: 'Chung',
+    isActive: true,
+  },
+
+  // --- CATEGORY: CẦU LÔNG ---
+  {
     id: 'faq_badminton_01',
     question: 'Giá thuê sân cầu lông và khung giờ cao điểm tính như thế nào?',
-    answer: 'Giá thuê sân cầu lông dao động từ 100.000đ - 180.000đ/giờ. Khung giờ vàng cao điểm từ 17:00 - 21:00 các ngày trong tuần áp dụng mức giá 180.000đ/giờ tại cụm sân Tao Đàn và 150.000đ/giờ tại Bình Thạnh.',
+    answer: 'Giá thuê sân cầu lông dao động từ 100.000đ - 180.000đ/giờ. Khung giờ vàng cao điểm từ 17:00 - 21:00 các ngày trong tuần áp dụng mức giá 180.000đ/giờ tại cụm sân Tao Đàn, Phú Nhuận và 150.000đ/giờ tại Bình Thạnh.',
     category: 'Cầu lông',
     isActive: true,
   },
   {
     id: 'faq_badminton_02',
     question: 'Sân cầu lông có cho thuê vợt và bán cầu lông tại quầy không?',
-    answer: 'Có đầy đủ tại quầy lễ tân: Thuê vợt cầu lông Yonex chất lượng cao giá 30.000đ/cây/buổi. Mua ống cầu lông Hải Yến giá 240.000đ/ống 12 quả (hoặc mua quả lẻ 22.000đ/quả). Nước bù khoáng Pocari Sweat 15.000đ/chai.',
+    answer: 'Có đầy đủ tại quầy lễ tân: Thuê vợt cầu lông Yonex/Victor giá 30.000đ/cây/buổi. Mua ống cầu lông Hải Yến giá 240.000đ/ống 12 quả (hoặc mua quả lẻ 22.000đ/quả). Nước bù khoáng Pocari Sweat 15.000đ/chai, nước suối Aquafina 10.000đ/chai.',
     category: 'Cầu lông',
     isActive: true,
   },
   {
     id: 'faq_badminton_03',
     question: 'Quy định về giày dép khi vào sân thảm cầu lông chuyên dụng?',
-    answer: 'Khách chơi bắt buộc phải mang giày thể thao có đế chuyên dụng (đế kếp hoặc đế cao su non-marking) không để lại vệt đen nhằm bảo vệ bề mặt thảm PVC chuyên nghiệp.',
+    answer: 'Khách chơi bắt buộc phải mang giày thể thao có đế chuyên dụng (đế cao su non-marking) không để lại vệt đen nhằm bảo vệ bề mặt thảm PVC tiêu chuẩn BWF.',
     category: 'Cầu lông',
     isActive: true,
   },
   {
+    id: 'faq_badminton_04',
+    question: 'Cụm sân có dịch vụ đan vợt cầu lông lấy liền không?',
+    answer: 'Tại CLB Tao Đàn (Q.1) và Phú Nhuận Club có kỹ thuật viên đan vợt bằng máy điện tử với các loại cước Yonex BG65, BG65Ti, Nanogy 95 với giá từ 90.000đ - 140.000đ/lần đan, hoàn tất trong 20 phút.',
+    category: 'Cầu lông',
+    isActive: true,
+  },
+  {
+    id: 'faq_badminton_05',
+    question: 'Có thể đặt lịch sân cầu lông cố định theo tháng không?',
+    answer: 'SportHub hỗ trợ đặt lịch cố định hàng tuần theo tháng với mức chiết khấu từ 10% - 15% tổng tiền giờ. Bạn có thể chọn chức năng Đặt lịch cố định trên app hoặc liên hệ Hotline cụm sân.',
+    category: 'Cầu lông',
+    isActive: true,
+  },
+
+  // --- CATEGORY: PICKLEBALL ---
+  {
     id: 'faq_pickleball_01',
-    question: 'Giá thuê sân Pickleball Thảo Điền và dụng cụ thi đấu?',
-    answer: 'Giá thuê sân Pickleball tiêu chuẩn quốc tế tại Thảo Điền Hub dao động từ 130.000đ - 220.000đ/giờ (khung giờ tối 17:00 - 21:00 là 220.000đ/giờ). Có sẵn dịch vụ thuê vợt Pickleball carbon giá 40.000đ/cây và bóng thi đấu chuẩn USAPA.',
+    question: 'Giá thuê sân Pickleball Thảo Điền, Phú Nhuận và dụng cụ thi đấu?',
+    answer: 'Giá thuê sân Pickleball tiêu chuẩn quốc tế tại Thảo Điền Hub và Kỳ Hòa dao động từ 130.000đ - 220.000đ/giờ (khung giờ tối 17:00 - 21:00 là 220.000đ/giờ). Có sẵn dịch vụ thuê vợt Pickleball carbon giá 40.000đ/cây và bóng thi đấu chuẩn USAPA.',
     category: 'Pickleball',
     isActive: true,
   },
   {
     id: 'faq_pickleball_02',
     question: 'Người mới bắt đầu (Newbie) có được hỗ trợ ghép kèo Pickleball không?',
-    answer: 'Bạn hoàn toàn có thể vào tab Cộng đồng hoặc gửi tin nhắn cho Chatbot để ghép kèo giao lưu trình độ 1.0 - 2.5. Các cụm sân Thảo Điền và Bình Thạnh luôn có câu lạc bộ sinh hoạt thường xuyên cho người mới.',
+    answer: 'Bạn hoàn toàn có thể vào tab Cộng đồng hoặc gửi tin nhắn cho Chatbot để ghép kèo giao lưu trình độ 1.0 - 2.5. Các cụm sân Thảo Điền, Phú Nhuận và Bình Thạnh luôn có câu lạc bộ sinh hoạt thường xuyên cho người mới.',
     category: 'Pickleball',
     isActive: true,
   },
   {
+    id: 'faq_pickleball_03',
+    question: 'Sân Pickleball của SportHub là sân trong nhà (Indoor) hay ngoài trời (Outdoor)?',
+    answer: 'Cụm sân Thảo Điền Hub và Kỳ Hòa có cả sân ngoài trời thoáng mát và sân có mái che chống mưa nắng 100%, mặt sân sơn acrylic chuyên dụng đạt chuẩn thi đấu PPA Tour.',
+    category: 'Pickleball',
+    isActive: true,
+  },
+  {
+    id: 'faq_pickleball_04',
+    question: 'Cần chuẩn bị những gì khi lần đầu tiên đi chơi Pickleball?',
+    answer: 'Bạn chỉ cần mang giày thể thao thoải mái và trang phục thể thao thấm hút mồ hôi. Vợt, bóng thi đấu và nước uống đều có thể thuê/mua trực tiếp ngay trên thẻ đặt sân của Chatbot hoặc tại quầy lễ tân.',
+    category: 'Pickleball',
+    isActive: true,
+  },
+  {
+    id: 'faq_pickleball_05',
+    question: 'Quy định về bóng thi đấu Pickleball trong nhà và ngoài trời?',
+    answer: 'Sân ngoài trời sử dụng bóng 40 lỗ (độ đầm cao, chống gió), sân có mái che sử dụng bóng 26 lỗ (độ nảy êm). Lễ tân sân luôn cung cấp đúng loại bóng phù hợp với từng mặt sân.',
+    category: 'Pickleball',
+    isActive: true,
+  },
+
+  // --- CATEGORY: BÓNG ĐÁ ---
+  {
     id: 'faq_football_01',
-    question: 'Giá thuê sân bóng đá mini 5 người và 7 người tại Quận 7 & Tân Bình?',
-    answer: 'Sân bóng đá mini cỏ nhân tạo Nam Sài Gòn (Q.7) và Tân Bình Arena có giá từ 250.000đ - 290.000đ/giờ cho sân 5 người (khung giờ vàng 17:00 - 21:00 là 290.000đ/giờ). Miễn phí mượn bóng thi đấu tiêu chuẩn và áo bib phân chia đội.',
+    question: 'Giá thuê sân bóng đá mini 5 người và 7 người tại Quận 7, Quận 2 & Tân Bình?',
+    answer: 'Sân bóng đá mini cỏ nhân tạo Nam Sài Gòn (Q.7), An Phú (Q.2) và Tân Bình Arena có giá từ 250.000đ - 290.000đ/giờ cho sân 5 người (khung giờ vàng 17:00 - 21:00 là 290.000đ/giờ). Miễn phí mượn bóng thi đấu tiêu chuẩn và áo bib phân chia đội.',
     category: 'Bóng đá',
     isActive: true,
   },
   {
     id: 'faq_football_02',
     question: 'Quy định về loại giày thi đấu trên sân cỏ nhân tạo?',
-    answer: 'Khuyến khích sử dụng giày đế đinh dăm cao su TF (Turf) để đảm bảo độ bám sân và an toàn khớp gối. Nghiêm cấm sử dụng giày đinh sắt FG/SG trên mặt sân cỏ nhân tạo.',
+    answer: 'Khuyến khích sử dụng giày đế đinh dăm cao su TF (Turf) để đảm bảo độ bám sân và an toàn khớp gối. Nghiêm cấm sử dụng giày đinh sắt FG/SG trên mặt sân cỏ nhân tạo để bảo vệ bề mặt cỏ và tránh chấn thương.',
+    category: 'Bóng đá',
+    isActive: true,
+  },
+  {
+    id: 'faq_football_03',
+    question: 'Sân bóng đá có hỗ trợ trọng tài và quay video trận đấu không?',
+    answer: 'Tại cụm sân Nam Sài Gòn và An Phú có dịch vụ thuê trọng tài bắt giải giao hữu (150.000đ/trận) và hỗ trợ góc quay camera gắn trên cao để các đội tải video highlight sau trận đấu.',
+    category: 'Bóng đá',
+    isActive: true,
+  },
+  {
+    id: 'faq_football_04',
+    question: 'Thời gian thi đấu có được bù giờ hoặc đá thêm ca không?',
+    answer: 'Nếu khung giờ kế tiếp chưa có đội đặt, bạn có thể đăng ký đá thêm 30 phút hoặc 1 giờ với mức giá tính theo nửa ca. Vui lòng thông báo cho quản lý sân trước 15 phút khi hết giờ.',
+    category: 'Bóng đá',
+    isActive: true,
+  },
+  {
+    id: 'faq_football_05',
+    question: 'Sân bóng có trang bị tủ y tế và sơ cứu chấn thương không?',
+    answer: 'Tất cả các cụm sân bóng đá trong hệ thống SportHub đều trang bị sẵn bình xịt giảm đau lạnh, băng gạc, cồn y tế và túi chườm đá miễn phí tại bàn trực ban.',
     category: 'Bóng đá',
     isActive: true,
   },
@@ -1097,6 +1226,21 @@ export function apiSyncPlugin(): Plugin {
                     sport = 'Cầu lông';
                   }
                   price = 180000;
+                } else if (lowerMsg.includes('phú nhuận') || lowerMsg.includes('phu nhuan')) {
+                  venueId = 'venue_pn_06';
+                  venueName = 'CLB Cầu Lông & Pickleball Phú Nhuận Club';
+                  sport = lowerMsg.includes('pickleball') ? 'Pickleball' : 'Cầu lông';
+                  price = 160000;
+                } else if (lowerMsg.includes('an phú') || lowerMsg.includes('an phu') || lowerMsg.includes('quận 2') || lowerMsg.includes('quan 2') || lowerMsg.includes('q2') || lowerMsg.includes('q.2')) {
+                  venueId = 'venue_q2_07';
+                  venueName = 'Sân Bóng Đá Cỏ Nhân Tạo An Phú - Quận 2';
+                  sport = 'Bóng đá';
+                  price = 270000;
+                } else if (lowerMsg.includes('kỳ hòa') || lowerMsg.includes('ky hoa') || lowerMsg.includes('quận 10') || lowerMsg.includes('quan 10') || lowerMsg.includes('q10') || lowerMsg.includes('q.10')) {
+                  venueId = 'venue_q10_08';
+                  venueName = 'Trung Tâm Thể Thao Kỳ Hòa - Quận 10';
+                  sport = lowerMsg.includes('pickleball') ? 'Pickleball' : 'Cầu lông';
+                  price = 170000;
                 } else if (lowerMsg.includes('quận 7') || lowerMsg.includes('quan 7') || lowerMsg.includes('q7') || lowerMsg.includes('q.7') || lowerMsg.includes('nam sài gòn') || lowerMsg.includes('nam sai gon') || lowerMsg.includes('bóng đá') || lowerMsg.includes('bong da') || lowerMsg.includes('football')) {
                   venueId = 'venue_q7_03';
                   venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';

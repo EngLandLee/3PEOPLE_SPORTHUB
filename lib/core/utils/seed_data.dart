@@ -262,6 +262,51 @@ class SeedData {
       ],
       amenities: ['Cụm 10 sân', 'Bãi đỗ ô tô', 'Căng tin thể thao', 'Tắm nóng lạnh'],
     ),
+    Venue(
+      id: 'venue_pn_06',
+      name: 'CLB Cầu Lông & Pickleball Phú Nhuận Club',
+      sportTypes: ['badminton', 'pickleball'],
+      address: '18A Phan Đăng Lưu, Phường 3',
+      district: 'Phú Nhuận',
+      courtCount: 6,
+      hourlyRate: 160000.0,
+      rating: 4.9,
+      reviewCount: 112,
+      imageUrls: [
+        'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800',
+      ],
+      amenities: ['Thảm PVC mới', 'Máy lạnh', 'Đan vợt lấy liền', 'Bãi xe rộng'],
+    ),
+    Venue(
+      id: 'venue_q2_07',
+      name: 'Sân Bóng Đá Cỏ Nhân Tạo An Phú - Quận 2',
+      sportTypes: ['football'],
+      address: '88 Song Hành, An Phú',
+      district: 'Thủ Đức',
+      courtCount: 4,
+      hourlyRate: 270000.0,
+      rating: 4.8,
+      reviewCount: 178,
+      imageUrls: [
+        'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800',
+      ],
+      amenities: ['Cỏ kim cương', 'Đèn LED chống chói', 'Cho thuê áo bib & bóng', 'Camera quay trận đấu'],
+    ),
+    Venue(
+      id: 'venue_q10_08',
+      name: 'Trung Tâm Thể Thao Kỳ Hòa - Quận 10',
+      sportTypes: ['badminton', 'pickleball'],
+      address: '796 Sư Vạn Hạnh, Phường 12',
+      district: 'Quận 10',
+      courtCount: 8,
+      hourlyRate: 170000.0,
+      rating: 4.9,
+      reviewCount: 230,
+      imageUrls: [
+        'https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=800',
+      ],
+      amenities: ['Khuôn viên râm mát', 'Bãi đỗ ô tô', 'Căn tin giải khát', 'Tắm nóng lạnh'],
+    ),
   ];
 
   static const List<UserProfile> demoUsers = [
