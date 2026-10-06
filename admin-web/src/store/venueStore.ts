@@ -36,6 +36,28 @@ function getInitialState(): VenueStoreState {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && Array.isArray(parsed.venues) && parsed.venues.length > 0) {
+          let updated = false;
+          const existingVenueIds = new Set(parsed.venues.map((v: Venue) => v.id));
+          for (const v of INITIAL_VENUES) {
+            if (!existingVenueIds.has(v.id)) {
+              parsed.venues.push(JSON.parse(JSON.stringify(v)));
+              updated = true;
+            }
+          }
+          if (Array.isArray(parsed.courts)) {
+            const existingCourtIds = new Set(parsed.courts.map((c: Court) => c.id));
+            for (const c of INITIAL_COURTS) {
+              if (!existingCourtIds.has(c.id)) {
+                parsed.courts.push(JSON.parse(JSON.stringify(c)));
+                updated = true;
+              }
+            }
+          }
+          if (updated && typeof window !== 'undefined' && window.localStorage) {
+            try {
+              window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            } catch {}
+          }
           return parsed;
         }
       }
