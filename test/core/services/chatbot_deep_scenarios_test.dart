@@ -117,6 +117,40 @@ void main() {
       // Peak 18h & 19h badminton: 180k + 180k = 360k
       expect(msg.actionCard?['price'], 360000);
     });
+    test('handles common Vietnamese input without diacritics for booking and venue', () async {
+      final msg = await service.sendMessage('dat san tao dan 19h');
+      expect(msg.hasActionCard, isTrue);
+      expect(msg.actionCard?['type'], 'booking_card');
+      expect(msg.actionCard?['venueId'], 'venue_01');
+      expect(msg.actionCard?['startTime'], '19:00');
+      expect(msg.actionCard?['sport'], 'Cầu lông');
+    });
+
+    test('handles no-diacritic colloquial half-hour time "5 ruoi"', () async {
+      final msg = await service.sendMessage('dat san tao dan luc 5 ruoi');
+      expect(msg.hasActionCard, isTrue);
+      expect(msg.actionCard?['startTime'], '05:30');
+      expect(msg.actionCard?['endTime'], '06:30');
+    });
+
+    test('handles no-diacritic colloquial subtractive time "7h kem 15"', () async {
+      final msg = await service.sendMessage('dat san tao dan luc 7h kem 15');
+      expect(msg.hasActionCard, isTrue);
+      expect(msg.actionCard?['startTime'], '06:45');
+      expect(msg.actionCard?['endTime'], '07:45');
+    });
+
+    test('attaches add-ons to a valid default court when no court was selected', () async {
+      expect(service.pendingBooking, isNull);
+      final msg = await service.sendMessage('Cho mình thêm 2 chai nước Pocari');
+      expect(msg.hasActionCard, isTrue);
+      expect(msg.actionCard?['type'], 'booking_card');
+      expect(msg.actionCard?['venueId'], 'venue_01');
+      expect(msg.actionCard?['court'], isNotEmpty);
+      expect(msg.actionCard?['addonsTotal'], 30000);
+      expect(service.pendingBooking?['court'], msg.actionCard?['court']);
+    });
+
   });
 
   group('Deep Scenarios 3: Complex Add-on Item Parsing', () {
@@ -227,6 +261,27 @@ void main() {
       expect(msg.actionCard?['type'], 'table_card');
       expect(msg.actionCard?['title'], contains('Tình Trạng Sân'));
     });
+    test('Customer role cannot receive table cards for revenue or check-in', () async {
+      final customerContext = ChatContext(
+        userId: 'cust_02',
+        userName: 'Khách SportHub',
+        userRole: 'customer',
+        venueId: 'venue_01',
+      );
+
+      final revenueMsg = await service.sendMessage(
+        'Doanh thu hôm nay',
+        context: customerContext,
+      );
+      expect(revenueMsg.actionCard?['type'], isNot(equals('table_card')));
+
+      final checkInMsg = await service.sendMessage(
+        'Vé chờ check-in',
+        context: customerContext,
+      );
+      expect(checkInMsg.actionCard?['type'], isNot(equals('table_card')));
+    });
+
   });
 
   group('Deep Scenarios 5: Security, Off-topic Guardrails & Realtime Clock', () {
@@ -426,5 +481,42 @@ void main() {
       final updatedTicket = TicketStore.instance.tickets.firstWhere((t) => t.id == 'ticket_cancel_001');
       expect(updatedTicket.status, 'cancelled');
     });
+    test('cancellation is idempotent for a ticket already cancelled', () async {
+      final ticket = TicketModel(
+        id: 'ticket_cancelled_002',
+        bookingId: 'BK-CANCELLED-002',
+        venueName: 'CLB Cầu Lông Tao Đàn',
+        sportType: 'badminton',
+        courtNumber: 2,
+        matchDate: '2026-10-10',
+        startTime: '19:00',
+        endTime: '20:00',
+        totalPrice: 200000,
+        status: 'cancelled',
+        qrCodeData: 'SPORTHUB|BK-CANCELLED-002|200000',
+        createdAt: '2026-10-06T10:00:00Z',
+        district: 'Quận 1',
+      );
+      TicketStore.instance.addTicket(ticket);
+
+      final msg = await service.sendMessage('Hủy vé BK-CANCELLED-002 cho tôi');
+      expect(msg.hasActionCard, isTrue);
+      expect(msg.actionCard?['type'], 'cancellation_card');
+      expect(msg.actionCard?['status'], 'cancelled');
+      expect(msg.actionCard?['refundAmount'], 0);
+      expect(msg.text, contains('đã được hủy trước đó'));
+      expect(
+        TicketStore.instance.tickets.firstWhere((t) => t.id == ticket.id).status,
+        'cancelled',
+      );
+    });
+
+    test('reports a clear error when cancelling a missing or invalid ticket code', () async {
+      final msg = await service.sendMessage('Hủy vé BK-NOT-FOUND-999 cho tôi');
+      expect(msg.hasActionCard, isFalse);
+      expect(msg.text, contains('không tìm thấy'));
+      expect(msg.text, contains('BK-NOT-FOUND-999'));
+    });
+
   });
 }

@@ -26,6 +26,51 @@ class ChatbotService {
 
   static final ChatbotService instance = ChatbotService._internal();
 
+  static int? _parseAddonQuantity(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 1;
+    final quantity = int.tryParse(raw);
+    // A quantity of zero is not an order. Capping protects both arithmetic and
+    // rendered cards from unbounded user/server supplied values.
+    if (quantity == null || quantity <= 0 || quantity > 100) return null;
+    return quantity;
+  }
+
+  static Map<String, int> _sanitizeAddonCounts(dynamic raw) {
+    if (raw is! Map) return <String, int>{};
+    const supported = <String, int>{
+      'drink_pocari': 15000,
+      'gear_shuttle_tube': 240000,
+      'gear_shuttle_single': 22000,
+      'rent_badminton': 30000,
+    };
+    final result = <String, int>{};
+    for (final entry in raw.entries) {
+      final key = entry.key.toString();
+      if (!supported.containsKey(key)) continue;
+      final value = entry.value is num
+          ? (entry.value as num).toInt()
+          : int.tryParse(entry.value.toString());
+      if (value != null && value > 0) {
+        result[key] = value.clamp(1, 100).toInt();
+      }
+    }
+    return result;
+  }
+
+  static int _calculateAddonTotal(Map<String, int> counts) {
+    const prices = <String, int>{
+      'drink_pocari': 15000,
+      'gear_shuttle_tube': 240000,
+      'gear_shuttle_single': 22000,
+      'rent_badminton': 30000,
+    };
+    return counts.entries.fold<int>(
+      0,
+      (total, entry) => total + (prices[entry.key] ?? 0) * entry.value,
+    );
+  }
+
+
   /// Cleans up any markdown pseudo-UI tags from assistant reply
   static String cleanReply(String raw) {
     return raw
@@ -47,13 +92,51 @@ class ChatbotService {
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
   }
+  /// Returns a comparison-friendly form that treats Vietnamese diacritics as
+  /// optional. User-facing replies still use the original input.
+  static String _removeVietnameseDiacritics(String value) {
+    const replacements = <String, String>{
+      'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a',
+      'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
+      'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a',
+      'đ': 'd',
+      'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e',
+      'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
+      'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
+      'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o',
+      'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o',
+      'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
+      'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u',
+      'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
+      'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
+      'À': 'A', 'Á': 'A', 'Ạ': 'A', 'Ả': 'A', 'Ã': 'A',
+      'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ặ': 'A', 'Ẳ': 'A', 'Ẵ': 'A',
+      'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ậ': 'A', 'Ẩ': 'A', 'Ẫ': 'A',
+      'Đ': 'D',
+      'È': 'E', 'É': 'E', 'Ẹ': 'E', 'Ẻ': 'E', 'Ẽ': 'E',
+      'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ệ': 'E', 'Ể': 'E', 'Ễ': 'E',
+      'Ì': 'I', 'Í': 'I', 'Ị': 'I', 'Ỉ': 'I', 'Ĩ': 'I',
+      'Ò': 'O', 'Ó': 'O', 'Ọ': 'O', 'Ỏ': 'O', 'Õ': 'O',
+      'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ộ': 'O', 'Ổ': 'O', 'Ỗ': 'O',
+      'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ợ': 'O', 'Ở': 'O', 'Ỡ': 'O',
+      'Ù': 'U', 'Ú': 'U', 'Ụ': 'U', 'Ủ': 'U', 'Ũ': 'U',
+      'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ự': 'U', 'Ử': 'U', 'Ữ': 'U',
+      'Ỳ': 'Y', 'Ý': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y',
+    };
+    final output = StringBuffer();
+    for (final character in value.split('')) {
+      output.write(replacements[character] ?? character);
+    }
+    return output.toString();
+  }
+
 
   /// Helper to parse time strings like '19h', '7h tối', '19:30', '8h30 sáng', or range '19h30 - 21h30'
   static ({String timeStr, String startTime, String endTime, double durationHours}) parseTime(
     String text, {
     String defaultTime = '19:00',
   }) {
-    final lower = text.toLowerCase();
+    final lower = _removeVietnameseDiacritics(text).toLowerCase();
     int h = 19;
     int m = 0;
     int endH = 20;
@@ -63,9 +146,9 @@ class ChatbotService {
 
     // Pattern 0: Time range, e.g. 19h30 - 21h30, 19:30 - 21:30, 19h-21h, 19h đến 21h
     final rangeMatch = RegExp(
-      r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
+      r'(\d{1,2})(?:h|:|\s*gio\s*)(\d{2})?\s*(?:-|den|toi)\s*(\d{1,2})(?:h|:|\s*gio\s*)(\d{2})?\s*(sang|trua|chieu|toi)?',
       caseSensitive: false,
-    ).firstMatch(text);
+    ).firstMatch(lower);
 
     if (rangeMatch != null) {
       h = int.tryParse(rangeMatch.group(1)!) ?? 19;
@@ -73,14 +156,14 @@ class ChatbotService {
       endH = int.tryParse(rangeMatch.group(3)!) ?? (h + 1);
       endM = int.tryParse(rangeMatch.group(4) ?? '00') ?? 0;
       final period = rangeMatch.group(5)?.toLowerCase();
-      if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+      if ((period == 'toi' || period == 'chieu' || lower.contains('toi') || lower.contains('chieu')) && h < 12) {
         h += 12;
-      } else if (period == 'sáng' && h == 12) {
+      } else if (period == 'sang' && h == 12) {
         h = 0;
       }
-      if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && endH < 12) {
+      if ((period == 'toi' || period == 'chieu' || lower.contains('toi') || lower.contains('chieu')) && endH < 12) {
         endH += 12;
-      } else if (period == 'sáng' && endH == 12) {
+      } else if (period == 'sang' && endH == 12) {
         endH = 0;
       }
       if (endH < h && h >= 12 && endH < 12) {
@@ -92,21 +175,21 @@ class ChatbotService {
     } else {
       // Pattern 1.1: rưỡi, e.g. 5 rưỡi chiều, 5h rưỡi, 7 rưỡi tối, 17 rưỡi
       final ruoiMatch = RegExp(
-        r'(\d{1,2})\s*(?:h|giờ)?\s*rưỡi\s*(sáng|trưa|chiều|tối)?',
+        r'(\d{1,2})\s*(?:h|gio)?\s*ruoi\s*(sang|trua|chieu|toi)?',
         caseSensitive: false,
-      ).firstMatch(text);
+      ).firstMatch(lower);
       // Pattern 1.2: kém, e.g. 7h kém 15, 7 giờ kém 20, 19h kém 15
       final kemMatch = RegExp(
-        r'(\d{1,2})\s*(?:h|giờ)?\s*kém\s*(\d{1,2})\s*(sáng|trưa|chiều|tối)?',
+        r'(\d{1,2})\s*(?:h|gio)?\s*kem\s*(\d{1,2})\s*(sang|trua|chieu|toi)?',
         caseSensitive: false,
-      ).firstMatch(text);
+      ).firstMatch(lower);
       if (ruoiMatch != null) {
         h = int.tryParse(ruoiMatch.group(1)!) ?? 19;
         m = 30;
         final period = ruoiMatch.group(2)?.toLowerCase();
-        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+        if ((period == 'toi' || period == 'chieu' || lower.contains('toi') || lower.contains('chieu')) && h < 12) {
           h += 12;
-        } else if (period == 'sáng' && h == 12) {
+        } else if (period == 'sang' && h == 12) {
           h = 0;
         }
         endH = (h + 1) % 24;
@@ -119,7 +202,7 @@ class ChatbotService {
         h = (rawH - 1 + 24) % 24;
         m = (60 - kemM) % 60;
         final period = kemMatch.group(3)?.toLowerCase();
-        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+        if ((period == 'toi' || period == 'chieu' || lower.contains('toi') || lower.contains('chieu')) && h < 12) {
           h += 12;
         }
         endH = (h + 1) % 24;
@@ -129,16 +212,16 @@ class ChatbotService {
       } else {
         // Pattern 1: 19h30, 7h, 7h30 tối, 8h tối, 6h chiều, 7h sáng
       final hMatch = RegExp(
-        r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(sáng|trưa|chiều|tối)?',
+        r'(\d{1,2})(?:h|:|\s*gio\s*)(\d{2})?\s*(sang|trua|chieu|toi)?',
         caseSensitive: false,
-      ).firstMatch(text);
+      ).firstMatch(lower);
       if (hMatch != null) {
         h = int.tryParse(hMatch.group(1)!) ?? 19;
         m = int.tryParse(hMatch.group(2) ?? '00') ?? 0;
         final period = hMatch.group(3)?.toLowerCase();
-        if ((period == 'tối' || period == 'chiều' || lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+        if ((period == 'toi' || period == 'chieu' || lower.contains('toi') || lower.contains('chieu')) && h < 12) {
           h += 12;
-        } else if (period == 'sáng' && h == 12) {
+        } else if (period == 'sang' && h == 12) {
           h = 0;
         }
         endH = (h + 1) % 24;
@@ -147,11 +230,11 @@ class ChatbotService {
         matched = true;
       } else {
         // Pattern 2: 19:30 or 07:30
-        final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(text);
+        final colonMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(lower);
         if (colonMatch != null) {
           h = int.tryParse(colonMatch.group(1)!) ?? 19;
           m = int.tryParse(colonMatch.group(2)!) ?? 0;
-          if ((lower.contains('tối') || lower.contains('chiều')) && h < 12) {
+          if ((lower.contains('toi') || lower.contains('chieu')) && h < 12) {
             h += 12;
           }
           endH = (h + 1) % 24;
@@ -163,15 +246,20 @@ class ChatbotService {
     }
   }
 
-    if (!matched) {
+    if (!matched ||
+        h < 0 || h > 23 || m < 0 || m > 59 ||
+        endH < 0 || endH > 23 || endM < 0 || endM > 59) {
       final parts = defaultTime.split(':');
       h = int.tryParse(parts[0]) ?? 19;
       m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      if (h < 0 || h > 23 || m < 0 || m > 59) {
+        h = 19;
+        m = 0;
+      }
       endH = (h + 1) % 24;
       endM = m;
       durationHours = 1.0;
     }
-
     final startHStr = h.toString().padLeft(2, '0');
     final minStr = m.toString().padLeft(2, '0');
     final endHStr = endH.toString().padLeft(2, '0');
@@ -187,7 +275,7 @@ class ChatbotService {
 
   /// Helper to parse date strings like 'ngày mai', 'tối mai', 'hôm nay', 'ngày 30/09'
   static ({String dateStr, String displayDate}) parseDate(String text) {
-    final lower = text.toLowerCase();
+    final lower = _removeVietnameseDiacritics(text).toLowerCase();
     final now = DateTime.now();
 
     if (lower.contains('ngày mai') ||
@@ -204,7 +292,7 @@ class ChatbotService {
       );
     }
 
-    if (lower.contains('mốt') || lower.contains('ngày kia')) {
+    if (lower.contains('mot') || lower.contains('ngay kia')) {
       final after = now.add(const Duration(days: 2));
       final dateStr =
           '${after.year}-${after.month.toString().padLeft(2, '0')}-${after.day.toString().padLeft(2, '0')}';
@@ -214,7 +302,7 @@ class ChatbotService {
       );
     }
 
-    if (lower.contains('cuối tuần')) {
+    if (lower.contains('cuoi tuan')) {
       final daysUntilSaturday = (DateTime.saturday - now.weekday + 7) % 7;
       final target = now.add(Duration(days: daysUntilSaturday == 0 ? 7 : daysUntilSaturday));
       final dateStr =
@@ -224,16 +312,23 @@ class ChatbotService {
         displayDate: 'Thứ Bảy (${target.day.toString().padLeft(2, '0')}/${target.month.toString().padLeft(2, '0')})',
       );
     }
-    final dateMatch = RegExp(r'ngày\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{4}))?').firstMatch(text);
+    final dateMatch = RegExp(r'ngay\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{4}))?').firstMatch(lower);
     if (dateMatch != null) {
       final d = int.tryParse(dateMatch.group(1)!) ?? now.day;
       final m = int.tryParse(dateMatch.group(2)!) ?? now.month;
       final y = dateMatch.group(3) != null
           ? (int.tryParse(dateMatch.group(3)!) ?? now.year)
           : now.year;
-      final dateStr = '$y-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+      final candidate = DateTime(y, m, d);
+      if (candidate.year != y || candidate.month != m || candidate.day != d) {
+        return (
+          dateStr: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+          displayDate: 'Hôm nay',
+        );
+      }
+      final validDateStr = '$y-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
       return (
-        dateStr: dateStr,
+        dateStr: validDateStr,
         displayDate: 'Ngày ${d.toString().padLeft(2, '0')}/${m.toString().padLeft(2, '0')}',
       );
     }
@@ -479,8 +574,12 @@ class ChatbotService {
     final prevPrice = (sanitized['price'] as num?)?.toInt();
     sanitized['court'] = courtInfo.courtName;
 
-    // Check if add-ons exist
-    final addonsTotal = (sanitized['addonsTotal'] as num?)?.toInt() ?? 0;
+    // Recompute add-ons from the small allow-list instead of trusting a
+    // server-provided total (or arbitrary map keys/quantities).
+    final addonCounts = _sanitizeAddonCounts(sanitized['addonCounts']);
+    final addonsTotal = _calculateAddonTotal(addonCounts);
+    sanitized['addonCounts'] = addonCounts;
+    sanitized['addonsTotal'] = addonsTotal;
     sanitized['basePrice'] = courtInfo.price;
     sanitized['price'] = courtInfo.price + addonsTotal;
 
@@ -776,7 +875,10 @@ class ChatbotService {
 
         final payload = jsonEncode({
           'message': text,
-          'context': effectiveContext?.toJson() ?? {},
+          'context': {
+            ...?effectiveContext?.toJson(),
+            if (pendingBooking != null) 'pendingBooking': pendingBooking,
+          },
           if (imageUrl != null) 'imageUrl': imageUrl,
         });
 
@@ -911,6 +1013,7 @@ class ChatbotService {
   /// Processes intent locally with regex matching and smart entity extraction
   ChatMessage _processLocalIntent(String text, ChatContext? context, {String? imageUrl}) {
     final lower = text.toLowerCase();
+    final normalizedLower = _removeVietnameseDiacritics(text).toLowerCase();
     // -1. Safety & Off-topic Guardrails check
     final isOffTopic = RegExp(
       r'bài\s*thơ|thơ\s*tình|\bthơ\b|\bcode\b|lập\s*trình|thuật\s*toán|giải\s*toán|chính\s*trị|bầu\s*cử|api\s*key|system\s*prompt|bẻ\s*khóa|hack\s*hệ\s*thống',
@@ -1171,8 +1274,21 @@ class ChatbotService {
       }
     }
 
-    // 3. Owner specific intents (doanh thu, check-in, tình trạng sân)
+    // Owner metrics must never fall through to the model or be exposed to a
+    // player/guest merely by asking for them.
+    final ownerSensitiveQuery = RegExp(
+      r'doanh\s*thu|soat\s*ve|check\s*-?\s*in|ve\s*cho\s*check',
+      caseSensitive: false,
+    ).hasMatch(normalizedLower);
     final isOwner = context?.userRole == 'owner';
+    if (ownerSensitiveQuery && !isOwner) {
+      return ChatMessage(
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+        text: 'Dạ, thông tin doanh thu và soát vé chỉ dành cho tài khoản chủ sân đã được xác thực ạ.',
+        sender: 'assistant',
+        timestamp: DateTime.now(),
+      );
+    }
     if (isOwner) {
       if (lower.contains('doanh thu')) {
         final slots = VenueOwnerStore.instance.slots;
@@ -1614,11 +1730,13 @@ class ChatbotService {
         caseSensitive: false,
       ).firstMatch(text);
       if (waterMatch != null) {
-        final qty = int.tryParse(waterMatch.group(1) ?? '1') ?? 1;
-        final itemPrice = 15000 * qty;
-        addons.add('${qty}x Pocari Sweat Bù Khoáng (+${CurrencyFormatter.format(itemPrice)})');
-        itemsDesc.add('$qty chai nước Pocari bù khoáng (${CurrencyFormatter.format(itemPrice)})');
-        addonCounts['drink_pocari'] = (addonCounts['drink_pocari'] ?? 0) + qty;
+        final qty = _parseAddonQuantity(waterMatch.group(1));
+        if (qty != null) {
+          final itemPrice = 15000 * qty;
+          addons.add('${qty}x Pocari Sweat Bù Khoáng (+${CurrencyFormatter.format(itemPrice)})');
+          itemsDesc.add('$qty chai nước Pocari bù khoáng (${CurrencyFormatter.format(itemPrice)})');
+          addonCounts['drink_pocari'] = (addonCounts['drink_pocari'] ?? 0) + qty;
+        }
       }
 
       // 5.2 Shuttlecocks (ống cầu / quả cầu)
@@ -1631,29 +1749,32 @@ class ChatbotService {
       if (shuttleMatch != null &&
           !shuttleMatch.group(0)!.toLowerCase().contains('sân') &&
           !isPrecededByVot) {
-        final qty = int.tryParse(shuttleMatch.group(1) ?? '1') ?? 1;
-        final isSingle = RegExp(r'quả|trái', caseSensitive: false).hasMatch(shuttleMatch.group(0)!) &&
-            !RegExp(r'ống|hộp', caseSensitive: false).hasMatch(shuttleMatch.group(0)!);
-        final unitPrice = isSingle ? 22000 : 240000;
-        final itemPrice = unitPrice * qty;
-        final unitLabel = isSingle ? 'quả cầu lông' : 'ống cầu lông Hải Yến';
-        addons.add('${qty}x ${isSingle ? 'Quả Cầu Lông' : 'Ống Cầu Lông Hải Yến'} (+${CurrencyFormatter.format(itemPrice)})');
-        itemsDesc.add('$qty $unitLabel (${CurrencyFormatter.format(itemPrice)})');
-        final key = isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube';
-        addonCounts[key] = (addonCounts[key] ?? 0) + qty;
+        final qty = _parseAddonQuantity(shuttleMatch.group(1));
+        if (qty != null) {
+          final isSingle = RegExp(r'quả|trái', caseSensitive: false).hasMatch(shuttleMatch.group(0)!) &&
+              !RegExp(r'ống|hộp', caseSensitive: false).hasMatch(shuttleMatch.group(0)!);
+          final unitPrice = isSingle ? 22000 : 240000;
+          final itemPrice = unitPrice * qty;
+          final unitLabel = isSingle ? 'quả cầu lông' : 'ống cầu lông Hải Yến';
+          addons.add('${qty}x ${isSingle ? 'Quả Cầu Lông' : 'Ống Cầu Lông Hải Yến'} (+${CurrencyFormatter.format(itemPrice)})');
+          itemsDesc.add('$qty $unitLabel (${CurrencyFormatter.format(itemPrice)})');
+          final key = isSingle ? 'gear_shuttle_single' : 'gear_shuttle_tube';
+          addonCounts[key] = (addonCounts[key] ?? 0) + qty;
+        }
       }
-
       // 5.3 Rackets (vợt)
       final racketMatch = RegExp(
         r'(\d+)?\s*(?:cây|chiếc|cặp)?\s*(?:vợt\s*cầu\s*lông|vợt\s*pickleball|vợt)',
         caseSensitive: false,
       ).firstMatch(text);
       if (racketMatch != null) {
-        final qty = int.tryParse(racketMatch.group(1) ?? '1') ?? 1;
-        final itemPrice = 30000 * qty;
-        addons.add('${qty}x Vợt Cầu Lông Yonex (+${CurrencyFormatter.format(itemPrice)})');
-        itemsDesc.add('$qty cây vợt (${CurrencyFormatter.format(itemPrice)})');
-        addonCounts['rent_badminton'] = (addonCounts['rent_badminton'] ?? 0) + qty;
+        final qty = _parseAddonQuantity(racketMatch.group(1));
+        if (qty != null) {
+          final itemPrice = 30000 * qty;
+          addons.add('${qty}x Vợt Cầu Lông Yonex (+${CurrencyFormatter.format(itemPrice)})');
+          itemsDesc.add('$qty cây vợt (${CurrencyFormatter.format(itemPrice)})');
+          addonCounts['rent_badminton'] = (addonCounts['rent_badminton'] ?? 0) + qty;
+        }
       }
 
       if (itemsDesc.isNotEmpty) {
@@ -1683,7 +1804,7 @@ class ChatbotService {
               ((existingCard['price'] as num?)?.toInt() ?? 180000) -
                   ((existingCard['addonsTotal'] as num?)?.toInt() ?? 0);
 
-          mergedAddonCounts = Map<String, int>.from(existingCard['addonCounts'] ?? {});
+          mergedAddonCounts = _sanitizeAddonCounts(existingCard['addonCounts']);
         } else {
           venueName = (context?.venueName != null && context!.venueName!.isNotEmpty)
               ? context.venueName!
@@ -1726,6 +1847,9 @@ class ChatbotService {
           }
         }
 
+        for (final key in mergedAddonCounts.keys.toList()) {
+          mergedAddonCounts[key] = mergedAddonCounts[key]!.clamp(1, 100).toInt();
+        }
         // Recompute all addon strings and total cost
         final recomputedAddons = <String>[];
         int totalAddonsCost = 0;
@@ -1895,6 +2019,26 @@ class ChatbotService {
         );
 
         if (targetTicket != null) {
+          if (targetTicket.status == 'cancelled') {
+            return ChatMessage(
+              id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+              text: 'Dạ, vé **${targetTicket.bookingId}** đã được hủy trước đó rồi ạ. Hệ thống không tạo thêm yêu cầu hoàn tiền để tránh hoàn trùng. Khung giờ này đã được giải phóng từ lần hủy trước.',
+              sender: 'assistant',
+              timestamp: DateTime.now(),
+              actionCard: {
+                'type': 'cancellation_card',
+                'bookingId': targetTicket.bookingId,
+                'venueName': targetTicket.venueName,
+                'refundAmount': 0,
+                'status': 'cancelled',
+              },
+              quickSuggestions: const [
+                '🎫 Xem vé của tôi',
+                '🏸 Đặt sân mới',
+              ],
+            );
+          }
+
           TicketStore.instance.updateTicketStatus(targetTicket.id, 'cancelled');
           final refundPrice = targetTicket.totalPrice.toInt();
           return ChatMessage(
@@ -2223,7 +2367,6 @@ class ChatbotService {
 
       final tableRows = availableSlots.take(8).map((s) => [
             '${s.startTime} - ${s.endTime}',
-            'Sân ${s.courtNumber}',
             CurrencyFormatter.format(s.price),
             'Còn trống',
           ]).toList();
@@ -2250,10 +2393,11 @@ class ChatbotService {
 
     // 8. Booking intent (Expanded)
     final bookingRegex = RegExp(
-      r'đặt\s*(?:sân|chỗ|lịch|luôn|ngay|hộ|giúp)?|book|thuê\s*(?:sân)?|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|chốt\s*(?:sân|kèo)?|'
+      r'đặt\s*(?:sân|chỗ|lịch|luôn|ngay|hộ|giúp)?|dat\s*(?:san|cho|lich|luon|ngay|ho|giup)?|book|thuê\s*(?:sân)?|giữ\s*chỗ|tìm\s*sân|sân\s*trống|còn\s*sân|chốt\s*(?:sân|kèo)?|'
       r'chơi\s*(?:cầu\s*lông|pickleball|bóng\s*đá|thể\s*thao)|kiểm\s*tra\s*sân|'
       r'lấy\s*sân|muốn\s*sân|cần\s*sân|'
       r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?|'
+      r'(\d{1,2})\s*(?:h|giờ|gio)?\s*(?:(?:rưỡi|ruoi)|(?:kém|kem)\s*\d{1,2})\s*(?:sáng|trưa|chiều|tối|sang|trua|chieu|toi)?|'
       r'(?:cầu\s*lông|pickleball|bóng\s*đá).*(?:\d{1,2}\s*h|tối|sáng|chiều|sân)|'
       r'(?:\d{1,2}\s*h|tối|sáng|chiều).*(?:cầu\s*lông|pickleball|bóng\s*đá)|'
       r'🏸|🏓|⚽',
@@ -2266,7 +2410,7 @@ class ChatbotService {
       '⚽ Bóng đá mini Q.7',
     ];
 
-    if (bookingRegex.hasMatch(text)) {
+    if (bookingRegex.hasMatch(text) || bookingRegex.hasMatch(normalizedLower)) {
       final parsedTime = parseTime(text);
       final parsedDate = parseDate(text);
 
@@ -2501,6 +2645,8 @@ class ChatbotService {
     try {
       final client = http.Client();
       try {
+        const apiKey = String.fromEnvironment('FPT_API_KEY');
+        if (apiKey.isEmpty) return null;
         final now = DateTime.now();
         final days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         final dayName = days[now.weekday % 7];
@@ -2524,7 +2670,7 @@ Quy tắc phản hồi:
           Uri.parse('https://mkp-api.fptcloud.com/v1/chat/completions'),
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer sk-iJfjqbaiHQeKC5Hx-aplZpMUMzKD1yKXOI21yzupn_s=',
+            'Authorization': 'Bearer $apiKey',
           },
           body: jsonEncode({
             'model': 'gemma-4-26B-A4B-it',

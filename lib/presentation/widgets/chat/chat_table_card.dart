@@ -68,14 +68,25 @@ class ChatTableCard extends StatelessWidget {
     final title = cardData['title']?.toString() ?? 'Báo Cáo Vận Hành';
     final subtitle = cardData['subtitle']?.toString();
     final iconName = cardData['icon']?.toString() ?? 'table';
-    final headers = (cardData['headers'] as List<dynamic>?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        [];
-    final rows = (cardData['rows'] as List<dynamic>?)
-            ?.map((row) => (row as List<dynamic>).map((e) => e.toString()).toList())
-            .toList() ??
-        [];
+    final headersRaw = cardData['headers'];
+    final headers = headersRaw is List
+        ? headersRaw.map((e) => e.toString()).toList()
+        : <String>[];
+    final rowsRaw = cardData['rows'];
+    final rows = rowsRaw is List
+        ? rowsRaw
+            .map((row) {
+              if (row is List) return row.map((e) => e.toString()).toList();
+              return <String>[row.toString()];
+            })
+            .map((row) => headers.isEmpty
+                ? row
+                : List<String>.generate(
+                    headers.length,
+                    (index) => index < row.length ? row[index] : '',
+                  ))
+            .toList()
+        : <List<String>>[];
     final footer = cardData['footer']?.toString();
     final actionLabel = cardData['actionLabel']?.toString();
 

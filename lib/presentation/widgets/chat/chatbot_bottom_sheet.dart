@@ -214,6 +214,16 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
         widget.currentVenue?.name ??
         'CLB Cầu Lông Tao Đàn';
     final title = recCard?['title']?.toString() ?? 'Kèo Giao Lưu Cầu Lông - $venueName';
+    final district = recCard?['district']?.toString() ??
+        widget.currentVenue?.district ??
+        'Quận 1';
+    final skillLevel = recCard?['skillLevel']?.toString() ??
+        'Trung bình (2.0 - 3.5)';
+    final scheduledTime = recCard?['scheduledTime']?.toString() ??
+        '19:00 - 21:00 Hôm nay';
+    final requiredPlayers = (recCard?['requiredPlayers'] as num?)?.toInt() ?? 4;
+    final currentPlayers = (recCard?['currentPlayers'] as num?)?.toInt() ?? 2;
+    final shareFee = (recCard?['shareFee'] as num?)?.toDouble() ?? 45000;
     final img = recCard?['imageUrl']?.toString();
 
     final post = CommunityPost(
@@ -221,13 +231,13 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
       title: title,
       authorName: AuthStore.instance.currentUser?.fullName ?? 'Người dùng SportHub',
       sportType: sport,
-      district: widget.currentVenue?.district ?? 'Quận 1',
-      skillLevel: recCard?['skillLevel']?.toString() ?? 'Trung bình (2.0 - 3.5)',
+      district: district,
+      skillLevel: skillLevel,
       venueName: venueName,
-      scheduledTime: recCard?['scheduledTime']?.toString() ?? '19:00 - 21:00 Hôm nay',
-      requiredPlayers: 4,
-      currentPlayers: 2,
-      shareFee: 45000,
+      scheduledTime: scheduledTime,
+      requiredPlayers: requiredPlayers.clamp(1, 100).toInt(),
+      currentPlayers: currentPlayers.clamp(0, requiredPlayers.clamp(1, 100)).toInt(),
+      shareFee: shareFee.clamp(0, 100000000).toDouble(),
       note: 'Bài đăng được tạo qua Trợ lý AI SportHub. Hoan nghênh mọi người cùng tham gia!',
       imageUrl: img,
     );
