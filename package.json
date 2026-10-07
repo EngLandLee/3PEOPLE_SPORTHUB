@@ -1,0 +1,11 @@
+{
+  "name": "sporthub-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix admin-web run dev",
+    "admin": "npm --prefix admin-web run dev",
+    "build": "npm --prefix admin-web run build",
+    "test": "npm --prefix admin-web test"
+  }
+}
