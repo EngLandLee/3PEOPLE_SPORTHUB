@@ -76,11 +76,12 @@ class ChatbotService {
     return raw
         .replaceAll(
           RegExp(
-            r'👉\s*\[[^\]]+\]|\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|📅|Thẻ|Nút|Button|Card|Nhấn|Bấm|Đặt|Xem|Khung)[^\]]*\]',
+            r'👉\s*\[[^\]]+\]|\[\s*(?:⚡|⚽|🏸|🏀|🏓|📍|📅|Thẻ|Nút|Button|Card|Nhấn|Bấm|Đặt|Xem|Khung|Link|Link đến|trang web|app)[^\]]*\]',
             caseSensitive: false,
           ),
           '',
         )
+        .replaceAll(RegExp(r'\[Link[^\n\]]*\]', caseSensitive: false), '')
         .replaceAll(
           RegExp(
             r'\|[^\n]+\|\n\|[\s:-|]+\|\n(?:\|[^\n]+\|\n?)+',
@@ -92,6 +93,24 @@ class ChatbotService {
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
   }
+
+  static bool _isSportHubRequestAllowed(
+    String text, {
+    bool hasImage = false,
+    bool hasPendingBooking = false,
+  }) {
+    final message = _removeVietnameseDiacritics(text).toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+    final outOfScope = RegExp(
+      r'\b(?:giai|tinh)\s+(?:bai\s+)?toan\b|\bbai\s+toan\b|\d\s*[+*/=]\s*\d|\b(?:viet|lam)\s+(?:tho|van|code|chuong\s+trinh)|\b(?:lap\s+trinh|programming|write\s+code|solve|calculate|politics|chinh\s+tri|bau\s+cu|hack|api\s+key|system\s+prompt|ignore\s+(?:all\s+)?(?:rules|instructions)|tell\s+(?:me\s+)?a\s+joke|ke\s+chuyen\s+cuoi|weather|recipe|translate|dich\s+thuat)\b',
+      caseSensitive: false,
+    );
+    if (outOfScope.hasMatch(message)) return false;
+
+    return true;
+  }
+
+  static const String _scopeRefusal =
+      'Dạ, em là trợ lý ảo SportHub AI chuyên về đặt sân và các hoạt động thể thao tại TP.HCM. Em xin phép chỉ hỗ trợ các câu hỏi liên quan đến sân bãi, lịch chơi và dịch vụ thể thao thôi nhé ạ!';
   /// Returns a comparison-friendly form that treats Vietnamese diacritics as
   /// optional. User-facing replies still use the original input.
   static String _removeVietnameseDiacritics(String value) {
@@ -865,6 +884,11 @@ class ChatbotService {
     if (context != null) {
       currentContext = context;
     }
+    final scopeAllowed = _isSportHubRequestAllowed(
+      text,
+      hasImage: imageUrl != null && imageUrl.trim().isNotEmpty,
+      hasPendingBooking: pendingBooking != null || latestBookingCard != null,
+    );
 
     final userMessage = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}_user',
@@ -887,7 +911,7 @@ class ChatbotService {
       // Try server inference if httpClient is injected or not in offline test
       final effectiveContext = context ?? currentContext;
       final effectiveHttpClient = httpClient ?? this.httpClient;
-      final shouldAttemptNetwork = effectiveHttpClient != null || !isTestEnvironment;
+      final shouldAttemptNetwork = scopeAllowed && (effectiveHttpClient != null || !isTestEnvironment);
 
     if (shouldAttemptNetwork) {
       try {
@@ -911,7 +935,7 @@ class ChatbotService {
                 headers: {'Content-Type': 'application/json'},
                 body: payload,
               )
-              .timeout(const Duration(milliseconds: 1500));
+              .timeout(const Duration(seconds: 65));
 
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
@@ -957,7 +981,7 @@ class ChatbotService {
                     headers: {'Content-Type': 'application/json'},
                     body: payload,
                   )
-                  .timeout(const Duration(milliseconds: 3500));
+                  .timeout(const Duration(seconds: 65));
 
               if (response.statusCode == 200) {
                 final data = jsonDecode(response.body);
@@ -1008,17 +1032,8 @@ class ChatbotService {
         // Fallback to local engine on error or timeout
       }
     }
-    // If local candidate dev servers were not reachable (e.g. mobile phone on Wi-Fi/4G),
-    // directly invoke FPT Cloud AI via public HTTPS endpoint
-    if (assistantMessage == null && !isTestEnvironment && effectiveHttpClient == null) {
-      assistantMessage = await _callFptCloudDirectly(
-        text,
-        effectiveContext,
-        imageUrl: imageUrl,
-      );
-    }
-
-    // Fallback to smart local intent engine if neither server nor cloud replied
+    // Keep the local intent engine as the offline fallback if the configured
+    // backend (Ollama through the Admin API) is unavailable.
     assistantMessage ??= _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
         addMessage(assistantMessage);
 
@@ -1040,10 +1055,14 @@ class ChatbotService {
       r'bài\s*thơ|thơ\s*tình|\bthơ\b|\bcode\b|lập\s*trình|thuật\s*toán|giải\s*toán|chính\s*trị|bầu\s*cử|api\s*key|system\s*prompt|bẻ\s*khóa|hack\s*hệ\s*thống',
       caseSensitive: false,
     ).hasMatch(text);
-    if (isOffTopic) {
+    if (isOffTopic || !_isSportHubRequestAllowed(
+      text,
+      hasImage: imageUrl != null && imageUrl.trim().isNotEmpty,
+      hasPendingBooking: pendingBooking != null || latestBookingCard != null,
+    )) {
       return ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-        text: 'Dạ, em là trợ lý ảo SportHub AI chuyên về đặt sân và các hoạt động thể thao tại TP.HCM. Em xin phép chỉ hỗ trợ các câu hỏi liên quan đến sân bãi, lịch chơi và dịch vụ thể thao thôi nhé ạ!',
+        text: _scopeRefusal,
         sender: 'assistant',
         timestamp: DateTime.now(),
         actionCard: null,
@@ -2779,8 +2798,8 @@ class ChatbotService {
     try {
       final client = http.Client();
       try {
-        const envKey = String.fromEnvironment('FPT_API_KEY');
-        final apiKey = envKey.isNotEmpty ? envKey : 'sk-iJfjqbaiHQeKC5Hx-aplZpMUMzKD1yKXOI21yzupn_s=';
+        const apiKey = String.fromEnvironment('FPT_API_KEY');
+        if (apiKey.isEmpty) return null;
         final now = DateTime.now();
         final days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         final dayName = days[now.weekday % 7];
