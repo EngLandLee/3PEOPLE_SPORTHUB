@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
 import 'package:sporthub/core/services/venue_sync_service.dart';
 import 'package:sporthub/core/state/ticket_store.dart';
@@ -78,10 +75,6 @@ void main() {
 
   group('Deep Scenarios 2: Natural Vietnamese Language & Colloquial Variations', () {
     test('handles date keywords "ngày mai" and "mai" accurately', () async {
-      final now = DateTime.now();
-      final tomorrow = now.add(const Duration(days: 1));
-      final tomorrowStr =
-          '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}';
 
       final msg = await service.sendMessage('Đặt sân cầu lông Tao Đàn lúc 18h ngày mai');
       expect(msg.hasActionCard, isTrue);
