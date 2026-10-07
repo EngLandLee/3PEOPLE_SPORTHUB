@@ -2024,11 +2024,11 @@ class ChatbotService {
 
     // 7. Cancellation / Policy query
     final isCancelBooking = RegExp(
-      r'hủy\s*(?:vé|đơn|lịch|suất)?|xóa\s*vé',
+      r'hủy\s*(?:vé|đơn|lịch|suất|sân)?|xóa\s*vé|thôi\s*(?:không\s*đặt|không\s*thuê)|bỏ\s*(?:đơn|sân)',
       caseSensitive: false,
     ).hasMatch(text);
     final codeMatch = RegExp(r'(?:BK|SH)[a-zA-Z0-9_-]+', caseSensitive: false).firstMatch(text);
-    final policyRegex = RegExp(r'hủy|đổi lịch|chính sách', caseSensitive: false);
+    final policyRegex = RegExp(r'hủy|đổi lịch|chính sách|thôi\s*không', caseSensitive: false);
 
     if (policyRegex.hasMatch(text)) {
       if (isCancelBooking && codeMatch != null) {
@@ -2095,8 +2095,38 @@ class ChatbotService {
             ],
           );
         }
-      }
+      } else if (isCancelBooking && (pendingBooking != null || latestBookingCard != null)) {
+        final targetCard = pendingBooking ?? latestBookingCard!;
+        final draftVenue = targetCard['venueName']?.toString() ?? 'CLB Cầu Lông Tao Đàn';
+        final draftSport = targetCard['sport']?.toString() ?? 'Cầu lông';
+        final draftTime = targetCard['time']?.toString() ?? '19:00 - 20:00';
+        final draftDate = targetCard['date']?.toString() ?? 'Hôm nay';
+        final draftCourt = targetCard['court']?.toString() ?? 'Sân 1';
+        pendingBooking = null;
 
+        final userName = context?.userName?.trim();
+        final greeting = (userName != null && userName.isNotEmpty) ? 'anh $userName' : 'anh/chị';
+        return ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+          text: 'Dạ em đã hủy yêu cầu giữ chỗ cho **$draftVenue** ($draftCourt, môn $draftSport lúc $draftTime $draftDate) theo yêu cầu của $greeting rồi ạ.\n\nĐơn đặt sân nháp đã được dọn sạch. Khi nào sắp xếp được thời gian, anh/chị cứ nhắn em để đặt lịch mới nhé! 🏸⚽🏓',
+          sender: 'assistant',
+          timestamp: DateTime.now(),
+          actionCard: {
+            'type': 'cancellation_card',
+            'venueName': draftVenue,
+            'sport': draftSport,
+            'court': draftCourt,
+            'time': draftTime,
+            'date': draftDate,
+            'status': 'cancelled_draft',
+          },
+          quickSuggestions: [
+            '🏸 Đặt sân $draftVenue',
+            '🏟️ Xem cụm sân khác',
+            '🎫 Xem vé của tôi',
+          ],
+        );
+      }
       return ChatMessage(
         id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
         text: 'Chính sách SportHub: Quý khách được phép hủy hoặc đổi lịch miễn phí trước 24 giờ so với giờ chơi. Nếu hủy trong vòng 12-24 giờ, hỗ trợ hoàn tiền 50% hoặc bảo lưu suất chơi.',

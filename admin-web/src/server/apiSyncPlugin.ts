@@ -1721,8 +1721,88 @@ export function apiSyncPlugin(): Plugin {
                       "🎫 Xem vé của tôi",
                     ];
               }
+              const isCancellationQuery = !isDateTimeQuery && !isProfilePreferenceQuery && (
+                /(?:hủy|huy)\s*(?:vé|ve|đơn|don|lịch|lich|suất|suat|sân|san)?/i.test(lowerMsg) ||
+                /(?:thôi|thoi)\s*(?:không|khong)\s*(?:đặt|dat|thuê|thue)/i.test(lowerMsg) ||
+                /hủy\s*sân|huy\s*san|hủy\s*lịch|huy\s*lich|hủy\s*đơn|huy\s*don|hủy\s*vé|huy\s*ve/i.test(lowerMsg)
+              );
 
-              const isPaymentStatusQuery = !isDateTimeQuery && !isProfilePreferenceQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
+              if (isCancellationQuery) {
+                const codeMatch = (message || '').match(/(?:BK|SH)[a-zA-Z0-9_-]+/i);
+                if (codeMatch) {
+                  const bookingCode = codeMatch[0].toUpperCase();
+                  const targetIdx = (store.bookings || []).findIndex(b => b.id?.toUpperCase() === bookingCode || (b as any).bookingId?.toUpperCase() === bookingCode);
+                  if (targetIdx !== -1) {
+                    const b = store.bookings![targetIdx];
+                    b.paymentStatus = 'cancelled';
+                    store.timestamp = Date.now();
+                    saveSyncStore(store);
+                    const refundPrice = b.price || 180000;
+                    actionCard = {
+                      type: 'cancellation_card',
+                      bookingId: b.id,
+                      venueName: b.venueName,
+                      refundAmount: refundPrice,
+                      status: 'cancelled',
+                    };
+                    reply = `🎉 **Xác nhận hủy vé thành công!**\n\nDạ em đã xử lý hủy đơn đặt sân mã **${b.id}** tại **${b.venueName}** (${b.timeSlot || `${b.startTime} - ${b.endTime}`}, ngày ${b.date}).\n• **Số tiền hoàn lại:** ${refundPrice.toLocaleString('vi-VN')}đ (100% qua phương thức thanh toán ban đầu).\n• **Trạng thái vé:** Đã hủy (Cancelled).\n\nKhung giờ đã được giải phóng trên hệ thống. Hẹn gặp lại anh/chị trong các trận đấu sau nhé! 🏸⚽🏓`;
+                    quickSuggestions = [
+                      "🎫 Xem vé của tôi",
+                      "🏸 Đặt sân mới",
+                    ];
+                  } else {
+                    actionCard = null;
+                    reply = `Dạ em không tìm thấy đơn đặt sân nào với mã **${bookingCode}** trong danh sách vé của mình. Anh/chị vui lòng kiểm tra lại trong mục **Vé của tôi** nhé!`;
+                    quickSuggestions = [
+                      "🎫 Xem vé của tôi",
+                      "📋 Chính sách hoàn hủy",
+                    ];
+                  }
+                } else if (pendingCard) {
+                  const draftVenue = String(pendingCard.venueName || venueName || 'CLB Cầu Lông Tao Đàn');
+                  const draftSport = String(pendingCard.sport || sport || 'Cầu lông');
+                  const draftTime = String(pendingCard.time || time || '19:00 - 20:00');
+                  const draftDate = String(pendingCard.date || 'Hôm nay');
+                  const draftCourt = String(pendingCard.court || 'Sân 1');
+                  actionCard = {
+                    type: 'cancellation_card',
+                    venueName: draftVenue,
+                    sport: draftSport,
+                    court: draftCourt,
+                    time: draftTime,
+                    date: draftDate,
+                    status: 'cancelled_draft',
+                  };
+                  reply = `Dạ em đã hủy yêu cầu giữ chỗ cho **${draftVenue}** (${draftCourt}, ${draftSport}, khung giờ ${draftTime}) theo yêu cầu của ${context?.userName ? `anh ${context.userName}` : 'anh/chị'} rồi ạ.\n\nĐơn đặt sân nháp đã được dọn sạch. Khi nào sắp xếp được thời gian, anh/chị cứ nhắn em để chọn lịch chơi khác nhé! 🏸⚽🏓`;
+                  quickSuggestions = [
+                    "🏸 Đặt sân cầu lông Tao Đàn",
+                    "🏓 Pickleball Thảo Điền",
+                    "⚽ Bóng đá mini Q.7",
+                    "🎫 Xem vé của tôi",
+                  ];
+                } else {
+                  actionCard = {
+                    type: 'table_card',
+                    title: 'Bảng Tỷ Lệ Hoàn Tiền & Quyền Lợi Sân',
+                    subtitle: 'Chính sách hoàn hủy áp dụng toàn hệ thống SportHub',
+                    icon: 'policy',
+                    headers: ['Thời gian báo hủy', 'Khách nhận lại', 'Sân thu phí', 'Quy trình xử lý'],
+                    rows: [
+                      ['> 24 giờ trước giờ chơi', 'Hoàn 100%', '0% phí', 'Mở lại slot tự động'],
+                      ['12 - 24 giờ trước giờ chơi', 'Hoàn 50%', 'Thu 50% tiền cọc', 'Chuyển vào ví sân'],
+                      ['< 12 giờ trước giờ chơi', 'Không hoàn (0%)', 'Thu 100% tiền đặt', 'Bảo lưu doanh thu sân'],
+                    ],
+                    footer: '💡 Chính sách giúp bảo vệ quyền lợi cho cả khách hàng và chủ sân.',
+                  };
+                  reply = "📋 **Chính sách hoàn hủy của SportHub:**\n• Khách hủy trước > 24h: Hoàn 100% tiền cọc.\n• Khách hủy trong 12h - 24h: Hoàn 50% tiền cọc.\n• Khách hủy dưới 12h: Không hỗ trợ hoàn tiền.\n\nNếu muốn hủy một vé cụ thể, bạn chỉ cần gửi mã vé (ví dụ: `hủy vé BK-12345`) hoặc nhắn `hủy sân này đi` khi đang lên đơn nhé!";
+                  quickSuggestions = [
+                    "🎫 Xem vé của tôi",
+                    "🏸 Đặt sân mới",
+                  ];
+                }
+              }
+
+              const isPaymentStatusQuery = !isDateTimeQuery && !isProfilePreferenceQuery && !isCancellationQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
               if (isPaymentStatusQuery) {
                 const latestBooking = (store.bookings || []).slice().reverse().find(b => b.paymentStatus === 'paid') || (store.bookings || []).slice().reverse()[0];
                 const isPaid = latestBooking?.paymentStatus === 'paid';
