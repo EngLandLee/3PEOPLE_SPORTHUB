@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/auth_state.dart';
 import '../../domain/entities/user_profile.dart';
 import '../services/chatbot_service.dart';
+import 'ticket_store.dart';
 import '../utils/seed_data.dart';
 
 class AuthResult {
@@ -44,6 +45,14 @@ class AuthStore {
   String _normalizePhone(String phone) =>
       phone.replaceAll(RegExp(r'\s+'), '').trim();
 
+  void _clearUserScopedData() {
+    // TicketStore is currently local-only and has no server-backed owner
+    // filter. Reset it on identity changes so the next user cannot inherit
+    // the previous user's tickets or payment context.
+    TicketStore.instance.reset();
+    ChatbotService.instance.resetMessages();
+  }
+
   void reset() {
     _credentials.clear();
     _registeredUsers.clear();
@@ -85,7 +94,7 @@ class AuthStore {
     }
 
     stateNotifier.value = AuthState.authenticated(user);
-    ChatbotService.instance.resetMessages();
+    _clearUserScopedData();
     return AuthResult.success(user);
   }
 
@@ -130,7 +139,7 @@ class AuthStore {
     _pendingPassword = null;
 
     stateNotifier.value = AuthState.authenticated(profile);
-    ChatbotService.instance.resetMessages();
+    _clearUserScopedData();
     return AuthResult.success(profile);
   }
 
@@ -138,21 +147,21 @@ class AuthStore {
     final normalized = _normalizePhone(demoUser.phone);
     _registeredUsers[normalized] = demoUser;
     stateNotifier.value = AuthState.authenticated(demoUser);
-    ChatbotService.instance.resetMessages();
+    _clearUserScopedData();
   }
 
   void continueAsGuest() {
     _pendingProfile = null;
     _pendingPassword = null;
     stateNotifier.value = AuthState.guest();
-    ChatbotService.instance.resetMessages();
+    _clearUserScopedData();
   }
 
   void logout() {
     _pendingProfile = null;
     _pendingPassword = null;
     stateNotifier.value = AuthState.unauthenticated();
-    ChatbotService.instance.resetMessages();
+    _clearUserScopedData();
   }
 
   void updateCurrentUser(UserProfile updated) {

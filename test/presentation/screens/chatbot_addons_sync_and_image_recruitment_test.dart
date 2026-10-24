@@ -14,11 +14,73 @@ import 'package:sporthub/presentation/widgets/chat/chat_booking_card.dart';
 import 'package:sporthub/main.dart';
 
 final Uint8List _kTransparentImage = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-  0x42, 0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ]);
 
 class _TestHttpOverrides extends HttpOverrides {
@@ -139,7 +201,8 @@ void main() {
 
       // Now book the slot via VenueSyncService / Chatbot to test Issue 2
       final now = DateTime.now();
-      final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       await VenueSyncService.instance.createBooking(
         bookingId: 'BK-TEST-BOOKED',
         venueId: venue.id,
@@ -215,9 +278,10 @@ void main() {
       await tester.tap(find.text('Xác nhận đã chuyển'));
       await tester.pumpAndSettle();
 
-      // Should now confirm in chat and add ticket
-      expect(find.textContaining('thanh toán thành công!'), findsOneWidget);
+      // The client records a pending ticket; it must not claim payment success.
+      expect(find.textContaining('thanh toán thành công!'), findsNothing);
       expect(TicketStore.instance.tickets.isNotEmpty, isTrue);
+      expect(TicketStore.instance.tickets.first.status, 'pending');
     },
   );
 
@@ -254,7 +318,8 @@ void main() {
 
       // Modal bottom sheet should show presets and custom URL field
       expect(find.text('Gửi ảnh tuyển thành viên / ghép kèo'), findsOneWidget);
-      expect(find.byKey(const Key('input_custom_chat_image_url')), findsOneWidget);
+      expect(
+          find.byKey(const Key('input_custom_chat_image_url')), findsOneWidget);
 
       // Tap preset action chip
       final quickChip = find.text('🏸 Tuyển 2 người đánh đôi 19h');
@@ -271,7 +336,8 @@ void main() {
 
       // AI assistant should reply with recruitment recommendations & action chips
       expect(find.textContaining('bài đăng tuyển thành viên'), findsOneWidget);
-      expect(find.textContaining('📢 Đăng lên Bảng tin Cộng đồng'), findsWidgets);
+      expect(
+          find.textContaining('📢 Đăng lên Bảng tin Cộng đồng'), findsWidgets);
 
       final prevCommunityCount = CommunityFeedStore.instance.posts.length;
 

@@ -37,7 +37,7 @@ function isSportHubRequestAllowed(
   return bookingOrCourtTask || matchmakingTask || projectInfoTask || projectHelpTask || bookingFollowUp || ownerTask || posterRecruitment;
 }
 
-const SPORTHUB_SCOPE_REPLY = 'Mình là trợ lý SportHub. Mình chỉ hỗ trợ tìm sân trống, tư vấn và đặt sân, cùng tìm hoặc ghép kèo trong SportHub nhé.';
+const SPORTHUB_SCOPE_REPLY = 'Mình là trợ lý SportHub AI. Mình chỉ hỗ trợ tìm sân thể thao trống, tư vấn và đặt sân, cùng tìm hoặc ghép kèo trong SportHub nhé.';
 function isAuthorizedOwner(context: unknown, req: unknown): boolean {
   const contextRecord = context && typeof context === 'object'
     ? context as Record<string, unknown>
@@ -60,6 +60,85 @@ function isAuthorizedOwner(context: unknown, req: unknown): boolean {
   return process.env.NODE_ENV !== 'production' &&
     ownerRoute &&
     (ownerIds.length === 0 ? userId === 'user_owner_01' : ownerIds.includes(userId));
+}
+
+function requestHeader(req: unknown, name: string): string {
+  const record = req && typeof req === 'object' ? req as Record<string, unknown> : {};
+  const headers = record.headers && typeof record.headers === 'object'
+    ? record.headers as Record<string, unknown>
+    : {};
+  return String(headers[name] || headers[name.toLowerCase()] || '').trim();
+}
+
+function adminAuthRequired(): boolean {
+  return process.env.NODE_ENV === 'production' || Boolean(process.env.SPORT_HUB_ADMIN_TOKEN);
+}
+
+function requireAdminAuth(req: unknown, res: unknown): boolean {
+  if (!adminAuthRequired()) return true;
+  const configuredToken = process.env.SPORT_HUB_ADMIN_TOKEN || '';
+  const authorized = configuredToken.length > 0 &&
+    requestHeader(req, 'authorization') === `Bearer ${configuredToken}`;
+  if (authorized) return true;
+
+  const response = res as { statusCode?: number; setHeader?: (name: string, value: string) => void; end?: (body?: string) => void };
+  response.setHeader?.('Content-Type', 'application/json');
+  response.statusCode = 401;
+  response.end?.(JSON.stringify({ error: 'Admin authentication required' }));
+  return false;
+}
+
+function parseTimeMinutes(value: unknown): number | undefined {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return undefined;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) return undefined;
+  return hours * 60 + minutes;
+}
+
+function ollamaEndpoint(): string {
+  return (process.env.SPORT_HUB_OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+}
+
+function ollamaTimeoutMs(): number {
+  const configured = Number.parseInt(process.env.SPORT_HUB_OLLAMA_TIMEOUT_MS || '8000', 10);
+  return Number.isFinite(configured) ? Math.min(Math.max(configured, 1000), 15000) : 8000;
+}
+
+function bookingTimeRange(booking: Partial<SyncedBooking>): { start: number; end: number } | undefined {
+  const start = parseTimeMinutes(booking.startTime);
+  let end = parseTimeMinutes(booking.endTime);
+  if (start === undefined && typeof booking.timeSlot === 'string') {
+    const parts = booking.timeSlot.split('-').map((part) => part.trim());
+    const slotStart = parseTimeMinutes(parts[0]);
+    const slotEnd = parseTimeMinutes(parts[1]);
+    if (slotStart !== undefined) {
+      if (slotEnd !== undefined) return { start: slotStart, end: slotEnd };
+      return { start: slotStart, end: slotStart + 60 };
+    }
+  }
+  if (start === undefined) return undefined;
+  if (end === undefined) end = start + 60;
+  if (end <= start) return undefined;
+  return { start, end };
+}
+
+function bookingsOverlap(left: Partial<SyncedBooking>, right: Partial<SyncedBooking>): boolean {
+  const leftRange = bookingTimeRange(left);
+  const rightRange = bookingTimeRange(right);
+  if (!leftRange || !rightRange) return false;
+  return leftRange.start < rightRange.end && rightRange.start < leftRange.end;
+}
+
+function isSameCourt(left: Partial<SyncedBooking>, right: Partial<SyncedBooking>): boolean {
+  const leftVenue = String(left.venueId || '');
+  const rightVenue = String(right.venueId || '');
+  const sameVenue = leftVenue === rightVenue ||
+    (leftVenue === 'venue_q1_04' && rightVenue === 'venue_01') ||
+    (leftVenue === 'venue_01' && rightVenue === 'venue_q1_04');
+  return sameVenue && Number(left.courtNumber) === Number(right.courtNumber) &&
+    String(left.date || '') === String(right.date || '');
 }
 
 function parseAddonQuantity(raw: string | undefined): number | undefined {
@@ -109,6 +188,7 @@ export interface SyncedCourt {
   facilityType?: string;
   regularPrice?: number;
   peakPrice?: number;
+  price?: number;
   isActive: boolean;
 }
 
@@ -130,6 +210,8 @@ export interface SyncedVenue {
 
 export interface SyncedBooking {
   id: string;
+  bookingId?: string;
+  ownerId?: string;
   slotId?: string;
   courtId?: string;
   courtNumber: number;
@@ -144,7 +226,7 @@ export interface SyncedBooking {
   customerName: string;
   customerPhone: string;
   price: number;
-  paymentStatus: 'paid' | 'pending';
+  paymentStatus: 'paid' | 'pending' | 'cancelled';
   paymentMethod?: 'vietqr' | 'momo' | 'zalopay' | 'vnpay' | 'cash';
   checkedIn: boolean;
   createdAt: string;
@@ -816,8 +898,14 @@ export function apiSyncPlugin(): Plugin {
           return next();
         }
 
-        // Global CORS Headers
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // CORS is permissive only for local development. Production must set
+        // an explicit frontend origin instead of allowing every website.
+        const configuredOrigin = process.env.SPORT_HUB_ALLOWED_ORIGIN || '';
+        const requestOrigin = requestHeader(req, 'origin');
+        const allowedOrigin = configuredOrigin || (process.env.NODE_ENV === 'production' ? '' : '*');
+        if (allowedOrigin && (!requestOrigin || requestOrigin === allowedOrigin)) {
+          res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -856,6 +944,7 @@ export function apiSyncPlugin(): Plugin {
 
         // 2c. POST /api/venues
         if ((url === '/api/venues' || url === '/api/venues/') && req.method === 'POST') {
+          if (!requireAdminAuth(req, res)) return;
           let bodyStr = '';
           req.on('data', (chunk) => {
             bodyStr += chunk;
@@ -887,6 +976,7 @@ export function apiSyncPlugin(): Plugin {
         // 2d. PATCH /api/venues/:id or DELETE /api/venues/:id
         const venueMatch = url.match(/^\/api\/venues\/([^/?#]+)/);
         if (venueMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+          if (!requireAdminAuth(req, res)) return;
           const venueId = venueMatch[1];
           if (!store.venues) store.venues = [...DEFAULT_SYNC_VENUES];
 
@@ -932,6 +1022,7 @@ export function apiSyncPlugin(): Plugin {
         // 3. PATCH /api/courts/:id or POST /api/courts/:id
         const courtMatch = url.match(/^\/api\/courts\/([^/?#]+)/);
         if (courtMatch && (req.method === 'PATCH' || req.method === 'POST')) {
+          if (!requireAdminAuth(req, res)) return;
           const courtId = courtMatch[1];
           let bodyStr = '';
           req.on('data', (chunk) => {
@@ -977,6 +1068,7 @@ export function apiSyncPlugin(): Plugin {
 
         // 3b. GET /api/bookings
         if ((url === '/api/bookings' || url === '/api/bookings/') && req.method === 'GET') {
+          if (!requireAdminAuth(req, res)) return;
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
           res.end(JSON.stringify(store.bookings || DEFAULT_SYNC_BOOKINGS));
@@ -991,7 +1083,12 @@ export function apiSyncPlugin(): Plugin {
           });
           req.on('end', () => {
             try {
-              const newBooking: SyncedBooking = JSON.parse(bodyStr);
+              const parsed = JSON.parse(bodyStr) as Record<string, unknown>;
+              // Payment state and ownership are server-controlled. A mobile
+              // client may request a reservation, but cannot promote it to
+              // paid or assign it to an arbitrary account.
+              const { paymentStatus: _paymentStatus, ownerId: _ownerId, ...clientBooking } = parsed;
+              const newBooking = clientBooking as unknown as SyncedBooking;
               if (!store.bookings) store.bookings = [...DEFAULT_SYNC_BOOKINGS];
               if (!newBooking.id) {
                 newBooking.id = `BK-${Date.now()}`;
@@ -999,10 +1096,36 @@ export function apiSyncPlugin(): Plugin {
               if (newBooking.venueId === 'venue_q1_04') {
                 newBooking.venueId = 'venue_01';
               }
+              if (!newBooking.venueId || !newBooking.date || !newBooking.courtNumber ||
+                  !bookingTimeRange(newBooking)) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Booking requires venue, court, date and a valid time range' }));
+                return;
+              }
               const existingIdx = store.bookings.findIndex((b) => b.id === newBooking.id);
               if (existingIdx !== -1) {
-                store.bookings[existingIdx] = { ...store.bookings[existingIdx], ...newBooking };
+                // Idempotent retry: return the server's existing record rather
+                // than allowing a retry to overwrite its payment state.
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 200;
+                res.end(JSON.stringify({ success: true, booking: store.bookings[existingIdx] }));
+                return;
+              }
+              const conflict = store.bookings.find((booking) =>
+                booking.paymentStatus !== 'cancelled' &&
+                isSameCourt(booking, newBooking) &&
+                bookingsOverlap(booking, newBooking),
+              );
+              if (conflict) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 409;
+                res.end(JSON.stringify({ error: 'The court is already booked for an overlapping time range' }));
+                return;
               } else {
+                newBooking.paymentStatus = 'pending';
+                newBooking.checkedIn = false;
+                newBooking.createdAt = newBooking.createdAt || new Date().toISOString();
                 store.bookings.unshift(newBooking);
               }
               store.timestamp = Date.now();
@@ -1022,6 +1145,7 @@ export function apiSyncPlugin(): Plugin {
         // 3d. PATCH /api/bookings/:id
         const bookingMatch = url.match(/^\/api\/bookings\/([^/?#]+)/);
         if (bookingMatch && req.method === 'PATCH') {
+          if (!requireAdminAuth(req, res)) return;
           const bookingId = bookingMatch[1];
           let bodyStr = '';
           req.on('data', (chunk) => {
@@ -1030,6 +1154,13 @@ export function apiSyncPlugin(): Plugin {
           req.on('end', () => {
             try {
               const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const protectedFields = ['paymentStatus', 'ownerId', 'id', 'price', 'venueId', 'courtNumber', 'date', 'startTime', 'endTime'];
+              if (protectedFields.some((field) => Object.prototype.hasOwnProperty.call(body, field))) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 403;
+                res.end(JSON.stringify({ error: 'Protected booking fields can only be changed by a verified server workflow' }));
+                return;
+              }
               if (!store.bookings) store.bookings = [...DEFAULT_SYNC_BOOKINGS];
               const idx = store.bookings.findIndex((b) => b.id === bookingId);
               if (idx === -1) {
@@ -1055,6 +1186,7 @@ export function apiSyncPlugin(): Plugin {
 
         // 4. POST /api/sync/reset
         if (url === '/api/sync/reset' && req.method === 'POST') {
+          if (!requireAdminAuth(req, res)) return;
           for (const court of store.courts) {
             court.isActive = true;
           }
@@ -1071,16 +1203,17 @@ export function apiSyncPlugin(): Plugin {
         if (url === '/api/chatbot/config') {
           if (req.method === 'GET') {
             const config = store.chatbotConfig || DEFAULT_CHATBOT_CONFIG;
-            const activeConfig = {
-              ...config,
-              apiKey: config.apiKey || DEFAULT_FPT_API_KEY,
-            };
+            // Never expose provider credentials to a browser/client. The server
+            // keeps the key for the inference request below.
+            const { apiKey: _apiKey, ...publicConfig } = config;
+            const activeConfig = publicConfig;
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 200;
             res.end(JSON.stringify(activeConfig));
             return;
           }
           if (req.method === 'POST') {
+            if (!requireAdminAuth(req, res)) return;
             let bodyStr = '';
             req.on('data', (chunk) => { bodyStr += chunk; });
             req.on('end', () => {
@@ -1110,6 +1243,7 @@ export function apiSyncPlugin(): Plugin {
             return;
           }
           if (req.method === 'POST') {
+            if (!requireAdminAuth(req, res)) return;
             let bodyStr = '';
             req.on('data', (chunk) => { bodyStr += chunk; });
             req.on('end', () => {
@@ -1136,6 +1270,7 @@ export function apiSyncPlugin(): Plugin {
             return;
           }
           if (req.method === 'DELETE') {
+            if (!requireAdminAuth(req, res)) return;
             const match = url.match(/^\/api\/chatbot\/faqs\/([^/?#]+)/);
             if (match) {
               const faqId = match[1];
@@ -1155,12 +1290,14 @@ export function apiSyncPlugin(): Plugin {
         // 7. Chatbot Conversations
         if (url === '/api/chatbot/conversations') {
           if (req.method === 'GET') {
+            if (!requireAdminAuth(req, res)) return;
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 200;
             res.end(JSON.stringify(store.chatbotConversations || []));
             return;
           }
           if (req.method === 'POST') {
+            if (!requireAdminAuth(req, res)) return;
             let bodyStr = '';
             req.on('data', (chunk) => { bodyStr += chunk; });
             req.on('end', () => {
@@ -1601,10 +1738,10 @@ export function apiSyncPlugin(): Plugin {
               const requestedAddonCounts: Record<string, number> = {};
               const isDecrement = /giam|bo\s*bot|bot|bo|khong\s*(?:lay|thue|can)|thoi\s*khong|huy|tru/i.test(normalizedMsg);
 
-              const pendingCard = context.pendingBooking && typeof context.pendingBooking === 'object'
+              const addonPendingCard = context.pendingBooking && typeof context.pendingBooking === 'object'
                 ? context.pendingBooking as Record<string, unknown>
                 : undefined;
-              const addonCounts: Record<string, number> = sanitizeAddonCounts(pendingCard?.addonCounts);
+              const addonCounts: Record<string, number> = sanitizeAddonCounts(addonPendingCard?.addonCounts);
 
               if (hasAddon) {
                 // 3.1 Mineral water / Pocari
@@ -1681,15 +1818,15 @@ export function apiSyncPlugin(): Plugin {
                 : "Dạ, em là trợ lý SportHub AI. Em có thể hỗ trợ anh/chị tìm sân trống, xem giá và đặt lịch nhanh chóng tại TP.HCM nhé!";
 
               if (itemsDesc.length > 0) {
-                const prevCard = pendingCard || actionCard;
+                const prevCard = addonPendingCard || actionCard;
                 const effectiveVenueId = prevCard?.venueId || venueId;
                 const effectiveVenueName = prevCard?.venueName || venueName;
                 const effectiveSport = prevCard?.sport || sport;
                 const effectiveCourt = prevCard?.court || `Sân ${courtNum > 0 ? courtNum : 1}`;
                 const effectiveDate = prevCard?.date || 'Hôm nay';
                 const effectiveTime = prevCard?.time || time;
-                const effectiveStartTime = prevCard?.startTime || startTime;
-                const effectiveEndTime = prevCard?.endTime || endTime;
+                const effectiveStartTime = prevCard?.startTime || effectiveTime;
+                const effectiveEndTime = prevCard?.endTime || effectiveTime;
                 const baseCourtPrice = Number(prevCard?.basePrice || prevCard?.price || (isBooking ? price : 160000));
                 const grandTotal = baseCourtPrice + addonsTotal;
 
@@ -1795,7 +1932,15 @@ export function apiSyncPlugin(): Plugin {
                 const codeMatch = (message || '').match(/(?:BK|SH)[a-zA-Z0-9_-]+/i);
                 if (codeMatch) {
                   const bookingCode = codeMatch[0].toUpperCase();
-                  const targetIdx = (store.bookings || []).findIndex(b => b.id?.toUpperCase() === bookingCode || (b as any).bookingId?.toUpperCase() === bookingCode);
+                  // The request context is client supplied, not an
+                  // authenticated identity. Fail closed until a verified
+                  // user token/session is available to this API.
+                  const requesterId = '';
+                  const targetIdx = (store.bookings || []).findIndex(b =>
+                    requesterId.length > 0 &&
+                    String(b.ownerId || '') === requesterId &&
+                    (b.id?.toUpperCase() === bookingCode || b.bookingId?.toUpperCase() === bookingCode),
+                  );
                   if (targetIdx !== -1) {
                     const b = store.bookings![targetIdx];
                     b.paymentStatus = 'cancelled';
@@ -1816,7 +1961,7 @@ export function apiSyncPlugin(): Plugin {
                     ];
                   } else {
                     actionCard = null;
-                    reply = `Dạ em không tìm thấy đơn đặt sân nào với mã **${bookingCode}** trong danh sách vé của mình. Anh/chị vui lòng kiểm tra lại trong mục **Vé của tôi** nhé!`;
+                    reply = `Dạ, em chưa thể xác minh quyền sở hữu booking **${bookingCode}** từ phiên hiện tại nên chưa thực hiện hủy. Vui lòng đăng nhập lại hoặc dùng luồng hủy có xác thực chủ booking.`;
                     quickSuggestions = [
                       "🎫 Xem vé của tôi",
                       "📋 Chính sách hoàn hủy",
@@ -1868,7 +2013,26 @@ export function apiSyncPlugin(): Plugin {
 
               const isPaymentStatusQuery = !isDateTimeQuery && !isProfilePreferenceQuery && !isCancellationQuery && /thanh\s*toán\s*(?:rồi|thành\s*công|chưa|xong)|đã\s*(?:chuyển\s*khoản|thanh\s*toán|đặt\s*sân\s*chưa)|kiểm\s*tra\s*(?:thanh\s*toán|vé|tiền)|xem\s*(?:lại\s*)?vé|mã\s*vé/i.test(lowerMsg);
               if (isPaymentStatusQuery) {
-                const latestBooking = (store.bookings || []).slice().reverse().find(b => b.paymentStatus === 'paid') || (store.bookings || []).slice().reverse()[0];
+                const requestedCode = (message || '').match(/(?:BK|SH)[a-zA-Z0-9_-]+/i)?.[0]?.toUpperCase();
+                // Do not use the client-supplied context.userId for ownership.
+                // Until a verified user session is available, server-side
+                // payment lookup fails closed rather than leaking booking data.
+                const verifiedRequesterId = '';
+                const latestBooking = requestedCode && verifiedRequesterId
+                  ? (store.bookings || []).find(b =>
+                      String(b.ownerId || '') === verifiedRequesterId &&
+                      ((b.id || '').toUpperCase() === requestedCode || String((b as any).bookingId || '').toUpperCase() === requestedCode))
+                  : undefined;
+                if (!latestBooking) {
+                  res.setHeader('Content-Type', 'application/json');
+                  res.statusCode = 200;
+                  res.end(JSON.stringify({
+                    reply: 'Dạ, để kiểm tra chính xác trạng thái thanh toán, bạn vui lòng gửi mã vé/booking (ví dụ: BK-12345). Mình không tự chọn một đơn bất kỳ trong hệ thống nhé.',
+                    actionCard: null,
+                    quickSuggestions: ['Xem vé của tôi', 'Đặt sân mới'],
+                  }));
+                  return;
+                }
                 const isPaid = latestBooking?.paymentStatus === 'paid';
                 const bookingCode = latestBooking?.id || latestBooking?.bookingId || `BK-${Date.now().toString().slice(-8)}`;
                 const vName = latestBooking?.venueName || 'CLB Cầu Lông Tao Đàn';
@@ -2091,7 +2255,7 @@ Quy tắc phản hồi:
                   const userSportInfo = `Môn thể thao yêu thích trong hồ sơ cá nhân: ${userPrefSport}.`;
                   const promptContext = `[Hệ thống: ${userName}. ${userSportInfo} Thời gian thực tế hiện tại: ${currentTimeStr} (${currentDayName}, ngày ${currentDateStr}). ${venueInfo}].\nNgười dùng: ${message}`;
                   const ollamaMode = config.provider === 'ollama';
-                  const fptRes = await fetch(ollamaMode ? 'http://localhost:11434/api/chat' : 'https://mkp-api.fptcloud.com/v1/chat/completions', {
+                  const fptRes = await fetch(ollamaMode ? `${ollamaEndpoint()}/api/chat` : 'https://mkp-api.fptcloud.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -2120,7 +2284,7 @@ Quy tắc phản hồi:
                       temperature: config.temperature || 0.7,
                       max_tokens: 350,
                     }),
-                    signal: AbortSignal.timeout(ollamaMode ? 60000 : 6000),
+                    signal: AbortSignal.timeout(ollamaMode ? ollamaTimeoutMs() : 6000),
                   });
 
                   if (fptRes.ok) {
@@ -2168,6 +2332,7 @@ Quy tắc phản hồi:
 
         // 9. Chatbot Test Connection
         if (url === '/api/chatbot/test-connection' && req.method === 'POST') {
+          if (!requireAdminAuth(req, res)) return;
           let bodyStr = '';
           req.on('data', (chunk) => { bodyStr += chunk; });
           req.on('end', async () => {
@@ -2177,7 +2342,7 @@ Quy tắc phản hồi:
               const provider = body.provider || config.provider || 'fpt';
               const model = body.model || config.model || 'gemma-4-26B-A4B-it';
               if (provider === 'ollama') {
-                const testRes = await fetch('http://localhost:11434/api/chat', {
+                const testRes = await fetch(`${ollamaEndpoint()}/api/chat`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -2186,7 +2351,7 @@ Quy tắc phản hồi:
                     messages: [{ role: 'user', content: 'Reply with OK' }],
                     options: { num_predict: 10 },
                   }),
-                  signal: AbortSignal.timeout(60000),
+                  signal: AbortSignal.timeout(ollamaTimeoutMs()),
                 });
                 if (!testRes.ok) throw new Error(`Ollama HTTP ${testRes.status}: ${await testRes.text()}`);
                 res.setHeader('Content-Type', 'application/json');

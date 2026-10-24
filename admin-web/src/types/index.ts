@@ -63,7 +63,7 @@ export interface BookingTicket {
   customerName: string;
   customerPhone: string;
   price: number;
-  paymentStatus: 'paid' | 'pending';
+  paymentStatus: 'paid' | 'pending' | 'cancelled';
   paymentMethod?: 'momo' | 'zalopay' | 'vnpay' | 'cash' | 'vietqr';
   checkedIn: boolean;
   checkedInAt?: string;

@@ -137,9 +137,9 @@ void main() {
     final latestTicket = TicketStore.instance.tickets.first;
     expect(latestTicket.sportType, 'football');
     expect(latestTicket.venueName, footballVenue.name);
-    expect(latestTicket.status, 'paid');
+    expect(latestTicket.status, 'pending');
 
     // Verify SnackBar was shown
-    expect(find.textContaining('🎉 Đặt sân thành công!'), findsOneWidget);
+    expect(find.textContaining('thanh toán đang chờ'), findsOneWidget);
   });
 }

@@ -20,7 +20,7 @@ describe('chatbotStore', () => {
   it('should have initial config', () => {
     const config = chatbotStore.getConfig();
     expect(config).toBeDefined();
-    expect(config.provider).toBe('gemini');
+    expect(config.provider).toBe('ollama');
   });
 
   it('should get FAQs', () => {
