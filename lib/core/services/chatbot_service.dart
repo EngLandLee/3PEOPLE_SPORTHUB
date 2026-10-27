@@ -1050,6 +1050,243 @@ class ChatbotService {
     } catch (_) {}
   }
 
+  /// Handles execution success by constructing a [TicketModel] from the returned
+  /// ticket dictionary and inserting it into [TicketStore.instance].
+  TicketModel handleExecutionSuccess(Map<String, dynamic> ticketData) {
+    final id = ticketData['id']?.toString() ??
+        'ticket_${DateTime.now().millisecondsSinceEpoch}';
+    final bookingId = ticketData['bookingId']?.toString() ??
+        ticketData['booking_id']?.toString() ??
+        'BK-${DateTime.now().millisecondsSinceEpoch}';
+    final venueName = ticketData['venueName']?.toString() ??
+        ticketData['venue_name']?.toString() ??
+        'CLB SportHub';
+    final courtName = ticketData['courtName']?.toString() ??
+        ticketData['court_name']?.toString() ??
+        'Sân 1';
+
+    int courtNumber = 1;
+    if (ticketData['courtNumber'] is int) {
+      courtNumber = ticketData['courtNumber'] as int;
+    } else if (ticketData['court_number'] != null) {
+      courtNumber = int.tryParse(ticketData['court_number'].toString()) ?? 1;
+    } else {
+      final match = RegExp(r'\d+').firstMatch(courtName);
+      if (match != null) {
+        courtNumber = int.tryParse(match.group(0)!) ?? 1;
+      }
+    }
+
+    String sportType = ticketData['sportType']?.toString() ??
+        ticketData['sport_type']?.toString() ??
+        '';
+    if (sportType.isEmpty) {
+      final combined = '$venueName $courtName'.toLowerCase();
+      if (combined.contains('cầu lông') || combined.contains('badminton')) {
+        sportType = 'badminton';
+      } else if (combined.contains('bóng đá') || combined.contains('football')) {
+        sportType = 'football';
+      } else if (combined.contains('pickleball')) {
+        sportType = 'pickleball';
+      } else if (combined.contains('tennis')) {
+        sportType = 'tennis';
+      } else {
+        sportType = 'badminton';
+      }
+    }
+
+    final matchDate = ticketData['matchDate']?.toString() ??
+        ticketData['match_date']?.toString() ??
+        ticketData['date']?.toString() ??
+        DateTime.now().toIso8601String().split('T').first;
+
+    String startTime = ticketData['startTime']?.toString() ??
+        ticketData['start_time']?.toString() ??
+        '';
+    String endTime = ticketData['endTime']?.toString() ??
+        ticketData['end_time']?.toString() ??
+        '';
+    if (startTime.isEmpty || endTime.isEmpty) {
+      final timeSlot = ticketData['timeSlot']?.toString() ??
+          ticketData['time_slot']?.toString() ??
+          '18:00 - 19:30';
+      if (timeSlot.contains('-')) {
+        final parts = timeSlot.split('-');
+        startTime = parts[0].trim();
+        endTime = parts[1].trim();
+      } else {
+        startTime = '18:00';
+        endTime = '19:30';
+      }
+    }
+
+    final rawPrice = ticketData['totalPrice'] ??
+        ticketData['total_price'] ??
+        ticketData['price'];
+    final double totalPrice = rawPrice is num
+        ? rawPrice.toDouble()
+        : (double.tryParse(rawPrice?.toString() ?? '') ?? 0.0);
+
+    final qrCodeData = ticketData['qrCodeData']?.toString() ??
+        ticketData['qr_code_data']?.toString() ??
+        'SPORTHUB|$bookingId|${totalPrice.toInt()}';
+    final status = ticketData['status']?.toString() ?? 'pending';
+    final createdAt = ticketData['createdAt']?.toString() ??
+        ticketData['created_at']?.toString() ??
+        DateTime.now().toIso8601String();
+    final district = ticketData['district']?.toString() ?? 'Bình Thạnh';
+
+    final ticket = TicketModel(
+      id: id,
+      bookingId: bookingId,
+      venueName: venueName,
+      sportType: sportType,
+      courtNumber: courtNumber,
+      matchDate: matchDate,
+      startTime: startTime,
+      endTime: endTime,
+      totalPrice: totalPrice,
+      qrCodeData: qrCodeData,
+      status: status,
+      createdAt: createdAt,
+      district: district,
+    );
+
+    if (TicketStore.instance.tickets.any((t) => t.id == id)) {
+      TicketStore.instance.removeTicket(id);
+    }
+    TicketStore.instance.addTicket(ticket);
+    return ticket;
+  }
+
+  /// Executes or cancels an [ActionProposal] via backend HITL endpoint.
+  /// If approved is true, calls POST /api/chatbot/action/execute.
+  /// If approved is false, calls POST /api/chatbot/action/cancel.
+  /// When server returns ticket data upon successful execution,
+  /// calls [handleExecutionSuccess] to register ticket into [TicketStore].
+  Future<Map<String, dynamic>> executeActionProposal({
+    required String proposalId,
+    required bool approved,
+    Map<String, String>? edits,
+  }) async {
+    final client = httpClient ?? http.Client();
+    final shouldClose = httpClient == null;
+
+    try {
+      final endpoint = approved
+          ? '/api/chatbot/action/execute'
+          : '/api/chatbot/action/cancel';
+      final payload = jsonEncode(approved
+          ? {
+              'proposalId': proposalId,
+              'approved': true,
+              if (edits != null) 'edits': edits,
+            }
+          : {
+              'proposalId': proposalId,
+            });
+
+      Map<String, dynamic> result = {};
+
+      if (httpClient != null) {
+        final uri = Uri.parse('$serverBaseUrl$endpoint');
+        final response = await client
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: payload,
+            )
+            .timeout(const Duration(seconds: 15));
+
+        if (response.statusCode == 200) {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            result = decoded;
+          } else if (decoded is Map) {
+            result = Map<String, dynamic>.from(decoded);
+          }
+        } else {
+          result = {
+            'success': false,
+            'message': 'Lỗi máy chủ (${response.statusCode})',
+          };
+        }
+      } else {
+        bool succeeded = false;
+        for (final baseUrl in candidateServerUrls) {
+          try {
+            final uri = Uri.parse('$baseUrl$endpoint');
+            final response = await client
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: payload,
+                )
+                .timeout(const Duration(seconds: 5));
+
+            if (response.statusCode == 200) {
+              serverBaseUrl = baseUrl;
+              final decoded = jsonDecode(response.body);
+              if (decoded is Map<String, dynamic>) {
+                result = decoded;
+              } else if (decoded is Map) {
+                result = Map<String, dynamic>.from(decoded);
+              }
+              succeeded = true;
+              break;
+            }
+          } catch (_) {}
+        }
+        if (!succeeded) {
+          result = {
+            'success': false,
+            'message': 'Không thể kết nối tới máy chủ.',
+          };
+        }
+      }
+
+      if (result['success'] == true) {
+        if (result['ticket'] != null && result['ticket'] is Map) {
+          handleExecutionSuccess(
+            Map<String, dynamic>.from(result['ticket'] as Map),
+          );
+        }
+        _updateProposalStatus(proposalId, approved ? 'executed' : 'cancelled');
+      }
+
+      return result;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi xử lý đề xuất: $e',
+      };
+    } finally {
+      if (shouldClose) {
+        try {
+          client.close();
+        } catch (_) {}
+      }
+    }
+  }
+
+  void _updateProposalStatus(String proposalId, String newStatus) {
+    final currentMessages = List<ChatMessage>.from(messagesNotifier.value);
+    bool modified = false;
+    final updatedMessages = currentMessages.map((msg) {
+      if (msg.proposal?.id == proposalId) {
+        modified = true;
+        msg.proposal!.status = newStatus;
+        return msg.copyWith(
+          proposal: msg.proposal!.copyWith(status: newStatus),
+        );
+      }
+      return msg;
+    }).toList();
+    if (modified) {
+      messagesNotifier.value = updatedMessages;
+    }
+  }
+
   /// Sends a message, evaluates via Server LLM proxy or Local Intent Engine,
   /// updates messagesNotifier, logs session asynchronously, and returns assistant message.
   Future<ChatMessage> sendMessage(
@@ -1148,6 +1385,11 @@ class ChatbotService {
                   pendingBooking = null;
                 }
 
+                final ActionProposal? proposal = data['proposal'] is Map
+                    ? ActionProposal.fromJson(
+                        Map<String, dynamic>.from(data['proposal'] as Map))
+                    : null;
+
                 assistantMessage = ChatMessage(
                   id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
                   text: sanitizedReply ?? cleanReply(data['reply'].toString()),
@@ -1155,6 +1397,7 @@ class ChatbotService {
                   timestamp: DateTime.now(),
                   actionCard: sanitizedCard,
                   quickSuggestions: quickSuggestions,
+                  proposal: proposal,
                 );
               }
             }
@@ -1199,6 +1442,11 @@ class ChatbotService {
                       pendingBooking = null;
                     }
 
+                    final ActionProposal? proposal = data['proposal'] is Map
+                        ? ActionProposal.fromJson(
+                            Map<String, dynamic>.from(data['proposal'] as Map))
+                        : null;
+
                     assistantMessage = ChatMessage(
                       id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
                       text: sanitizedReply ??
@@ -1207,6 +1455,7 @@ class ChatbotService {
                       timestamp: DateTime.now(),
                       actionCard: sanitizedCard,
                       quickSuggestions: quickSuggestions,
+                      proposal: proposal,
                     );
                     break;
                   }

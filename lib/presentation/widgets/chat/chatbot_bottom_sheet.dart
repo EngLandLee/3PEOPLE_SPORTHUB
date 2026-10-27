@@ -464,6 +464,78 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     );
   }
 
+  Future<void> _handleApproveProposal(
+    ActionProposal proposal,
+    Map<String, String> edits,
+  ) async {
+    try {
+      final res = await ChatbotService.instance.executeActionProposal(
+        proposalId: proposal.id,
+        approved: true,
+        edits: edits,
+      );
+      if (mounted) {
+        if (res['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                res['message']?.toString() ??
+                    'Đặt sân thành công! Vé đã được thêm vào vé của bạn.',
+              ),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                res['message']?.toString() ??
+                    'Không thể thực hiện đề xuất đặt sân.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xử lý đề xuất: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleCancelProposal(ActionProposal proposal) async {
+    try {
+      final res = await ChatbotService.instance.executeActionProposal(
+        proposalId: proposal.id,
+        approved: false,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              res['message']?.toString() ?? 'Đã hủy đề xuất đặt sân.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi hủy đề xuất: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _handleBookNow(Map<String, dynamic> actionCard) {
     if (widget.onBookNowAction != null) {
       widget.onBookNowAction!(actionCard);
@@ -935,6 +1007,19 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                 onViewCourtMap: msg.hasActionCard
                                     ? _handleViewCourtMap
                                     : null,
+                                onApproveProposal:
+                                    msg.hasProposal && msg.proposal != null
+                                        ? (edits) => _handleApproveProposal(
+                                              msg.proposal!,
+                                              edits,
+                                            )
+                                        : null,
+                                onCancelProposal:
+                                    msg.hasProposal && msg.proposal != null
+                                        ? () => _handleCancelProposal(
+                                              msg.proposal!,
+                                            )
+                                        : null,
                               );
                             }
                             return const ChatTypingIndicator(
