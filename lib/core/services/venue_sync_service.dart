@@ -58,8 +58,10 @@ class VenueSyncService {
       }
     } catch (_) {}
     if (!urls.contains(serverBaseUrl)) urls.add(serverBaseUrl);
-    if (!urls.contains('http://127.0.0.1:5173')) urls.add('http://127.0.0.1:5173');
-    if (!urls.contains('http://localhost:5173')) urls.add('http://localhost:5173');
+    if (!urls.contains('http://127.0.0.1:5173'))
+      urls.add('http://127.0.0.1:5173');
+    if (!urls.contains('http://localhost:5173'))
+      urls.add('http://localhost:5173');
     if (!urls.contains('http://0.0.0.0:5173')) urls.add('http://0.0.0.0:5173');
     return urls;
   }
@@ -78,11 +80,11 @@ class VenueSyncService {
     }
 
     // Check Tao Đàn aliases (venue_01 in web admin <-> venue_q1_04 in mobile)
-    final isTaoDan = (venueName != null &&
-            venueName.toLowerCase().contains('tao đàn')) ||
-        venueId == 'venue_01' ||
-        venueId == 'venue_q1_04' ||
-        venueId.contains('tao_dan');
+    final isTaoDan =
+        (venueName != null && venueName.toLowerCase().contains('tao đàn')) ||
+            venueId == 'venue_01' ||
+            venueId == 'venue_q1_04' ||
+            venueId.contains('tao_dan');
 
     if (isTaoDan) {
       if (map['venue_01']?.contains(courtNumber) == true ||
@@ -179,11 +181,11 @@ class VenueSyncService {
     required String startTime,
     String? venueName,
   }) {
-    final isTaoDan = (venueName != null &&
-            venueName.toLowerCase().contains('tao đàn')) ||
-        venueId == 'venue_01' ||
-        venueId == 'venue_q1_04' ||
-        venueId.contains('tao_dan');
+    final isTaoDan =
+        (venueName != null && venueName.toLowerCase().contains('tao đàn')) ||
+            venueId == 'venue_01' ||
+            venueId == 'venue_q1_04' ||
+            venueId.contains('tao_dan');
 
     for (final b in bookingsNotifier.value) {
       final bVenueId = b['venueId']?.toString() ?? '';
@@ -197,7 +199,9 @@ class VenueSyncService {
           (isTaoDan && (bVenueId == 'venue_01' || bVenueId == 'venue_q1_04'));
 
       if (venueMatches && bCourtNumber == courtNumber) {
-        if (bDate.isNotEmpty && date.isNotEmpty && !_isMatchingDate(bDate, date)) {
+        if (bDate.isNotEmpty &&
+            date.isNotEmpty &&
+            !_isMatchingDate(bDate, date)) {
           continue;
         }
         if (bStartTime == startTime || bTimeSlot.startsWith(startTime)) {
@@ -212,11 +216,14 @@ class VenueSyncService {
             bookingEndTime = slotParts[1].trim();
           }
         }
-        final bookingStartMin = _parseTimeToMinutes(
-            bStartTime.isNotEmpty ? bStartTime : bTimeSlot.split('-').first.trim());
+        final bookingStartMin = _parseTimeToMinutes(bStartTime.isNotEmpty
+            ? bStartTime
+            : bTimeSlot.split('-').first.trim());
         final bookingEndMin = _parseTimeToMinutes(bookingEndTime);
 
-        if (slotStartMin != null && bookingStartMin != null && bookingEndMin != null) {
+        if (slotStartMin != null &&
+            bookingStartMin != null &&
+            bookingEndMin != null) {
           if (slotStartMin >= bookingStartMin && slotStartMin < bookingEndMin) {
             return true;
           }
@@ -276,7 +283,10 @@ class VenueSyncService {
       'customerName': customerName,
       'customerPhone': customerPhone,
       'price': totalPrice,
-      'paymentStatus': 'paid',
+      // Creating a booking/reservation is not proof that money was received.
+      // A verified provider webhook or server-side reconciliation must promote
+      // this record to `paid`.
+      'paymentStatus': 'pending',
       'paymentMethod': paymentMethod,
       'checkedIn': false,
       'createdAt': DateTime.now().toIso8601String(),
@@ -287,6 +297,12 @@ class VenueSyncService {
     current.removeWhere((b) => b['id'] == bookingId);
     current.insert(0, newBooking);
     bookingsNotifier.value = List.unmodifiable(current);
+
+    void rollbackLocalBooking() {
+      bookingsNotifier.value = List.unmodifiable(
+        bookingsNotifier.value.where((booking) => booking['id'] != bookingId),
+      );
+    }
 
     // Synchronize to mobile owner store if Tao Dan
     try {
@@ -315,7 +331,10 @@ class VenueSyncService {
               body: jsonEncode(newBooking),
             )
             .timeout(const Duration(milliseconds: 2500));
-        return response.statusCode == 200 || response.statusCode == 201;
+        final success =
+            response.statusCode == 200 || response.statusCode == 201;
+        if (!success) rollbackLocalBooking();
+        return success;
       }
 
       for (final baseUrl in candidateServerUrls) {

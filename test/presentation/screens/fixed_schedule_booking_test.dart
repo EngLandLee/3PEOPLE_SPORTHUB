@@ -269,7 +269,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // SnackBar appears
-    expect(find.textContaining('Đăng ký lịch cố định thành công!'), findsOneWidget);
+    expect(find.textContaining('thanh toán đang chờ xác minh'), findsOneWidget);
 
     // Verify ticket stored with BK-FIXED
     final fixedTicket = TicketStore.instance.tickets.firstWhere(

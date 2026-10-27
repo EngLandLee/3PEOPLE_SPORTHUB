@@ -47,6 +47,32 @@ void main() {
       expect(notifyCount, 1);
     });
 
+    test('adding a pending ticket does not emit a payment-confirmed event', () {
+      TicketModel? callbackTicket;
+      TicketStore.onTicketAdded = (ticket) => callbackTicket = ticket;
+
+      store.addTicket(
+        TicketModel(
+          id: 'ticket_pending_01',
+          bookingId: 'BK-PENDING-01',
+          venueName: 'CLB Test',
+          sportType: 'badminton',
+          courtNumber: 1,
+          matchDate: '07/09/2026',
+          startTime: '10:00',
+          endTime: '11:00',
+          totalPrice: 120000,
+          qrCodeData: 'SPORTHUB|BK-PENDING-01|120000',
+          status: 'pending',
+          createdAt: '2026-09-07T10:00:00Z',
+          district: 'Quận 1',
+        ),
+      );
+
+      expect(callbackTicket, isNull);
+      TicketStore.onTicketAdded = null;
+    });
+
     test('updateTicketStatus updates matching ticket', () {
       final firstTicket = store.tickets.first;
       store.updateTicketStatus(firstTicket.id, 'checked_in');

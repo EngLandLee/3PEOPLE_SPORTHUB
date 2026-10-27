@@ -80,7 +80,11 @@ class TicketStore {
 
   void addTicket(TicketModel ticket) {
     ticketsNotifier.value = [ticket, ...ticketsNotifier.value];
-    onTicketAdded?.call(ticket);
+    // Adding a local pending ticket is not payment verification. Only a
+    // server/provider-confirmed paid ticket may trigger paid UI updates.
+    if (ticket.status == 'paid') {
+      onTicketAdded?.call(ticket);
+    }
   }
 
   void removeTicket(String id) {

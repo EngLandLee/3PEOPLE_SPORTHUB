@@ -156,7 +156,7 @@ class VenueStoreEngine {
                   customerName: sb.customerName || 'Khách đặt qua App',
                   customerPhone: sb.customerPhone || '0900 000 000',
                   price: sb.price || 150000,
-                  paymentStatus: sb.paymentStatus || 'paid',
+                  paymentStatus: sb.paymentStatus || 'pending',
                   paymentMethod: sb.paymentMethod || 'vietqr',
                   checkedIn: sb.checkedIn || false,
                   createdAt: sb.createdAt || new Date().toISOString(),
@@ -532,35 +532,8 @@ class VenueStoreEngine {
     const cleanId = ticketId.trim().toUpperCase();
     let ticket = this.state.bookings.find((b) => b.id.toUpperCase() === cleanId);
     if (!ticket) {
-      if (cleanId.startsWith('BK-') || cleanId.startsWith('SH-')) {
-        const newTicket: BookingTicket = {
-          id: cleanId,
-          slotId: `slot_${cleanId}`,
-          courtId: 'court_01',
-          courtName: 'Sân đặt từ SportHub Mobile',
-          venueId: this.state.venues[0]?.id || 'venue_01',
-          venueName: this.state.venues[0]?.name || 'SportHub Venue',
-          sport: cleanId.includes('558')
-            ? 'football'
-            : cleanId.includes('312')
-            ? 'pickleball'
-            : 'badminton',
-          date: new Date().toISOString().split('T')[0],
-          timeSlot: '19:00 - 20:00',
-          customerName: 'Khách hàng SportHub Mobile',
-          customerPhone: '0901 234 567',
-          price: 200000,
-          paymentStatus: 'paid',
-          paymentMethod: 'vietqr',
-          checkedIn: true,
-          checkedInAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-        };
-        this.state.bookings.unshift(newTicket);
-        this.save();
-        this.notify();
-        return true;
-      }
+      // A QR/code-shaped string is not proof that a booking exists or that
+      // payment was verified. Check-in requires an authoritative synced ticket.
       return false;
     }
 

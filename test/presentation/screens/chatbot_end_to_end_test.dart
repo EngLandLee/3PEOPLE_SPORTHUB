@@ -171,17 +171,18 @@ void main() {
       expect(TicketStore.instance.tickets.length, prevTicketCount + 1);
       final newTicket = TicketStore.instance.tickets.first;
       expect(newTicket.venueName, contains('Tao Đàn'));
-      expect(newTicket.status, 'paid');
+      expect(newTicket.status, 'pending');
       expect(newTicket.startTime, '19:00');
 
       // 8. Verify Notification was logged in NotificationStore
       expect(
-        NotificationStore.instance.notifications.any((n) => n.title.contains('VietQR') || n.title.contains('Trợ lý AI')),
+        NotificationStore.instance.notifications.any((n) =>
+            n.title.contains('ghi nhận') || n.message.contains('chờ xác minh')),
         isTrue,
       );
 
-      // 9. Verify Confirmation message was displayed in the chat
-      expect(find.textContaining('thanh toán thành công!'), findsOneWidget);
+      // 9. A client-side tap must not display a payment-success message.
+      expect(find.textContaining('thanh toán thành công!'), findsNothing);
     },
   );
 
