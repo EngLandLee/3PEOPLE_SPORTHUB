@@ -848,6 +848,10 @@ class ChatbotService {
   /// Injected HTTP client for network operations & unit testing
   http.Client? httpClient;
 
+  /// Whether the chatbot allows falling back to the local regex intent engine.
+  /// Set to false to disable offline fallback completely and require online AI backend.
+  bool enableOfflineFallback = false;
+
   /// Detects whether code is executing inside a Flutter test runner
   bool get isTestEnvironment {
     try {
@@ -1222,17 +1226,30 @@ class ChatbotService {
       }
       if (assistantMessage == null &&
           !isTestEnvironment &&
-          effectiveHttpClient == null) {
+          effectiveHttpClient == null &&
+          enableOfflineFallback) {
         assistantMessage = await _callFptCloudDirectly(
           text,
           effectiveContext,
           imageUrl: imageUrl,
         );
       }
-      // Keep the local intent engine as the offline fallback if the configured
-      // backend (Ollama through the Admin API) is unavailable.
-      assistantMessage ??=
-          _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+      // When offline fallback is disabled, do not generate artificial offline responses
+      // in live runtime if the backend server is unreachable.
+      if (assistantMessage == null) {
+        if (!enableOfflineFallback && !isTestEnvironment) {
+          assistantMessage = ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text:
+                'Dạ rất tiếc, trợ lý AI hiện không thể kết nối tới máy chủ (chế độ offline đã được tắt). Vui lòng kiểm tra lại kết nối mạng hoặc đảm bảo máy chủ AI backend đang hoạt động nhé ạ!',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+          );
+        } else {
+          assistantMessage =
+              _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+        }
+      }
       addMessage(assistantMessage);
 
       // Asynchronously sync conversation to server
