@@ -357,12 +357,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             }
             return Scaffold(
               extendBody: true,
-              floatingActionButton: const FloatingChatBubble(currentRoute: '/home'),
+              floatingActionButton:
+                  const FloatingChatBubble(currentRoute: '/home'),
               body: ValueListenableBuilder<ThemeMode>(
                 valueListenable: ThemeStore.instance.themeModeNotifier,
                 builder: (context, themeMode, _) {
                   return KeyedSubtree(
-                    key: ValueKey('consumer_screen_${_currentIndex}_${themeMode.name}'),
+                    key: ValueKey(
+                        'consumer_screen_${_currentIndex}_${themeMode.name}'),
                     child: _buildScreen(_currentIndex),
                   );
                 },
@@ -370,43 +372,46 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               bottomNavigationBar: SafeArea(
                 child: Container(
                   key: const Key('consumer_bottom_nav_bar'),
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(32),
                     border: Border.all(color: AppColors.cardBorder, width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(
-                            alpha: AppColors.isDark ? 0.35 : 0.08),
+                        color: Colors.black
+                            .withValues(alpha: AppColors.isDark ? 0.35 : 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
                     ],
                   ),
                   child: Row(
-                children: [
-                  Expanded(
-                      child: _buildNavItem(
-                          0, Icons.sports_tennis_rounded, 'Đặt sân')),
-                  Expanded(
-                      child:
-                          _buildNavItem(1, Icons.groups_rounded, 'Cộng đồng')),
-                  Expanded(
-                      child: _buildNavItem(
-                          2, Icons.confirmation_number_rounded, 'Vé của tôi')),
-                  Expanded(
-                      child: _buildNavItem(3, Icons.person_rounded, 'Hồ sơ')),
-                ],
+                    children: [
+                      Expanded(
+                          child: _buildNavItem(
+                              0, Icons.sports_tennis_rounded, 'Đặt sân')),
+                      Expanded(
+                          child: _buildNavItem(
+                              1, Icons.groups_rounded, 'Cộng đồng')),
+                      Expanded(
+                          child: _buildNavItem(2,
+                              Icons.confirmation_number_rounded, 'Vé của tôi')),
+                      Expanded(
+                          child:
+                              _buildNavItem(3, Icons.person_rounded, 'Hồ sơ')),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
-  },
-);
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
@@ -711,369 +716,383 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    // Top App Header - Row 1: Profile & Brand + Notifications
-                    Row(
-                      children: [
-                        // User Avatar
-                        ValueListenableBuilder<UserProfile>(
-                          valueListenable: UserProfileStore.instance.profileNotifier,
-                          builder: (context, userProfile, _) {
-                            final words = userProfile.fullName
-                                .trim()
-                                .split(RegExp(r'\s+'))
-                                .where((w) => w.isNotEmpty)
-                                .toList();
-                            final initials = words.isEmpty
-                                ? 'U'
-                                : (words.length == 1
-                                    ? words.first[0].toUpperCase()
-                                    : '${words.first[0]}${words.last[0]}'.toUpperCase());
-                            return GestureDetector(
-                              key: const Key('header_user_avatar'),
-                              onTap: () =>
-                                  MainNavigationController.switchToTab?.call(3),
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.primary,
-                                      AppColors.secondary
+                        // Top App Header - Row 1: Profile & Brand + Notifications
+                        Row(
+                          children: [
+                            // User Avatar
+                            ValueListenableBuilder<UserProfile>(
+                              valueListenable:
+                                  UserProfileStore.instance.profileNotifier,
+                              builder: (context, userProfile, _) {
+                                final words = userProfile.fullName
+                                    .trim()
+                                    .split(RegExp(r'\s+'))
+                                    .where((w) => w.isNotEmpty)
+                                    .toList();
+                                final initials = words.isEmpty
+                                    ? 'U'
+                                    : (words.length == 1
+                                        ? words.first[0].toUpperCase()
+                                        : '${words.first[0]}${words.last[0]}'
+                                            .toUpperCase());
+                                return GestureDetector(
+                                  key: const Key('header_user_avatar'),
+                                  onTap: () => MainNavigationController
+                                      .switchToTab
+                                      ?.call(3),
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.primary,
+                                          AppColors.secondary
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                          color: AppColors.cardBorder,
+                                          width: 2),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        initials,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 10),
+                            // Brand and Greeting
+                            Expanded(
+                              child: ValueListenableBuilder<UserProfile>(
+                                valueListenable:
+                                    UserProfileStore.instance.profileNotifier,
+                                builder: (context, userProfile, _) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'SportHub',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Chào ${userProfile.fullName} 👋',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                            // Quick Theme Toggle Button
+                            ValueListenableBuilder<ThemeMode>(
+                              valueListenable:
+                                  ThemeStore.instance.themeModeNotifier,
+                              builder: (context, _, __) {
+                                return IconButton(
+                                  key: const Key('theme_toggle_button'),
+                                  tooltip: 'Đổi giao diện sáng/tối',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 36, minHeight: 36),
+                                  visualDensity: VisualDensity.compact,
+                                  icon: Icon(
+                                    ThemeStore.instance.isDarkMode
+                                        ? Icons.light_mode_rounded
+                                        : Icons.dark_mode_rounded,
+                                    color: AppColors.primary,
+                                  ),
+                                  onPressed: () =>
+                                      ThemeStore.instance.toggleTheme(),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            // Notification Icon with Live Badge
+                            ValueListenableBuilder<List<AppNotification>>(
+                              valueListenable: NotificationStore
+                                  .instance.notificationsNotifier,
+                              builder: (context, notifs, _) {
+                                final unreadCount = NotificationStore.instance
+                                    .getUnreadCount(
+                                        role: NotificationRole.player);
+                                return InkWell(
+                                  key: const Key('notification_bell_button'),
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () {
+                                    NotificationCenterSheet.show(
+                                      context,
+                                      role: NotificationRole.player,
+                                      onNotificationTap: (notif) {
+                                        if (notif.type ==
+                                            NotificationType.booking) {
+                                          MainNavigationController.switchToTab
+                                              ?.call(2);
+                                        } else if (notif.type ==
+                                            NotificationType.community) {
+                                          MainNavigationController.switchToTab
+                                              ?.call(1);
+                                        }
+                                      },
+                                    );
+                                  },
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surface,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: AppColors.cardBorder),
+                                        ),
+                                        child: Icon(
+                                          Icons.notifications_none_rounded,
+                                          size: 20,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      if (unreadCount > 0)
+                                        Positioned(
+                                          top: 2,
+                                          right: 2,
+                                          child: Container(
+                                            width: 9,
+                                            height: 9,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: AppColors.surface,
+                                                  width: 1.5),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppColors.primary
+                                                      .withValues(alpha: 0.6),
+                                                  blurRadius: 4,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                     ],
                                   ),
-                                  border: Border.all(
-                                      color: AppColors.cardBorder, width: 2),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    initials,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 10),
-                        // Brand and Greeting
-                        Expanded(
-                          child: ValueListenableBuilder<UserProfile>(
-                            valueListenable: UserProfileStore.instance.profileNotifier,
-                            builder: (context, userProfile, _) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'SportHub',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Chào ${userProfile.fullName} 👋',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                        // Quick Theme Toggle Button
-                        ValueListenableBuilder<ThemeMode>(
-                          valueListenable: ThemeStore.instance.themeModeNotifier,
-                          builder: (context, _, __) {
-                            return IconButton(
-                              key: const Key('theme_toggle_button'),
-                              tooltip: 'Đổi giao diện sáng/tối',
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            // Top Header AI Chatbot Trigger
+                            IconButton(
+                              key: const Key('header_chatbot_button'),
+                              tooltip: 'Trợ lý AI',
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
                                   minWidth: 36, minHeight: 36),
                               visualDensity: VisualDensity.compact,
                               icon: Icon(
-                                ThemeStore.instance.isDarkMode
-                                    ? Icons.light_mode_rounded
-                                    : Icons.dark_mode_rounded,
+                                Icons.auto_awesome,
                                 color: AppColors.primary,
                               ),
-                              onPressed: () => ThemeStore.instance.toggleTheme(),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        // Notification Icon with Live Badge
-                        ValueListenableBuilder<List<AppNotification>>(
-                          valueListenable:
-                              NotificationStore.instance.notificationsNotifier,
-                          builder: (context, notifs, _) {
-                            final unreadCount = NotificationStore.instance
-                                .getUnreadCount(role: NotificationRole.player);
-                            return InkWell(
-                              key: const Key('notification_bell_button'),
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () {
-                                NotificationCenterSheet.show(
-                                  context,
-                                  role: NotificationRole.player,
-                                  onNotificationTap: (notif) {
-                                    if (notif.type == NotificationType.booking) {
-                                      MainNavigationController.switchToTab?.call(2);
-                                    } else if (notif.type ==
-                                        NotificationType.community) {
-                                      MainNavigationController.switchToTab?.call(1);
-                                    }
-                                  },
-                                );
-                              },
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      shape: BoxShape.circle,
-                                      border:
-                                          Border.all(color: AppColors.cardBorder),
-                                    ),
-                                    child: Icon(
-                                      Icons.notifications_none_rounded,
-                                      size: 20,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  if (unreadCount > 0)
-                                    Positioned(
-                                      top: 2,
-                                      right: 2,
-                                      child: Container(
-                                        width: 9,
-                                        height: 9,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                              color: AppColors.surface,
-                                              width: 1.5),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.primary
-                                                  .withValues(alpha: 0.6),
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        // Top Header AI Chatbot Trigger
-                        IconButton(
-                          key: const Key('header_chatbot_button'),
-                          tooltip: 'Trợ lý AI',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                              minWidth: 36, minHeight: 36),
-                          visualDensity: VisualDensity.compact,
-                          icon: Icon(
-                            Icons.auto_awesome,
-                            color: AppColors.primary,
-                          ),
-                          onPressed: () => ChatbotBottomSheet.show(
-                            context,
-                            currentRoute: '/home',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Top App Header - Row 2: Location Pill + Subtitle
-                    Row(
-                      children: [
-                        InkWell(
-                          key: const Key('location_pill'),
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: () => _showDistrictBottomSheet(context),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.cardBorder),
-                            ),
-                            child: Text(
-                              _selectedDistrict == 'all'
-                                  ? '📍 Tất cả TP.HCM ▾'
-                                  : '📍 $_selectedDistrict, TP.HCM ▾',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                              onPressed: () => ChatbotBottomSheet.show(
+                                context,
+                                currentRoute: '/home',
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Sẵn sàng ra sân hôm nay?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
-                    // Search Bar with AI Chatbot Helper
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: TextStyle(
-                            color: AppColors.textPrimary, fontSize: 13),
-                        onChanged: (val) => setState(
-                            () => _searchQuery = val.trim().toLowerCase()),
-                        decoration: InputDecoration(
-                          hintText: 'Tìm tên sân, địa chỉ, quận...',
-                          hintStyle: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 13),
-                          prefixIcon: Icon(Icons.search_rounded,
-                              color: AppColors.textSecondary, size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  key: const Key('clear_search_button'),
-                                  icon: Icon(Icons.close_rounded,
-                                      color: AppColors.textSecondary, size: 18),
-                                  onPressed: () {
-                                    setState(() {
-                                      _searchController.clear();
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                )
-                              : IconButton(
-                                  key: const Key('search_chatbot_button'),
-                                  tooltip: 'Hỏi Trợ lý AI',
-                                  icon: Icon(Icons.auto_awesome,
-                                      color: AppColors.primary, size: 18),
-                                  onPressed: () {
-                                    ChatbotBottomSheet.show(
-                                      context,
-                                      currentRoute: '/home',
-                                    );
-                                  },
+                        // Top App Header - Row 2: Location Pill + Subtitle
+                        Row(
+                          children: [
+                            InkWell(
+                              key: const Key('location_pill'),
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => _showDistrictBottomSheet(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border:
+                                      Border.all(color: AppColors.cardBorder),
                                 ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
+                                child: Text(
+                                  _selectedDistrict == 'all'
+                                      ? '📍 Tất cả TP.HCM ▾'
+                                      : '📍 $_selectedDistrict, TP.HCM ▾',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Sẵn sàng ra sân hôm nay?',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                    // Sport Category Filters
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildSportChip('all', 'Tất cả môn'),
-                          const SizedBox(width: 8),
-                          _buildSportChip('pickleball', '🏓 Pickleball'),
-                          const SizedBox(width: 8),
-                          _buildSportChip('badminton', '🏸 Cầu lông'),
-                          const SizedBox(width: 8),
-                          _buildSportChip('football', '⚽ Bóng đá'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Section Title
-                    Row(
-                      children: [
+                        // Search Bar with AI Chatbot Helper
                         Container(
-                          width: 4,
-                          height: 16,
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2),
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.cardBorder),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Cụm sân nổi bật tại TP.HCM',
+                          child: TextField(
+                            controller: _searchController,
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                                color: AppColors.textPrimary, fontSize: 13),
+                            onChanged: (val) => setState(
+                                () => _searchQuery = val.trim().toLowerCase()),
+                            decoration: InputDecoration(
+                              hintText: 'Tìm tên sân, địa chỉ, quận...',
+                              hintStyle: TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 13),
+                              prefixIcon: Icon(Icons.search_rounded,
+                                  color: AppColors.textSecondary, size: 20),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      key: const Key('clear_search_button'),
+                                      icon: Icon(Icons.close_rounded,
+                                          color: AppColors.textSecondary,
+                                          size: 18),
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchController.clear();
+                                          _searchQuery = '';
+                                        });
+                                      },
+                                    )
+                                  : IconButton(
+                                      key: const Key('search_chatbot_button'),
+                                      tooltip: 'Hỏi Trợ lý AI',
+                                      icon: Icon(Icons.auto_awesome,
+                                          color: AppColors.primary, size: 18),
+                                      onPressed: () {
+                                        ChatbotBottomSheet.show(
+                                          context,
+                                          currentRoute: '/home',
+                                        );
+                                      },
+                                    ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '(${venues.length} cụm sân)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.normal,
+                        const SizedBox(height: 14),
+
+                        // Sport Category Filters
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildSportChip('all', 'Tất cả môn'),
+                              const SizedBox(width: 8),
+                              _buildSportChip('pickleball', '🏓 Pickleball'),
+                              const SizedBox(width: 8),
+                              _buildSportChip('badminton', '🏸 Cầu lông'),
+                              const SizedBox(width: 8),
+                              _buildSportChip('football', '⚽ Bóng đá'),
+                            ],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Section Title
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Cụm sân nổi bật tại TP.HCM',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '(${venues.length} cụm sân)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // Venue List
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-              sliver: venues.isEmpty
-                  ? SliverToBoxAdapter(
-                      child: _buildEmptyState(),
-                    )
-                  : SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final venue = venues[index];
-                          return _buildVenueCard(context, venue);
-                        },
-                        childCount: venues.length,
-                      ),
-                    ),
+                // Venue List
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  sliver: venues.isEmpty
+                      ? SliverToBoxAdapter(
+                          child: _buildEmptyState(),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final venue = venues[index];
+                              return _buildVenueCard(context, venue);
+                            },
+                            childCount: venues.length,
+                          ),
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
       },
     );
   }
@@ -1123,8 +1142,8 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
         border: Border.all(color: AppColors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-                alpha: AppColors.isDark ? 0.3 : 0.06),
+            color:
+                Colors.black.withValues(alpha: AppColors.isDark ? 0.3 : 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1298,7 +1317,8 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                   color: AppColors.textSecondary, fontSize: 11),
                             ),
                             Text(
-                              CurrencyFormatter.formatWithUnit(venue.hourlyRate, 'h'),
+                              CurrencyFormatter.formatWithUnit(
+                                  venue.hourlyRate, 'h'),
                               style: TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
@@ -1373,7 +1393,8 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.isDark ? AppColors.background : const Color(0xFFF1F5F9),
+        color:
+            AppColors.isDark ? AppColors.background : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.cardBorder),
       ),
@@ -1770,7 +1791,8 @@ class _VietQrPaymentDialogState extends State<VietQrPaymentDialog> {
                         : '⏱️ Giữ chỗ trong: ${_formatCountdown(_secondsLeft)}',
                     key: const Key('vietqr_hold_countdown'),
                     style: TextStyle(
-                        color: isExpired ? Colors.grey : const Color(0xFFF87171),
+                        color:
+                            isExpired ? Colors.grey : const Color(0xFFF87171),
                         fontWeight: FontWeight.bold,
                         fontSize: 13),
                   ),
@@ -1789,8 +1811,8 @@ class _VietQrPaymentDialogState extends State<VietQrPaymentDialog> {
           style: FilledButton.styleFrom(
             backgroundColor: isExpired ? Colors.grey : AppColors.primary,
             foregroundColor: AppColors.onPrimary,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: isExpired
               ? null
@@ -1823,12 +1845,15 @@ Map<String, int> extractAddonCountsFromCard(Map<String, dynamic>? card) {
       final qtyMatch = RegExp(r'^(\d+)x').firstMatch(s);
       final qty = int.tryParse(qtyMatch?.group(1) ?? '1') ?? 1;
       final lower = s.toLowerCase();
-      if (lower.contains('pocari') || lower.contains('khoáng') || lower.contains('nước')) {
+      if (lower.contains('pocari') ||
+          lower.contains('khoáng') ||
+          lower.contains('nước')) {
         counts['drink_pocari'] = (counts['drink_pocari'] ?? 0) + qty;
       } else if (lower.contains('ống cầu')) {
         counts['gear_shuttle_tube'] = (counts['gear_shuttle_tube'] ?? 0) + qty;
       } else if (lower.contains('quả cầu') || lower.contains('cầu lẻ')) {
-        counts['gear_shuttle_single'] = (counts['gear_shuttle_single'] ?? 0) + qty;
+        counts['gear_shuttle_single'] =
+            (counts['gear_shuttle_single'] ?? 0) + qty;
       } else if (lower.contains('vợt')) {
         counts['rent_badminton'] = (counts['rent_badminton'] ?? 0) + qty;
       }
@@ -1948,8 +1973,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     _initSlots();
     VenueSyncService.instance.inactiveCourtsNotifier
         .addListener(_onVenueSyncUpdated);
-    VenueSyncService.instance.bookingsNotifier
-        .addListener(_onVenueSyncUpdated);
+    VenueSyncService.instance.bookingsNotifier.addListener(_onVenueSyncUpdated);
     VenueSyncService.instance.syncWithServer();
     VenueSyncService.instance.startPolling();
     _imagePageController = PageController();
@@ -2043,9 +2067,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
 
         final startMin = parseMinutes(startTime);
         final endMin = parseMinutes(endTime) ??
-            (startMin != null
-                ? startMin + (durationHours * 60).round()
-                : null);
+            (startMin != null ? startMin + (durationHours * 60).round() : null);
 
         List<TimeSlot> matching = [];
         if (startMin != null && endMin != null && endMin > startMin) {
@@ -2066,8 +2088,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               .toList();
         }
 
-        final availableToSelect =
-            matching.where((s) => s.isAvailable).toList();
+        final availableToSelect = matching.where((s) => s.isAvailable).toList();
         if (availableToSelect.isNotEmpty) {
           final bookingBloc = context.read<BookingBloc>();
           final currentState = bookingBloc.state;
@@ -2205,7 +2226,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Vé đặt $displayCourt ($startTime - ${actionCard['endTime'] ?? ''}) đã được thanh toán thành công!'),
+              'Đã ghi nhận yêu cầu đặt sân $displayCourt ($startTime - ${actionCard['endTime'] ?? ''}); thanh toán đang chờ xác minh.'),
           backgroundColor: AppColors.primary,
           duration: const Duration(seconds: 3),
         ),
@@ -2224,8 +2245,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
         venue: widget.venue,
         courtNumber: courtNumber,
       );
-      if (_selectedSportFilter != 'all' &&
-          _selectedSportFilter != courtSport) {
+      if (_selectedSportFilter != 'all' && _selectedSportFilter != courtSport) {
         _selectedSportFilter = courtSport;
       }
 
@@ -2383,7 +2403,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Đặt Sân Thành Công! 🎉',
+                  'Đã ghi nhận yêu cầu đặt sân',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -2392,7 +2412,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Mã vé: ${ticket.bookingId} đã được lưu offline vào máy',
+                  'Mã booking: ${ticket.bookingId} đang chờ xác minh thanh toán',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -2511,7 +2531,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                         ),
                         onPressed: () {
                           Navigator.pop(bCtx);
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(context)
+                              .popUntil((route) => route.isFirst);
                           MainNavigationController.switchToTab?.call(2);
                         },
                       ),
@@ -2548,8 +2569,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           final newBookingId = 'BK-${DateTime.now().millisecondsSinceEpoch}';
           final firstSlot =
               selectedSlots.isNotEmpty ? selectedSlots.first : null;
-          final lastSlot =
-              selectedSlots.isNotEmpty ? selectedSlots.last : null;
+          final lastSlot = selectedSlots.isNotEmpty ? selectedSlots.last : null;
           final courtNum = firstSlot?.courtNumber ?? 1;
           final startT = firstSlot?.startTime ?? '18:00';
           final endT = lastSlot?.endTime ?? '19:00';
@@ -2575,12 +2595,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
             endTime: endT,
             totalPrice: grandTotal,
             qrCodeData: 'SPORTHUB|$newBookingId|${grandTotal.toInt()}',
-            status: 'paid',
+            status: 'pending',
             createdAt: DateTime.now().toIso8601String(),
             district: widget.venue.district,
           );
           TicketStore.instance.addTicket(newTicket);
-          ChatbotService.instance.notifyBookingPaid(newTicket);
 
           // Sync booking to server & local booked slots for each selected slot
           for (final slot in selectedSlots) {
@@ -2603,9 +2622,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           NotificationStore.instance.addNotification(
             AppNotification(
               id: 'notif_booking_${DateTime.now().millisecondsSinceEpoch}',
-              title: 'Đặt sân thành công! 🎉',
+              title: 'Đã ghi nhận yêu cầu đặt sân',
               message:
-                  'Bạn đã đặt thành công ${selectedSlots.length} ca tại ${widget.venue.name}. Mã vé: $newBookingId.',
+                  'Đã ghi nhận ${selectedSlots.length} ca tại ${widget.venue.name}; thanh toán đang chờ hệ thống xác minh. Mã booking: $newBookingId.',
               timestamp: DateTime.now(),
               type: NotificationType.booking,
               role: NotificationRole.player,
@@ -2629,7 +2648,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                  '🎉 Đặt sân thành công! Khung giờ đã được cập nhật.'),
+                  'Đã ghi nhận yêu cầu đặt sân; thanh toán đang chờ xác minh.'),
               backgroundColor: AppColors.primary,
             ),
           );
@@ -3055,7 +3074,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                     setState(() => _bookingMode = 'flexible');
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                     decoration: BoxDecoration(
                       color: _bookingMode == 'flexible'
                           ? AppColors.primary
@@ -3106,7 +3126,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                     setState(() => _bookingMode = 'fixed');
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                     decoration: BoxDecoration(
                       color: _bookingMode == 'fixed'
                           ? AppColors.secondary
@@ -3173,7 +3194,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
   Widget _buildFixedScheduleSection() {
     final daysCount = _fixedWeekdays.isEmpty ? 1 : _fixedWeekdays.length;
     final totalSessions = daysCount * (_fixedDurationMonths * 4);
-    final hourlyRate = widget.venue.hourlyRate > 0 ? widget.venue.hourlyRate : 150000.0;
+    final hourlyRate =
+        widget.venue.hourlyRate > 0 ? widget.venue.hourlyRate : 150000.0;
     // Each fixed session is 2 hours
     final originalTotal = totalSessions * (hourlyRate * 2);
     final discountRate = _fixedDurationMonths == 6
@@ -3184,9 +3206,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     final avgPerSession = totalSessions > 0 ? finalPrice / totalSessions : 0.0;
 
     final sortedDays = _fixedWeekdays.toList()..sort();
-    final fullDayNames = sortedDays
-        .map((d) => d == 7 ? 'Chủ nhật' : 'Thứ ${d + 1}')
-        .join(', ');
+    final fullDayNames =
+        sortedDays.map((d) => d == 7 ? 'Chủ nhật' : 'Thứ ${d + 1}').join(', ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -3277,7 +3298,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                   selectedColor: AppColors.primary,
                   backgroundColor: AppColors.surface,
                   labelStyle: TextStyle(
-                    color: isSelected ? AppColors.onPrimary : AppColors.textSecondary,
+                    color: isSelected
+                        ? AppColors.onPrimary
+                        : AppColors.textSecondary,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   ),
                   onSelected: (val) {
@@ -3355,7 +3378,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                     color: isSelected ? AppColors.primary : AppColors.surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                      color:
+                          isSelected ? AppColors.primary : AppColors.cardBorder,
                       width: 1.5,
                     ),
                     boxShadow: isSelected
@@ -3374,7 +3398,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.onPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -3404,17 +3430,20 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
             ].map((slot) {
               final isSelected = _fixedTimeSlot == slot.$1;
               return GestureDetector(
-                key: Key('fixed_slot_${slot.$1.replaceAll(':', '').replaceAll(' ', '').replaceAll('-', '_')}'),
+                key: Key(
+                    'fixed_slot_${slot.$1.replaceAll(':', '').replaceAll(' ', '').replaceAll('-', '_')}'),
                 onTap: () => setState(() => _fixedTimeSlot = slot.$1),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.primary.withValues(alpha: 0.15)
                         : AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                      color:
+                          isSelected ? AppColors.primary : AppColors.cardBorder,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -3426,7 +3455,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -3434,7 +3465,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                         slot.$2,
                         style: TextStyle(
                           fontSize: 11,
-                          color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -3500,7 +3533,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 18),
+                    Icon(Icons.receipt_long_rounded,
+                        color: AppColors.primary, size: 18),
                     const SizedBox(width: 8),
                     Text(
                       'Tóm tắt hợp đồng cố định',
@@ -3514,12 +3548,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                 ),
                 const SizedBox(height: 12),
                 _buildSummaryRow('Môn thể thao:', _sportLabel(_fixedSport)),
-                _buildSummaryRow('Thời hạn hợp đồng:', '$_fixedDurationMonths tháng (${_fixedDurationMonths * 4} tuần)'),
-                _buildSummaryRow('Lịch tập:', '$fullDayNames ($daysCount buổi/tuần)'),
+                _buildSummaryRow('Thời hạn hợp đồng:',
+                    '$_fixedDurationMonths tháng (${_fixedDurationMonths * 4} tuần)'),
+                _buildSummaryRow(
+                    'Lịch tập:', '$fullDayNames ($daysCount buổi/tuần)'),
                 _buildSummaryRow('Khung giờ:', '$_fixedTimeSlot (2h/buổi)'),
                 _buildSummaryRow('Tổng số buổi tập:', '$totalSessions buổi'),
                 Divider(color: AppColors.cardBorder, height: 20),
-                _buildSummaryRow('Giá gốc niêm yết:', CurrencyFormatter.format(originalTotal)),
+                _buildSummaryRow('Giá gốc niêm yết:',
+                    CurrencyFormatter.format(originalTotal)),
                 _buildSummaryRow(
                   'Ưu đãi gói (${(discountRate * 100).toInt()}%):',
                   '- ${CurrencyFormatter.format(discountAmount)}',
@@ -3572,11 +3609,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                   ),
                   child: Column(
                     children: [
-                      _buildBenefitItem('🔒 Giữ sân độc quyền 100%, không bị hủy hay trùng giờ'),
+                      _buildBenefitItem(
+                          '🔒 Giữ sân độc quyền 100%, không bị hủy hay trùng giờ'),
                       const SizedBox(height: 4),
-                      _buildBenefitItem('🔄 Miễn phí đổi ca / dời lịch khi báo trước 24 giờ'),
+                      _buildBenefitItem(
+                          '🔄 Miễn phí đổi ca / dời lịch khi báo trước 24 giờ'),
                       const SizedBox(height: 4),
-                      _buildBenefitItem('🎁 Ưu tiên chọn sân VIP & tặng 1 thùng nước suối / tháng'),
+                      _buildBenefitItem(
+                          '🎁 Ưu tiên chọn sân VIP & tặng 1 thùng nước suối / tháng'),
                     ],
                   ),
                 ),
@@ -3709,17 +3749,20 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    color:
+                        isSelected ? AppColors.primary : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   weeksText,
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.redAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
@@ -3797,7 +3840,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+            style: TextStyle(
+                fontSize: 11, color: AppColors.textSecondary, height: 1.3),
           ),
         ),
       ],
@@ -3816,13 +3860,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       return;
     }
 
-    final fullDayNames = sortedDays
-        .map((d) => d == 7 ? 'Chủ nhật' : 'Thứ ${d + 1}')
-        .join(', ');
+    final fullDayNames =
+        sortedDays.map((d) => d == 7 ? 'Chủ nhật' : 'Thứ ${d + 1}').join(', ');
 
     final customBreakdown = [
       ('Môn thể thao', _sportLabel(_fixedSport)),
-      ('Gói đăng ký', '$_fixedDurationMonths tháng (${_fixedDurationMonths * 4} tuần)'),
+      (
+        'Gói đăng ký',
+        '$_fixedDurationMonths tháng (${_fixedDurationMonths * 4} tuần)'
+      ),
       ('Lịch cố định', fullDayNames),
       ('Khung giờ', '$_fixedTimeSlot (2h/buổi)'),
       ('Tổng số buổi', '$totalSessions buổi'),
@@ -3860,12 +3906,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
             endTime: endT,
             totalPrice: finalPrice,
             qrCodeData: 'SPORTHUB|$newBookingId|${finalPrice.toInt()}',
-            status: 'paid',
+            status: 'pending',
             createdAt: DateTime.now().toIso8601String(),
             district: widget.venue.district,
           );
           TicketStore.instance.addTicket(newTicket);
-          ChatbotService.instance.notifyBookingPaid(newTicket);
 
           final currentUser = AuthStore.instance.currentUser;
           final custName = currentUser?.fullName ?? 'Khách đặt lịch cố định';
@@ -3889,9 +3934,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           NotificationStore.instance.addNotification(
             AppNotification(
               id: 'notif_fixed_${DateTime.now().millisecondsSinceEpoch}',
-              title: 'Đăng ký lịch cố định thành công! 🔄',
+              title: 'Đã ghi nhận lịch cố định',
               message:
-                  'Bạn đã đăng ký lịch cố định $fullDayNames ($_fixedTimeSlot) tại ${widget.venue.name} trong $_fixedDurationMonths tháng ($totalSessions buổi).',
+                  'Đã ghi nhận lịch cố định $fullDayNames ($_fixedTimeSlot) tại ${widget.venue.name}; thanh toán đang chờ xác minh.',
               timestamp: DateTime.now(),
               type: NotificationType.booking,
               role: NotificationRole.player,
@@ -3903,7 +3948,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  '🎉 Đăng ký lịch cố định thành công! Hợp đồng $totalSessions buổi đã được lưu vào vé.'),
+                  'Đã ghi nhận lịch cố định $totalSessions buổi; thanh toán đang chờ xác minh.'),
               backgroundColor: AppColors.primary,
             ),
           );
@@ -4606,9 +4651,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
         break;
       case 'badminton':
       default:
-        accentColor = AppColors.isDark
-            ? AppColors.primary
-            : const Color(0xFF047857);
+        accentColor =
+            AppColors.isDark ? AppColors.primary : const Color(0xFF047857);
         sportIcon = Icons.sports_tennis_rounded;
         gradientColors = AppColors.isDark
             ? [
@@ -4775,9 +4819,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       availabilityBadgeBorder = AppColors.isDark
           ? Colors.amber.withValues(alpha: 0.5)
           : const Color(0xFFFCD34D);
-      availabilityBadgeTextColor = AppColors.isDark
-          ? Colors.amber.shade300
-          : const Color(0xFFB45309);
+      availabilityBadgeTextColor =
+          AppColors.isDark ? Colors.amber.shade300 : const Color(0xFFB45309);
     } else if (availableCount > 0) {
       availabilityBadgeText =
           '🟢 $availableCount / ${courtSlots.length} slot trống';
@@ -4787,9 +4830,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       availabilityBadgeBorder = AppColors.isDark
           ? AppColors.slotAvailable.withValues(alpha: 0.6)
           : const Color(0xFF86EFAC);
-      availabilityBadgeTextColor = AppColors.isDark
-          ? AppColors.slotAvailable
-          : const Color(0xFF15803D);
+      availabilityBadgeTextColor =
+          AppColors.isDark ? AppColors.slotAvailable : const Color(0xFF15803D);
     } else {
       availabilityBadgeText = '🔴 Hết chỗ ca này';
       availabilityBadgeBg = AppColors.isDark
@@ -4798,9 +4840,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
       availabilityBadgeBorder = AppColors.isDark
           ? Colors.red.withValues(alpha: 0.4)
           : const Color(0xFFFCA5A5);
-      availabilityBadgeTextColor = AppColors.isDark
-          ? Colors.red.shade300
-          : const Color(0xFFB91C1C);
+      availabilityBadgeTextColor =
+          AppColors.isDark ? Colors.red.shade300 : const Color(0xFFB91C1C);
     }
 
     Widget buildCardWidget() {
@@ -4872,266 +4913,273 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               height: 74,
               isInactive: !isCourtActive,
             ),
-          const SizedBox(height: 10),
-          // Availability summary bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: availabilityBadgeBg,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: availabilityBadgeBorder),
-                  ),
-                  child: Text(
-                    availabilityBadgeText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: availabilityBadgeTextColor,
+            const SizedBox(height: 10),
+            // Availability summary bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: availabilityBadgeBg,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: availabilityBadgeBorder),
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                priceDisplay,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: !isCourtActive
-                      ? (AppColors.isDark
-                          ? Colors.amber.shade300
-                          : const Color(0xFFB45309))
-                      : (AppColors.isDark
-                          ? AppColors.secondary
-                          : const Color(0xFF0284C7)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Slot chips for this court
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: courtSlots.map((slot) {
-                final isSelected = selectedIds.contains(slot.id);
-                final isBooked = slot.status == SlotStatus.booked;
-                final isLocked =
-                    !isCourtActive || slot.status == SlotStatus.locked;
-
-                TicketModel? myTicket;
-                final curDateStr =
-                    '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-                for (final t in TicketStore.instance.tickets) {
-                  final isVenue = t.venueName.toLowerCase().contains(widget.venue.name.toLowerCase()) ||
-                      widget.venue.name.toLowerCase().contains(t.venueName.toLowerCase()) ||
-                      (t.venueName.toLowerCase().contains('tao đàn') && widget.venue.name.toLowerCase().contains('tao đàn'));
-                  final isCourt = t.courtNumber == slot.courtNumber;
-                  final isTime = t.startTime == slot.startTime;
-                  final isDate = _isDateMatch(t.matchDate, curDateStr);
-                  if (isVenue && isCourt && isTime && isDate) {
-                    myTicket = t;
-                    break;
-                  }
-                }
-                final isMyBooking = myTicket != null;
-
-                final Color bg;
-                final Color border;
-                final Color textColor;
-                final String statusLabel;
-                final Color statusColor;
-
-                if (isSelected) {
-                  bg = AppColors.isDark
-                      ? const Color(0xFF78350F).withValues(alpha: 0.7)
-                      : const Color(0xFFFEF3C7);
-                  border = AppColors.slotSelected;
-                  textColor = AppColors.isDark
-                      ? AppColors.textPrimary
-                      : const Color(0xFF92400E);
-                  statusLabel = 'Đang chọn';
-                  statusColor = AppColors.isDark
-                      ? Colors.amber.shade300
-                      : const Color(0xFFB45309);
-                } else if (isMyBooking) {
-                  bg = AppColors.isDark
-                      ? const Color(0xFF064E3B).withValues(alpha: 0.5)
-                      : const Color(0xFFD1FAE5);
-                  border = AppColors.primary;
-                  textColor = AppColors.isDark
-                      ? const Color(0xFF6EE7B7)
-                      : const Color(0xFF047857);
-                  statusLabel = 'Vé của bạn';
-                  statusColor = AppColors.primary;
-                } else if (isLocked) {
-                  bg = AppColors.isDark
-                      ? const Color(0xFF1E293B).withValues(alpha: 0.6)
-                      : const Color(0xFFF1F5F9);
-                  border = AppColors.isDark
-                      ? Colors.amber.withValues(alpha: 0.3)
-                      : const Color(0xFFCBD5E1);
-                  textColor = AppColors.isDark
-                      ? AppColors.textSecondary.withValues(alpha: 0.6)
-                      : const Color(0xFF94A3B8);
-                  statusLabel = 'Tạm dừng';
-                  statusColor = AppColors.isDark
-                      ? Colors.amber.shade300
-                      : const Color(0xFFB45309);
-                } else if (isBooked) {
-                  bg = AppColors.isDark
-                      ? const Color(0xFF450A0A).withValues(alpha: 0.3)
-                      : const Color(0xFFF1F5F9);
-                  border = AppColors.isDark
-                      ? Colors.red.withValues(alpha: 0.2)
-                      : AppColors.cardBorder;
-                  textColor = AppColors.isDark
-                      ? AppColors.textSecondary.withValues(alpha: 0.5)
-                      : const Color(0xFF94A3B8);
-                  statusLabel = 'Đã đặt';
-                  statusColor = AppColors.isDark
-                      ? Colors.red.shade300
-                      : const Color(0xFFDC2626);
-                } else {
-                  bg = AppColors.isDark
-                      ? const Color(0xFF064E3B).withValues(alpha: 0.35)
-                      : const Color(0xFFECFDF5);
-                  border = AppColors.isDark
-                      ? AppColors.slotAvailable
-                      : const Color(0xFF10B981);
-                  textColor = AppColors.textPrimary;
-                  statusLabel = 'Còn trống';
-                  statusColor = AppColors.slotAvailable;
-                }
-
-                final startHour =
-                    int.tryParse(slot.startTime.split(':').first) ?? 12;
-                final isPeak = startHour >= 17 && startHour <= 20;
-                final isOffPeak = startHour >= 8 && startHour <= 15;
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      key: Key('slot_${slot.id}'),
-                      onTap: isMyBooking
-                          ? () => _showBookingSuccessModal(context, myTicket!)
-                          : (slot.isAvailable
-                              ? () => context
-                                  .read<BookingBloc>()
-                                  .add(ToggleSlotEvent(slot))
-                              : null),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: bg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: border, width: isSelected ? 1.5 : 1),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              '${slot.startTime} - ${slot.endTime}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${(slot.price / 1000).toInt()}k',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? (AppColors.isDark
-                                            ? Colors.amber.shade200
-                                            : const Color(0xFFB45309))
-                                        : (AppColors.isDark
-                                            ? AppColors.secondary
-                                            : const Color(0xFF0284C7)),
-                                  ),
-                                ),
-                                if (isPeak) ...[
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '🔥 Vàng',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.isDark
-                                          ? Colors.amber.shade400
-                                          : const Color(0xFFB45309),
-                                    ),
-                                  ),
-                                ] else if (isOffPeak) ...[
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'Ưu đãi',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.isDark
-                                          ? AppColors.secondary
-                                          : const Color(0xFF0284C7),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              statusLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
+                    child: Text(
+                      availabilityBadgeText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: availabilityBadgeTextColor,
                       ),
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  priceDisplay,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: !isCourtActive
+                        ? (AppColors.isDark
+                            ? Colors.amber.shade300
+                            : const Color(0xFFB45309))
+                        : (AppColors.isDark
+                            ? AppColors.secondary
+                            : const Color(0xFF0284C7)),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 8),
+            // Slot chips for this court
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: courtSlots.map((slot) {
+                  final isSelected = selectedIds.contains(slot.id);
+                  final isBooked = slot.status == SlotStatus.booked;
+                  final isLocked =
+                      !isCourtActive || slot.status == SlotStatus.locked;
 
-  if (isHighlighted && _pulseController != null) {
+                  TicketModel? myTicket;
+                  final curDateStr =
+                      '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+                  for (final t in TicketStore.instance.tickets) {
+                    final isVenue = t.venueName
+                            .toLowerCase()
+                            .contains(widget.venue.name.toLowerCase()) ||
+                        widget.venue.name
+                            .toLowerCase()
+                            .contains(t.venueName.toLowerCase()) ||
+                        (t.venueName.toLowerCase().contains('tao đàn') &&
+                            widget.venue.name
+                                .toLowerCase()
+                                .contains('tao đàn'));
+                    final isCourt = t.courtNumber == slot.courtNumber;
+                    final isTime = t.startTime == slot.startTime;
+                    final isDate = _isDateMatch(t.matchDate, curDateStr);
+                    if (isVenue && isCourt && isTime && isDate) {
+                      myTicket = t;
+                      break;
+                    }
+                  }
+                  final isMyBooking = myTicket != null;
+
+                  final Color bg;
+                  final Color border;
+                  final Color textColor;
+                  final String statusLabel;
+                  final Color statusColor;
+
+                  if (isSelected) {
+                    bg = AppColors.isDark
+                        ? const Color(0xFF78350F).withValues(alpha: 0.7)
+                        : const Color(0xFFFEF3C7);
+                    border = AppColors.slotSelected;
+                    textColor = AppColors.isDark
+                        ? AppColors.textPrimary
+                        : const Color(0xFF92400E);
+                    statusLabel = 'Đang chọn';
+                    statusColor = AppColors.isDark
+                        ? Colors.amber.shade300
+                        : const Color(0xFFB45309);
+                  } else if (isMyBooking) {
+                    bg = AppColors.isDark
+                        ? const Color(0xFF064E3B).withValues(alpha: 0.5)
+                        : const Color(0xFFD1FAE5);
+                    border = AppColors.primary;
+                    textColor = AppColors.isDark
+                        ? const Color(0xFF6EE7B7)
+                        : const Color(0xFF047857);
+                    statusLabel = 'Vé của bạn';
+                    statusColor = AppColors.primary;
+                  } else if (isLocked) {
+                    bg = AppColors.isDark
+                        ? const Color(0xFF1E293B).withValues(alpha: 0.6)
+                        : const Color(0xFFF1F5F9);
+                    border = AppColors.isDark
+                        ? Colors.amber.withValues(alpha: 0.3)
+                        : const Color(0xFFCBD5E1);
+                    textColor = AppColors.isDark
+                        ? AppColors.textSecondary.withValues(alpha: 0.6)
+                        : const Color(0xFF94A3B8);
+                    statusLabel = 'Tạm dừng';
+                    statusColor = AppColors.isDark
+                        ? Colors.amber.shade300
+                        : const Color(0xFFB45309);
+                  } else if (isBooked) {
+                    bg = AppColors.isDark
+                        ? const Color(0xFF450A0A).withValues(alpha: 0.3)
+                        : const Color(0xFFF1F5F9);
+                    border = AppColors.isDark
+                        ? Colors.red.withValues(alpha: 0.2)
+                        : AppColors.cardBorder;
+                    textColor = AppColors.isDark
+                        ? AppColors.textSecondary.withValues(alpha: 0.5)
+                        : const Color(0xFF94A3B8);
+                    statusLabel = 'Đã đặt';
+                    statusColor = AppColors.isDark
+                        ? Colors.red.shade300
+                        : const Color(0xFFDC2626);
+                  } else {
+                    bg = AppColors.isDark
+                        ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                        : const Color(0xFFECFDF5);
+                    border = AppColors.isDark
+                        ? AppColors.slotAvailable
+                        : const Color(0xFF10B981);
+                    textColor = AppColors.textPrimary;
+                    statusLabel = 'Còn trống';
+                    statusColor = AppColors.slotAvailable;
+                  }
+
+                  final startHour =
+                      int.tryParse(slot.startTime.split(':').first) ?? 12;
+                  final isPeak = startHour >= 17 && startHour <= 20;
+                  final isOffPeak = startHour >= 8 && startHour <= 15;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        key: Key('slot_${slot.id}'),
+                        onTap: isMyBooking
+                            ? () => _showBookingSuccessModal(context, myTicket!)
+                            : (slot.isAvailable
+                                ? () => context
+                                    .read<BookingBloc>()
+                                    .add(ToggleSlotEvent(slot))
+                                : null),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: border, width: isSelected ? 1.5 : 1),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                '${slot.startTime} - ${slot.endTime}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${(slot.price / 1000).toInt()}k',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? (AppColors.isDark
+                                              ? Colors.amber.shade200
+                                              : const Color(0xFFB45309))
+                                          : (AppColors.isDark
+                                              ? AppColors.secondary
+                                              : const Color(0xFF0284C7)),
+                                    ),
+                                  ),
+                                  if (isPeak) ...[
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '🔥 Vàng',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.isDark
+                                            ? Colors.amber.shade400
+                                            : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ] else if (isOffPeak) ...[
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Ưu đãi',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.isDark
+                                            ? AppColors.secondary
+                                            : const Color(0xFF0284C7),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                statusLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isHighlighted && _pulseController != null) {
+      return KeyedSubtree(
+        key: courtKey,
+        child: AnimatedBuilder(
+          animation: _pulseController!,
+          builder: (context, _) => buildCardWidget(),
+        ),
+      );
+    }
+
     return KeyedSubtree(
       key: courtKey,
-      child: AnimatedBuilder(
-        animation: _pulseController!,
-        builder: (context, _) => buildCardWidget(),
-      ),
+      child: buildCardWidget(),
     );
   }
-
-  return KeyedSubtree(
-    key: courtKey,
-    child: buildCardWidget(),
-  );
-}
 
   Widget _buildCourtOverviewMap(Set<String> selectedIds) {
     final zones = CourtSportPartition.getZonesForVenue(widget.venue);
@@ -5658,8 +5706,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                         if (totalAddonsCount > 0)
                           Text(
                             '$totalAddonsCount dịch vụ',
-                            style:
-                                const TextStyle(fontSize: 12, color: Colors.amber),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.amber),
                           ),
                       ],
                     ),
@@ -5701,7 +5749,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                   onTap: () => _showVietQrDialog(
                       context, grandTotal, selectedSlots, _addonCounts),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -8079,8 +8128,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                                 ? 'Lịch cố định'
                                 : 'Ngày thi đấu',
                             style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 10),
+                                color: AppColors.textSecondary, fontSize: 10),
                           ),
                           const SizedBox(height: 2),
                           Text(ticket.matchDate,
@@ -8100,8 +8148,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                                 ? 'Khung giờ cố định'
                                 : 'Giờ đá / đánh',
                             style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 10),
+                                color: AppColors.textSecondary, fontSize: 10),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -8369,7 +8416,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
                 title: Text(
                   'Vé Đã Đặt (Offline Pass)',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
                 ),
               ),
               body: ListView(
@@ -8403,7 +8451,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
                   const SizedBox(height: 6),
 
                   // Render Tickets
-                  for (final ticket in tickets) _buildTicketCard(context, ticket),
+                  for (final ticket in tickets)
+                    _buildTicketCard(context, ticket),
                 ],
               ),
             );
@@ -8626,123 +8675,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Đổi tài khoản nhanh',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: AppColors.textSecondary),
-                    onPressed: () => Navigator.of(ctx).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Chọn tài khoản demo bên dưới để chuyển đổi ngay:',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              ...SeedData.demoUsers.map((user) {
-                final isCurrent =
-                    AuthStore.instance.currentUser?.userId == user.userId;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Material(
-                    color: isCurrent
-                        ? AppColors.primary.withValues(alpha: 0.12)
-                        : AppColors.background,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(
-                        color: isCurrent
-                            ? AppColors.primary
-                            : AppColors.cardBorder,
-                        width: isCurrent ? 1.5 : 1,
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 4),
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.2),
+                  Row(
+                    children: [
+                      Expanded(
                         child: Text(
-                          _getInitials(user.fullName),
+                          'Đổi tài khoản nhanh',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      title: Text(
-                        user.fullName,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight:
-                              isCurrent ? FontWeight.bold : FontWeight.w600,
-                          fontSize: 15,
-                        ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.of(ctx).pop(),
                       ),
-                      subtitle: Text(
-                        '${user.phone} • ${user.preferredSport.toUpperCase()} (${user.skillLevel})',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: isCurrent
-                          ? Icon(Icons.check_circle_rounded,
-                              color: AppColors.primary)
-                          : Icon(Icons.arrow_forward_ios_rounded,
-                              color: AppColors.textSecondary, size: 14),
-                      onTap: () {
-                        AuthStore.instance.loginWithDemo(user);
-                        UserProfileStore.instance.profileNotifier.value = user;
-                        _nameController.text = user.fullName;
-                        _phoneController.text = user.phone;
-                        ChatbotService.instance.updateContext(
-                          ChatbotService.instance.currentContext?.copyWith(
-                                userName: user.fullName,
-                                preferredSport: user.preferredSport,
-                              ) ??
-                              ChatContext(
-                                userName: user.fullName,
-                                preferredSport: user.preferredSport,
-                              ),
-                        );
-                        if (user.userId == 'user_owner_01') {
-                          VenueOwnerStore.instance.toggleOwnerMode(true);
-                        }
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
+                    ],
                   ),
-                );
-              }),
-              const SizedBox(height: 10),
-            ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Chọn tài khoản demo bên dưới để chuyển đổi ngay:',
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  ...SeedData.demoUsers.map((user) {
+                    final isCurrent =
+                        AuthStore.instance.currentUser?.userId == user.userId;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Material(
+                        color: isCurrent
+                            ? AppColors.primary.withValues(alpha: 0.12)
+                            : AppColors.background,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: isCurrent
+                                ? AppColors.primary
+                                : AppColors.cardBorder,
+                            width: isCurrent ? 1.5 : 1,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.2),
+                            child: Text(
+                              _getInitials(user.fullName),
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            user.fullName,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight:
+                                  isCurrent ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${user.phone} • ${user.preferredSport.toUpperCase()} (${user.skillLevel})',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: isCurrent
+                              ? Icon(Icons.check_circle_rounded,
+                                  color: AppColors.primary)
+                              : Icon(Icons.arrow_forward_ios_rounded,
+                                  color: AppColors.textSecondary, size: 14),
+                          onTap: () {
+                            AuthStore.instance.loginWithDemo(user);
+                            UserProfileStore.instance.profileNotifier.value =
+                                user;
+                            _nameController.text = user.fullName;
+                            _phoneController.text = user.phone;
+                            ChatbotService.instance.updateContext(
+                              ChatbotService.instance.currentContext?.copyWith(
+                                    userName: user.fullName,
+                                    preferredSport: user.preferredSport,
+                                  ) ??
+                                  ChatContext(
+                                    userName: user.fullName,
+                                    preferredSport: user.preferredSport,
+                                  ),
+                            );
+                            if (user.userId == 'user_owner_01') {
+                              VenueOwnerStore.instance.toggleOwnerMode(true);
+                            }
+                            Navigator.of(ctx).pop();
+                          },
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
-  },
-);
-}
+  }
 
   Widget _buildGuestHeaderCard() {
     return Container(

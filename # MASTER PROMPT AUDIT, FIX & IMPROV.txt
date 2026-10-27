@@ -1,0 +1,43 @@
+Tiếp tục audit dự án SportHub AI dựa trên các thay đổi vừa hoàn tất.
+
+Mục tiêu: xác minh các bản sửa thực sự an toàn và chuẩn bị cho môi trường tích hợp, không chỉ làm cho test pass.
+
+Yêu cầu:
+
+1. Đọc git diff và kiểm tra từng thay đổi trong:
+   - apiSyncPlugin.ts
+   - venue_sync_service.dart
+   - chatbot_bottom_sheet.dart
+   - chatbot_service.dart
+
+2. Kiểm tra thanh toán:
+   - Tìm mọi nơi có thể đặt trạng thái booking/payment thành paid.
+   - Đảm bảo thao tác từ client không thể tự xác nhận thanh toán thành công.
+   - Kiểm tra xác minh chữ ký webhook, tính idempotent và xử lý webhook gửi lặp.
+   - Nếu repository chưa có provider/webhook thật, ghi rõ phần còn thiếu; không giả lập rằng đã xác minh production.
+
+3. Kiểm tra phân quyền:
+   - Xác minh ownerId được lấy từ danh tính đã xác thực phía server, không tin ownerId do client tự gửi.
+   - Kiểm tra quyền đọc, sửa, hủy booking và truy cập các endpoint admin.
+   - Thử các trường hợp thiếu token, token sai và truy cập booking của người khác.
+
+4. Kiểm tra đặt sân:
+   - Tìm nguy cơ hai request cùng đặt một sân và một khung giờ.
+   - Đề xuất hoặc triển khai cơ chế transaction/unique constraint phù hợp với database hiện có.
+   - Không tự chọn booking khi thiếu mã định danh.
+
+5. Kiểm tra Ollama/Gemma và chatbot:
+   - Xác nhận provider nào thực sự được gọi khi chạy.
+   - Kiểm tra timeout, lỗi kết nối, fallback, context reset/logout và câu trả lời khi thiếu dữ liệu.
+   - Thêm regression tests cho lỗi đã phát hiện.
+
+6. Chạy các test và analyzer phù hợp. Không xóa hoặc làm yếu test để đạt PASS. Không tuyên bố đã kiểm thử dịch vụ bên ngoài nếu không có môi trường thực tế.
+
+7. Chỉ sửa những lỗi có bằng chứng. Không ghi đè các thay đổi chưa commit của tôi. Không deploy production, không dùng dữ liệu thật và không thực hiện giao dịch thật.
+
+Cuối cùng, báo cáo theo ba nhóm:
+A. Đã xác minh bằng code/test.
+B. Đã sửa và có test hồi quy.
+C. Chưa thể xác minh do thiếu môi trường hoặc thông tin xác thực.
+
+Đính kèm tên file, vị trí code, lệnh test đã chạy và kết quả thực tế.

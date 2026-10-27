@@ -11,11 +11,73 @@ import 'package:sporthub/presentation/widgets/visual_court_header.dart';
 import 'package:sporthub/main.dart';
 
 final Uint8List _kTransparentImage = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-  0x42, 0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ]);
 
 class _TestHttpOverrides extends HttpOverrides {
@@ -88,7 +150,9 @@ void main() {
     HttpOverrides.global = _TestHttpOverrides();
   });
 
-  testWidgets('VenueDetailScreen renders gallery, amenities, date picker, addons, and policies', (tester) async {
+  testWidgets(
+      'VenueDetailScreen renders gallery, amenities, date picker, addons, and policies',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(
@@ -107,7 +171,9 @@ void main() {
     expect(find.text('Đánh giá từ người chơi'), findsOneWidget);
   });
 
-  testWidgets('VenueDetailScreen displays gallery indicators and operating status', (tester) async {
+  testWidgets(
+      'VenueDetailScreen displays gallery indicators and operating status',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(
@@ -125,7 +191,9 @@ void main() {
     expect(find.text('0909 123 456'), findsOneWidget);
   });
 
-  testWidgets('Selecting add-on shows sticky bottom bar and opens VietQR dialog with itemized breakdown', (tester) async {
+  testWidgets(
+      'Selecting add-on shows sticky bottom bar and opens VietQR dialog with itemized breakdown',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(
@@ -182,10 +250,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // SnackBar appears
-    expect(find.textContaining('🎉 Đặt sân thành công!'), findsOneWidget);
+    expect(find.textContaining('thanh toán đang chờ xác minh'), findsOneWidget);
   });
 
-  testWidgets('VenueDetailScreen switches daily shifts dynamically and updates time slots', (tester) async {
+  testWidgets(
+      'VenueDetailScreen switches daily shifts dynamically and updates time slots',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(
@@ -231,7 +301,8 @@ void main() {
     expect(find.text('06:00 - 07:00'), findsNothing);
   });
 
-  testWidgets('VenueDetailScreen toggles half-hour minute offset :00 and :30', (tester) async {
+  testWidgets('VenueDetailScreen toggles half-hour minute offset :00 and :30',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(
@@ -271,7 +342,9 @@ void main() {
     expect(find.text('16:30 - 17:30'), findsNothing);
   });
 
-  testWidgets('VenueDetailScreen toggles between matrix view and 2D court overview map', (tester) async {
+  testWidgets(
+      'VenueDetailScreen toggles between matrix view and 2D court overview map',
+      (tester) async {
     final venue = SeedData.sampleVenues.first;
 
     await tester.pumpWidget(

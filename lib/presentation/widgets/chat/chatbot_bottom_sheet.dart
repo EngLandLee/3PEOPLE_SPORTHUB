@@ -129,12 +129,9 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
       userPhone: isGuest ? null : authUser?.phone,
       userRole: isOwner ? 'owner' : (isGuest ? 'guest' : 'player'),
       currentRoute: widget.currentRoute,
-      venueId: isOwner
-          ? VenueOwnerStore.instance.activeVenueId
-          : venue?.id,
-      venueName: isOwner
-          ? VenueOwnerStore.instance.activeVenueName
-          : venue?.name,
+      venueId: isOwner ? VenueOwnerStore.instance.activeVenueId : venue?.id,
+      venueName:
+          isOwner ? VenueOwnerStore.instance.activeVenueName : venue?.name,
       sport: venue != null && venue.sportTypes.isNotEmpty
           ? venue.sportTypes.first
           : (preferredSport != null && preferredSport.isNotEmpty
@@ -185,7 +182,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
         return;
       }
     }
-    if (prompt.contains('Đăng lên Bảng tin Cộng đồng') || prompt.contains('đăng bài')) {
+    if (prompt.contains('Đăng lên Bảng tin Cộng đồng') ||
+        prompt.contains('đăng bài')) {
       _handlePublishToCommunity();
       return;
     }
@@ -213,14 +211,15 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     final venueName = recCard?['venueName']?.toString() ??
         widget.currentVenue?.name ??
         'CLB Cầu Lông Tao Đàn';
-    final title = recCard?['title']?.toString() ?? 'Kèo Giao Lưu Cầu Lông - $venueName';
+    final title =
+        recCard?['title']?.toString() ?? 'Kèo Giao Lưu Cầu Lông - $venueName';
     final district = recCard?['district']?.toString() ??
         widget.currentVenue?.district ??
         'Quận 1';
-    final skillLevel = recCard?['skillLevel']?.toString() ??
-        'Trung bình (2.0 - 3.5)';
-    final scheduledTime = recCard?['scheduledTime']?.toString() ??
-        '19:00 - 21:00 Hôm nay';
+    final skillLevel =
+        recCard?['skillLevel']?.toString() ?? 'Trung bình (2.0 - 3.5)';
+    final scheduledTime =
+        recCard?['scheduledTime']?.toString() ?? '19:00 - 21:00 Hôm nay';
     final requiredPlayers = (recCard?['requiredPlayers'] as num?)?.toInt() ?? 4;
     final currentPlayers = (recCard?['currentPlayers'] as num?)?.toInt() ?? 2;
     final shareFee = (recCard?['shareFee'] as num?)?.toDouble() ?? 45000;
@@ -229,16 +228,19 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     final post = CommunityPost(
       id: 'post_${DateTime.now().millisecondsSinceEpoch}',
       title: title,
-      authorName: AuthStore.instance.currentUser?.fullName ?? 'Người dùng SportHub',
+      authorName:
+          AuthStore.instance.currentUser?.fullName ?? 'Người dùng SportHub',
       sportType: sport,
       district: district,
       skillLevel: skillLevel,
       venueName: venueName,
       scheduledTime: scheduledTime,
       requiredPlayers: requiredPlayers.clamp(1, 100).toInt(),
-      currentPlayers: currentPlayers.clamp(0, requiredPlayers.clamp(1, 100)).toInt(),
+      currentPlayers:
+          currentPlayers.clamp(0, requiredPlayers.clamp(1, 100)).toInt(),
       shareFee: shareFee.clamp(0, 100000000).toDouble(),
-      note: 'Bài đăng được tạo qua Trợ lý AI SportHub. Hoan nghênh mọi người cùng tham gia!',
+      note:
+          'Bài đăng được tạo qua Trợ lý AI SportHub. Hoan nghênh mọi người cùng tham gia!',
       imageUrl: img,
     );
 
@@ -246,7 +248,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎉 Đã đăng bài tuyển thành viên lên Bảng tin Cộng đồng thành công!'),
+        content: Text(
+            '🎉 Đã đăng bài tuyển thành viên lên Bảng tin Cộng đồng thành công!'),
         backgroundColor: Colors.green,
       ),
     );
@@ -267,12 +270,14 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
   }
 
   void _showImageAttachmentModal() {
-    final sport = widget.currentVenue != null && widget.currentVenue!.sportTypes.isNotEmpty
+    final sport = widget.currentVenue != null &&
+            widget.currentVenue!.sportTypes.isNotEmpty
         ? widget.currentVenue!.sportTypes.first
         : 'badminton';
     final presets = [
       ...SportImageCatalog.getPresetsForSport(sport),
-      if (sport != 'badminton') ...SportImageCatalog.getPresetsForSport('badminton'),
+      if (sport != 'badminton')
+        ...SportImageCatalog.getPresetsForSport('badminton'),
     ];
 
     showModalBottomSheet(
@@ -307,12 +312,14 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.add_photo_alternate_rounded, color: AppColors.primary, size: 22),
+                    Icon(Icons.add_photo_alternate_rounded,
+                        color: AppColors.primary, size: 22),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
                         'Gửi ảnh tuyển thành viên / ghép kèo',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -320,7 +327,10 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                 const SizedBox(height: 6),
                 Text(
                   'Chọn ảnh hoạt động thể thao hoặc nhập URL ảnh để AI phân tích và tự động tạo bài tuyển thành viên.',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.35),
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      height: 1.35),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -379,10 +389,12 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'https://images.unsplash.com/...',
-                          hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          hintStyle: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12),
                           filled: true,
                           fillColor: AppColors.background,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: AppColors.cardBorder),
@@ -395,7 +407,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                       key: const Key('btn_confirm_chat_image_url'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
                         final val = urlController.text.trim();
@@ -406,7 +419,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                         }
                         Navigator.of(bCtx).pop();
                       },
-                      child: const Text('Đính kèm', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text('Đính kèm',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -416,21 +430,26 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                   runSpacing: 6,
                   children: [
                     ActionChip(
-                      label: const Text('🏸 Tuyển 2 người đánh đôi 19h', style: TextStyle(fontSize: 11)),
+                      label: const Text('🏸 Tuyển 2 người đánh đôi 19h',
+                          style: TextStyle(fontSize: 11)),
                       onPressed: () {
                         setState(() {
                           _attachedImageUrl = presets.first;
-                          _textController.text = 'Tuyển 2 thành viên đánh đôi cầu lông 19:00 tối nay';
+                          _textController.text =
+                              'Tuyển 2 thành viên đánh đôi cầu lông 19:00 tối nay';
                         });
                         Navigator.of(bCtx).pop();
                       },
                     ),
                     ActionChip(
-                      label: const Text('🏓 Ghép kèo Pickleball 2.5 - 3.0', style: TextStyle(fontSize: 11)),
+                      label: const Text('🏓 Ghép kèo Pickleball 2.5 - 3.0',
+                          style: TextStyle(fontSize: 11)),
                       onPressed: () {
                         setState(() {
-                          _attachedImageUrl = presets.length > 1 ? presets[1] : presets.first;
-                          _textController.text = 'Ghép kèo Pickleball giao lưu trình độ 2.5 - 3.0';
+                          _attachedImageUrl =
+                              presets.length > 1 ? presets[1] : presets.first;
+                          _textController.text =
+                              'Ghép kèo Pickleball giao lưu trình độ 2.5 - 3.0';
                         });
                         Navigator.of(bCtx).pop();
                       },
@@ -497,14 +516,18 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
 
     final baseCourtPrice = (actionCard['basePrice'] is num)
         ? (actionCard['basePrice'] as num).toDouble()
-        : (totalPrice - ((actionCard['addonsTotal'] is num) ? (actionCard['addonsTotal'] as num).toDouble() : 0.0));
+        : (totalPrice -
+            ((actionCard['addonsTotal'] is num)
+                ? (actionCard['addonsTotal'] as num).toDouble()
+                : 0.0));
 
     final now = DateTime.now();
     final todayStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final normalizedDate = (date.toLowerCase().contains('hôm nay') || date.trim().isEmpty)
-        ? todayStr
-        : date;
+    final normalizedDate =
+        (date.toLowerCase().contains('hôm nay') || date.trim().isEmpty)
+            ? todayStr
+            : date;
 
     double durationHours =
         (actionCard['durationHours'] as num?)?.toDouble() ?? 1.0;
@@ -564,9 +587,10 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
           final now = DateTime.now();
           final todayStr =
               '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-          final normalizedDate = (date.toLowerCase().contains('hôm nay') || date.trim().isEmpty)
-              ? todayStr
-              : date;
+          final normalizedDate =
+              (date.toLowerCase().contains('hôm nay') || date.trim().isEmpty)
+                  ? todayStr
+                  : date;
 
           final ticket = TicketModel(
             id: 'ticket_${DateTime.now().millisecondsSinceEpoch}',
@@ -579,7 +603,10 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
             endTime: endTime,
             totalPrice: totalPrice,
             qrCodeData: 'SPORTHUB|$bookingId|${totalPrice.toInt()}',
-            status: 'paid',
+            // A user tapping the confirmation button is not proof that the
+            // transfer was received. Payment is promoted to paid only by a
+            // trusted provider/webhook or reconciliation flow.
+            status: 'pending',
             createdAt: DateTime.now().toIso8601String(),
             district: widget.currentVenue?.district ?? 'Quận 1',
           );
@@ -605,9 +632,9 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
           NotificationStore.instance.addNotification(
             AppNotification(
               id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-              title: 'Thanh toán VietQR & Đặt sân thành công! 🏸',
+              title: 'Đã ghi nhận yêu cầu đặt sân',
               message:
-                  'Vé đặt $courtStr tại $venueName ($startTime - $endTime) đã được thanh toán qua VietQR. Mã vé: $bookingId.',
+                  'Đơn $bookingId tại $venueName ($startTime - $endTime) đang chờ xác minh thanh toán VietQR.',
               timestamp: DateTime.now(),
               type: NotificationType.booking,
               role: NotificationRole.player,
@@ -615,8 +642,6 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
               targetId: bookingId,
             ),
           );
-
-          ChatbotService.instance.notifyBookingPaid(ticket);
         },
       ),
     );
@@ -631,8 +656,9 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     final courtStr = actionCard['court']?.toString() ?? 'Sân 1';
     final courtNumber =
         int.tryParse(RegExp(r'\d+').firstMatch(courtStr)?.group(0) ?? '1') ?? 1;
-    final venueId =
-        actionCard['venueId']?.toString() ?? widget.currentVenue?.id ?? 'venue_01';
+    final venueId = actionCard['venueId']?.toString() ??
+        widget.currentVenue?.id ??
+        'venue_01';
     final venueName = actionCard['venueName']?.toString() ??
         widget.currentVenue?.name ??
         'CLB Cầu Lông Tao Đàn';
@@ -693,7 +719,9 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     final userSport = preferredSport?.toLowerCase();
     final sportChipLabel = userSport == 'pickleball'
         ? 'pickleball'
-        : (userSport == 'football' || userSport == 'bóng đá' ? 'bóng đá' : 'cầu lông');
+        : (userSport == 'football' || userSport == 'bóng đá'
+            ? 'bóng đá'
+            : 'cầu lông');
 
     final defaultChips = isOwner
         ? const [
@@ -785,7 +813,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                           ),
                           const SizedBox(height: 2),
                           ValueListenableBuilder<bool>(
-                            valueListenable: ChatbotService.instance.isTypingNotifier,
+                            valueListenable:
+                                ChatbotService.instance.isTypingNotifier,
                             builder: (context, isTyping, _) {
                               return Row(
                                 children: [
@@ -793,12 +822,15 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                     width: 7,
                                     height: 7,
                                     decoration: BoxDecoration(
-                                      color: isTyping ? AppColors.primary : AppColors.slotAvailable,
+                                      color: isTyping
+                                          ? AppColors.primary
+                                          : AppColors.slotAvailable,
                                       shape: BoxShape.circle,
                                       boxShadow: isTyping
                                           ? [
                                               BoxShadow(
-                                                color: AppColors.primary.withValues(alpha: 0.6),
+                                                color: AppColors.primary
+                                                    .withValues(alpha: 0.6),
                                                 blurRadius: 4,
                                                 spreadRadius: 1,
                                               ),
@@ -808,11 +840,17 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    isTyping ? 'Đang soạn câu trả lời...' : 'Đang hoạt động',
+                                    isTyping
+                                        ? 'Đang soạn câu trả lời...'
+                                        : 'Đang hoạt động',
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color: isTyping ? AppColors.primary : AppColors.textSecondary,
-                                      fontWeight: isTyping ? FontWeight.w600 : FontWeight.w500,
+                                      color: isTyping
+                                          ? AppColors.primary
+                                          : AppColors.textSecondary,
+                                      fontWeight: isTyping
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -894,8 +932,9 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                 onBookNow: msg.hasActionCard
                                     ? () => _handleBookNow(msg.actionCard!)
                                     : null,
-                                onViewCourtMap:
-                                    msg.hasActionCard ? _handleViewCourtMap : null,
+                                onViewCourtMap: msg.hasActionCard
+                                    ? _handleViewCourtMap
+                                    : null,
                               );
                             }
                             return const ChatTypingIndicator(
@@ -990,12 +1029,15 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
               // Image preview banner if attached
               if (_attachedImageUrl != null)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -1022,11 +1064,13 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                           children: [
                             const Text(
                               '📷 Đã đính kèm ảnh tuyển thành viên',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               'AI sẽ hỗ trợ tạo bài đăng ghép kèo',
-                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -1034,7 +1078,8 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded, size: 18),
-                        onPressed: () => setState(() => _attachedImageUrl = null),
+                        onPressed: () =>
+                            setState(() => _attachedImageUrl = null),
                         tooltip: 'Gỡ ảnh',
                       ),
                     ],

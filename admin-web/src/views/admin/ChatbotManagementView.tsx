@@ -55,7 +55,7 @@ export const ChatbotManagementView: React.FC = () => {
     setTestStatus(null);
     try {
       if (testConnection) {
-        const res = await testConnection(localConfig.apiKey, localConfig.provider);
+        const res = await testConnection(localConfig.apiKey, localConfig.provider, localConfig.model);
         setTestStatus(res);
       } else {
         setTestStatus({ success: true, message: 'Kiểm tra thành công!' });
@@ -169,6 +169,8 @@ export const ChatbotManagementView: React.FC = () => {
                   const newModel =
                     prov === 'fpt'
                       ? 'gemma-4-26B-A4B-it'
+                      : prov === 'ollama'
+                      ? 'gemma2:2b'
                       : prov === 'openai'
                       ? 'gpt-4o-mini'
                       : 'gemini-1.5-flash';
@@ -176,6 +178,7 @@ export const ChatbotManagementView: React.FC = () => {
                 }}
               >
                 <option value="fpt">FPT Cloud AI (Gemma 4 - Khuyên dùng)</option>
+                <option value="ollama">Ollama local</option>
                 <option value="gemini">Google Gemini</option>
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic Claude</option>
@@ -197,7 +200,7 @@ export const ChatbotManagementView: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-              API Key
+              {localConfig.provider === 'ollama' ? 'API Key (not required for Ollama)' : 'API Key'}
             </label>
             <div className="flex gap-2">
               <input
