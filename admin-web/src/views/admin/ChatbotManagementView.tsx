@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   BookOpen,
@@ -49,6 +49,16 @@ export const ChatbotManagementView: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<{ success: boolean; message: string } | null>(null);
 
+  useEffect(() => {
+    if (config) {
+      setLocalConfig((prev) => ({
+        ...prev,
+        ...config,
+        apiKey: config.apiKey || prev.apiKey || '',
+      }));
+    }
+  }, [config]);
+
   // FAQ tab state
   const [faqCategory, setFaqCategory] = useState('Tất cả');
   const [venueFilter, setVenueFilter] = useState<string>('all');
@@ -63,6 +73,14 @@ export const ChatbotManagementView: React.FC = () => {
   };
 
   const handleTestConnection = async () => {
+    if (!localConfig.apiKey?.trim() && localConfig.provider !== 'ollama') {
+      setTestStatus({
+        success: false,
+        message: 'Chưa có API Key. Vui lòng nhập API Key để kiểm tra kết nối!',
+      });
+      return;
+    }
+
     setIsTesting(true);
     setTestStatus(null);
     try {
@@ -243,7 +261,8 @@ export const ChatbotManagementView: React.FC = () => {
                 data-testid="api-key-input"
                 type={apiKeyVisible ? 'text' : 'password'}
                 className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-3 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                value={localConfig.apiKey}
+                value={localConfig.apiKey || ''}
+                placeholder="Nhập API Key (ví dụ: sk-RQA2M...)"
                 onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
               />
               <button
@@ -254,6 +273,21 @@ export const ChatbotManagementView: React.FC = () => {
                 {apiKeyVisible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {localConfig.apiKey ? (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mt-2 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>Đã nạp API Key FPT Cloud AI:</span>
+                <span className="font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md text-emerald-700 dark:text-emerald-300">
+                  {apiKeyVisible
+                    ? localConfig.apiKey
+                    : `${localConfig.apiKey.slice(0, 8)}••••••••${localConfig.apiKey.slice(-6)}`}
+                </span>
+              </p>
+            ) : (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-2">
+                ⚠️ Chưa có API Key. Chatbot sẽ không thể kết nối tới mô hình LLM.
+              </p>
+            )}
             <div className="flex items-center space-x-3 mt-3">
               <button
                 type="button"
