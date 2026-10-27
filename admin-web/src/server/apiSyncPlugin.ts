@@ -911,8 +911,12 @@ export function apiSyncPlugin(): Plugin {
         const configuredOrigin = process.env.SPORT_HUB_ALLOWED_ORIGIN || '';
         const requestOrigin = requestHeader(req, 'origin');
         const allowedOrigin = configuredOrigin || (process.env.NODE_ENV === 'production' ? '' : '*');
-        if (allowedOrigin && (!requestOrigin || requestOrigin === allowedOrigin)) {
-          res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        if (allowedOrigin) {
+          if (allowedOrigin === '*') {
+            res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
+          } else if (!requestOrigin || requestOrigin === allowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+          }
         }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
