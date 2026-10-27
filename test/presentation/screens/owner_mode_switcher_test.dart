@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/venue_owner_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
@@ -11,11 +12,15 @@ void main() {
   });
 
   testWidgets('Can switch from ProfileScreen to Owner Mode and switch back', (tester) async {
+    final owner = SeedData.demoUsers.firstWhere((u) => u.isOwner);
+    AuthStore.instance.login(owner.phone, '123456');
+    VenueOwnerStore.instance.toggleOwnerMode(false);
+
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
     // Navigate to Profile tab
-    await tester.tap(find.byIcon(Icons.person_rounded));
+    await tester.tap(find.text('Hồ sơ'));
     await tester.pumpAndSettle();
 
     // Find and tap switch to owner mode button
@@ -51,9 +56,14 @@ void main() {
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
-    final ownerLoginBtn = find.byKey(const Key('quick_login_user_owner_01'));
-    await tester.ensureVisible(ownerLoginBtn);
-    await tester.tap(ownerLoginBtn);
+    final ownerHint = find.byKey(const Key('quick_login_chusan'));
+    await tester.ensureVisible(ownerHint);
+    await tester.tap(ownerHint);
+    await tester.pumpAndSettle();
+
+    final loginBtn = find.byKey(const Key('login_submit_button'));
+    await tester.ensureVisible(loginBtn);
+    await tester.tap(loginBtn);
     await tester.pumpAndSettle();
 
     expect(AuthStore.instance.currentUser?.userId, equals('user_owner_01'));

@@ -5,13 +5,14 @@
 
 ---
 
-## 👥 THÀNH VIÊN NHÓM & PHÂN CÔNG ĐÓNG GÓP (TEAM COLLABORATORS)
+## 👥 THÀNH VIÊN NHÓM & PHÂN CÔNG ĐÓNG GÓP (TEAM COLLABORATORS - 4 THÀNH VIÊN)
 
-| STT | GitHub Username / Họ Tên | Vai trò chuyên môn | Nhánh Git phụ trách | Nhiệm vụ chính |
-| :---: | :--- | :--- | :--- | :--- |
-| **1** | **`aoi0701`** | Flutter UI/UX & Booking Flow | `feature/booking-vietqr-ui` | • Xây dựng giao diện ma trận sân `VisualCourtMatrix` và `VenueDetailScreen`.<br>• Thiết kế thẻ tương tác Native `ChatBookingCard`, tích hợp thư viện `qr_flutter`.<br>• Xử lý luồng chọn dịch vụ phụ (Add-ons) và lọc môn thể thao đa năng. |
-| **2** | **`HoangThien1304`** | State Management & Partner Portal | `feature/owner-dashboard-sync` | • Quản lý trạng thái Reactive qua Event Bus `TicketStore` và `VenueSyncService`.<br>• Xây dựng phân hệ Chủ sân (`OwnerManagementTab`) tra cứu doanh thu và check-in.<br>• Phát triển Web Admin Portal (React 19 + TypeScript + Tailwind CSS). |
-| **3** | **`DO MINH NHAT`** (`matnhinhod-pixel`) | AI Chatbot Core & Matchmaking | `feature/chatbot-multi-agent` | • Kiến trúc Dual-Mode Hybrid AI (FPT Cloud Gemma 26B + Local Intent Engine).<br>• Xây dựng Agent Ghép Kèo Vision (`RecruitmentCard`) và bộ lọc ngôn ngữ tự nhiên/không dấu.<br>• Xây dựng API Sync Gateway (`apiSyncPlugin.ts`) và xử lý xung đột thanh toán/hủy vé. |
+| STT | GitHub Username / Họ Tên | MSSV | Vai trò chuyên môn | Nhánh Git phụ trách | Nhiệm vụ chính |
+| :---: | :--- | :---: | :--- | :--- | :--- |
+| **1** | **`Lequocanh123`**<br>(Lê Quốc Anh - Trưởng nhóm) | `2380600052` | Full-stack & Backend / Database Architecture | `main` | • Thiết kế kiến trúc tổng thể, tích hợp CSDL tập trung Supabase PostgreSQL & Realtime.<br>• Xây dựng Stored Procedure `fn_book_court_slot` với row-level lock chống double-booking.<br>• Phát triển `SupabaseService` trên Mobile, đồng bộ đa nền tảng và kiểm thử E2E. |
+| **2** | **`matnhinhod-pixel`**<br>(Đỗ Minh Nhật) | `2380614792` | AI Chatbot Core & Matchmaking | `feature/chatbot-multi-agent` | • Kiến trúc Agentic AI 6 tầng (FPT Cloud Gemma 26B + Local Intent Engine + 2-Stage HITL).<br>• Xây dựng Agent Ghép Kèo Vision (`RecruitmentCard`) và bộ lọc ngôn ngữ tự nhiên/không dấu.<br>• Xây dựng API Sync Gateway (`apiSyncPlugin.ts`) và xử lý bảo mật Guardrails. |
+| **3** | **`HoangThien1304`**<br>(Tưởng Hoàn Thiện) | `2380602117` | State Management & Partner Portal | `feature/owner-dashboard-sync` | • Quản lý trạng thái Reactive qua Event Bus `TicketStore` và `VenueSyncService`.<br>• Xây dựng phân hệ Chủ sân (`OwnerManagementTab`) tra cứu doanh thu và check-in thật.<br>• Phát triển Web Admin Portal (React 19 + TypeScript + Tailwind CSS). |
+| **4** | **`aoi0701`**<br>(Nguyễn Phan Ngọc Trưởng) | `2380602415` | Flutter UI/UX & Booking Flow | `feature/booking-vietqr-ui` | • Xây dựng giao diện ma trận sân `VisualCourtMatrix` và `VenueDetailScreen`.<br>• Thiết kế thẻ tương tác Native `ChatBookingCard`, tích hợp thư viện `qr_flutter`.<br>• Xử lý luồng chọn dịch vụ phụ (Add-ons) và lọc môn thể thao đa năng. |
 
 ---
 
@@ -46,10 +47,12 @@ flowchart LR
 - **Mạng & Định dạng:** `http` (^1.6.0), `intl` (^0.19.0), `cached_network_image` (^3.4.1).
 - **Kiểm thử tự động:** `flutter_test`, `bloc_test` (^9.1.7), `mocktail` (^1.0.4).
 
-### 2. Phía Web Admin & Backend Sync Server
+### 2. Phía Web Admin & Backend CSDL
 - **Frontend SPA:** React 19, TypeScript, React Router DOM 7, Tailwind CSS v4, Lucide React.
+- **CSDL & Backend Tập Trung:** **Supabase PostgreSQL**, Realtime WebSockets, Row-Level Security (RLS).
+- **Chống Đặt Trùng Lịch (Anti-Double-Booking):** Stored Procedure `fn_book_court_slot` với row-level concurrency lock (`SELECT ... FOR UPDATE`).
 - **Build tool & Local Gateway:** Vite 6, Custom Plugin Middleware (`apiSyncPlugin.ts`).
-- **Kiểm thử Web:** Vitest 3, Testing Library React (**81/81 tests pass**).
+- **Kiểm thử Web & API:** Vitest 3, Testing Library React (**104/104 tests pass 100%**).
 
 ### 3. Phân Hệ Trí Tuệ Nhân Tạo (Chatbot Multi-Agent)
 - **Kiến trúc Trí tuệ lai (Dual-Mode):** Ưu tiên gọi FPT Cloud AI (Gemma 26B); tự động chuyển sang Local Smart Intent Engine (viết bằng Dart) khi mất mạng.

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportHub AI Chatbot - Kiến Trúc Agentic 6 Tầng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent-blue: #38bdf8;
+      --accent-red: #f87171;
+      --accent-amber: #fbbf24;
+      --accent-purple: #c084fc;
+      --accent-green: #4ade80;
+      --accent-orange: #fb923c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    header {
+      text-align: center;
+      max-width: 900px;
+      margin-bottom: 36px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .pipeline {
+      width: 100%;
+      max-width: 980px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+    .layer-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .layer-card:hover {
+      transform: translateY(-2px);
+      border-color: #374151;
+    }
+    .layer-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding-right: 16px;
+    }
+    .layer-num {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .layer-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .layer-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .node-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px 16px;
+      flex: 1;
+      min-width: 260px;
+    }
+    .node-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .node-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .flow-connector {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 18px;
+      color: #4b5563;
+      font-size: 16px;
+    }
+
+    /* Colors per layer */
+    .l1 .layer-num, .l1 .node-title { color: var(--accent-blue); }
+    .l1 { border-left: 4px solid var(--accent-blue); }
+
+    .l2 .layer-num, .l2 .node-title { color: var(--accent-red); }
+    .l2 { border-left: 4px solid var(--accent-red); }
+
+    .l3 .layer-num, .l3 .node-title { color: var(--accent-amber); }
+    .l3 { border-left: 4px solid var(--accent-amber); }
+
+    .l4 .layer-num, .l4 .node-title { color: var(--accent-purple); }
+    .l4 { border-left: 4px solid var(--accent-purple); }
+
+    .l5 .layer-num, .l5 .node-title { color: var(--accent-green); }
+    .l5 { border-left: 4px solid var(--accent-green); }
+
+    .l6 .layer-num, .l6 .node-title { color: var(--accent-orange); }
+    .l6 { border-left: 4px solid var(--accent-orange); }
+
+    .footer-note {
+      margin-top: 36px;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Đồ Án SportHub • Kiến Trúc Agentic AI</div>
+    <h1>Trợ Lý AI Chatbot Đa Tầng (6-Layer Architecture)</h1>
+    <p class="subtitle">Mô hình phân tách triệt để: AI Cloud chỉ đảm nhận ngôn ngữ tự nhiên, CSDL & Con người kiểm soát 100% giao dịch.</p>
+  </header>
+
+  <div class="pipeline">
+
+    <!-- TẦNG 1 -->
+    <div class="layer-card l1">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 1</span>
+        <span class="layer-title">Mobile Client</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box">
+          <div class="node-title">👤 Thu Thập Tin Nhắn</div>
+          <div class="node-desc">Nhận tin nhắn, tiếng Việt không dấu, hình ảnh poster hoặc giờ khẩu ngữ thể thao.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">📍 Gắn Ngữ Cảnh Động</div>
+          <div class="node-desc">Tự động kẹp ngầm <span class="mono">venueId</span>, <span class="mono">userId</span>, vai trò <span class="mono">userRole</span> và môn thể thao vào payload.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-connector">↓</div>
+
+    <!-- TẦNG 2 -->
+    <div class="layer-card l2">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 2</span>
+        <span class="layer-title">Security & NLP</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box">
+          <div class="node-title">🛡️ guardrailIn (Lọc An Toàn)</div>
+          <div class="node-desc">Chặn ngay lập tức Prompt Injection, Jailbreak, lệnh đặt sân giá 0đ. Cắt luồng 0 tốn token LLM.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">🔍 NLP Intent & Time Parser</div>
+          <div class="node-desc">Bóc tách ý định, chuẩn hóa giờ khẩu ngữ (<span class="mono">5 rưỡi chiều</span> → <span class="mono">17:30</span>) và dịch vụ add-ons.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-connector">↓</div>
+
+    <!-- TẦNG 3 -->
+    <div class="layer-card l3">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 3</span>
+        <span class="layer-title">Hybrid RAG</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box">
+          <div class="node-title">📚 RAG FAQ Retrieval</div>
+          <div class="node-desc">Lọc stop-words, đối chiếu <span class="mono">venueId</span>, truy xuất đúng Top 3 câu hỏi quy chế/mưa bão sát nhất.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">🏟️ Realtime Court Store</div>
+          <div class="node-desc">Quét sân trống thực tế 100%, phân loại ca thường vs giờ cao điểm (17h-21h) để tính chuẩn giá.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-connector">↓</div>
+
+    <!-- TẦNG 4 -->
+    <div class="layer-card l4">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 4</span>
+        <span class="layer-title">LLM Inference</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box">
+          <div class="node-title">🤖 FPT Cloud Gemma 26B</div>
+          <div class="node-desc">Mô hình 26 tỷ tham số đặt tại Datacenter TP.HCM (độ trễ 0.37s). Đọc dữ liệu thật để soạn câu trả lời tự nhiên.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">🧹 Anti-Hallucination & guardrailOut</div>
+          <div class="node-desc">Cắt bỏ bảng markdown tự chế, khử PII và che giấu toàn bộ API Key thành <span class="mono">[REDACTED]</span>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-connector">↓</div>
+
+    <!-- TẦNG 5 -->
+    <div class="layer-card l5">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 5</span>
+        <span class="layer-title">Agentic HITL</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box" style="flex: 2;">
+          <div class="node-title">📝 Sinh Đề Xuất ActionProposal (Human-In-The-Loop)</div>
+          <div class="node-desc">
+            • <b>Khóa cứng bất biến:</b> <span class="mono">venueId</span>, <span class="mono">courtId</span>, đơn giá từ CSDL (Client không sửa được giá).<br>
+            • <b>Form Allowlist:</b> Chỉ cho phép người dùng tùy chỉnh <span class="mono">timeSlot</span> và <span class="mono">note</span> (ghi chú).<br>
+            • <b>Hạn hiệu lực:</b> Tự động hủy sau 15 phút (<span class="mono">expiresAt</span>).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-connector">↓</div>
+
+    <!-- TẦNG 6 -->
+    <div class="layer-card l6">
+      <div class="layer-header">
+        <span class="layer-num">Tầng 6</span>
+        <span class="layer-title">2-Stage Flow</span>
+      </div>
+      <div class="layer-content">
+        <div class="node-box">
+          <div class="node-title">🎴 Giai đoạn 1: ActionProposalCard</div>
+          <div class="node-desc">Hiện thông tin sân, giờ, giá dự kiến. Ẩn nút VietQR. Khách bấm <b>[Xác nhận đặt sân]</b>.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">🔒 fn_book_court_slot (Postgres Lock)</div>
+          <div class="node-desc">Khóa mức hàng (<span class="mono">FOR UPDATE</span>) chống đặt trùng lịch. Tạo vé tạm <span class="mono">pending</span>.</div>
+        </div>
+        <div class="node-box">
+          <div class="node-title">💳 Giai đoạn 2: VietQR Payment</div>
+          <div class="node-desc">ChatBookingCard xuất hiện nút thanh toán VietQR. Quét mã xong → đổi sang <span class="mono">PAID</span>.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">
+    © 2026 SportHub Team • Công nghệ: Flutter (Dart) + React 19 + Supabase PostgreSQL + FPT Cloud AI (Gemma 26B)
+  </div>
+
+</body>
+</html>

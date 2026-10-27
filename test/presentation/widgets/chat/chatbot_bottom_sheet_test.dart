@@ -2,13 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
+import 'package:sporthub/core/state/auth_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/main.dart';
 import 'package:sporthub/presentation/blocs/booking/booking_bloc.dart';
+import 'package:sporthub/presentation/widgets/chat/chat_message_bubble.dart';
 import 'package:sporthub/presentation/widgets/chat/chatbot_bottom_sheet.dart';
 
 void main() {
+  setUp(() {
+    AuthStore.instance.reset();
+    final customer = SeedData.demoUsers.first;
+    AuthStore.instance.login(customer.phone, '123456');
+    ChatbotService.instance.resetMessages();
+    ChatMessageBubble.resetRevealedCache();
+  });
+
   testWidgets('ChatbotBottomSheet triggers onViewCourtMapAction with actionCard',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(500, 950));
     Map<String, dynamic>? handledCard;
 
     ChatbotService.instance.resetMessages();
@@ -42,10 +54,14 @@ void main() {
         ),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
 
     final viewMapButton = find.byKey(const Key('btn_chat_view_court_map'));
     expect(viewMapButton, findsOneWidget);
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
 
     await tester.tap(viewMapButton);
     await tester.pumpAndSettle();
@@ -56,6 +72,7 @@ void main() {
 
   testWidgets('ChatbotBottomSheet navigates to VenueDetailScreen when onViewCourtMapAction is null',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(500, 950));
     ChatbotService.instance.resetMessages();
     ChatbotService.instance.addMessage(
       ChatMessage(
@@ -78,10 +95,15 @@ void main() {
     await tester.pumpWidget(
       BlocProvider(
         create: (_) => BookingBloc(),
-        child: const MaterialApp(
+        child: MaterialApp(
           home: Scaffold(
-            body: ChatbotBottomSheet(
-              currentRoute: '/home',
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                key: const Key('open_chat_btn'),
+                onPressed: () =>
+                    ChatbotBottomSheet.show(ctx, currentRoute: '/home'),
+                child: const Text('Open'),
+              ),
             ),
           ),
         ),
@@ -89,8 +111,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('open_chat_btn')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
     final viewMapButton = find.byKey(const Key('btn_chat_view_court_map'));
     expect(viewMapButton, findsOneWidget);
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
 
     await tester.tap(viewMapButton);
     await tester.pumpAndSettle();

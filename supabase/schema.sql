@@ -178,11 +178,10 @@ RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_conflict_count INTEGER;
-    v_slot_record RECORD;
+    v_conflict_id TEXT;
 BEGIN
-    -- 1. Kiểm tra tranh chấp với Row-Level Lock
-    SELECT COUNT(*) INTO v_conflict_count
+    -- 1. Kiểm tra tranh chấp và khóa dòng (Row-Level Locking) chống Double Booking
+    SELECT id INTO v_conflict_id
     FROM public.bookings
     WHERE venue_id = p_venue_id
       AND court_number = p_court_number
@@ -192,9 +191,10 @@ BEGIN
           (start_time = p_start_time)
           OR (start_time < p_end_time AND end_time > p_start_time)
       )
+    LIMIT 1
     FOR UPDATE;
 
-    IF v_conflict_count > 0 THEN
+    IF v_conflict_id IS NOT NULL THEN
         RETURN jsonb_build_object(
             'success', false,
             'message', 'Khung giờ này vừa có người khác đặt. Vui lòng chọn ca khác!'

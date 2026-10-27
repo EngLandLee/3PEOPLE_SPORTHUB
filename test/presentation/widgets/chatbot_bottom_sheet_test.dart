@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
 import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/ticket_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/domain/entities/venue.dart';
 import 'package:sporthub/presentation/blocs/booking/booking_bloc.dart';
 import 'package:sporthub/presentation/widgets/chat/chat_message_bubble.dart';
@@ -75,7 +76,9 @@ void main() {
 
   group('ChatbotBottomSheet', () {
     testWidgets('renders context banner with venue name and user name', (tester) async {
-      final userName = AuthStore.instance.currentUser?.fullName ?? 'Nguyễn Văn A';
+      final customer = SeedData.demoUsers.first;
+      AuthStore.instance.login(customer.phone, '123456');
+      final userName = customer.fullName;
 
       await tester.pumpWidget(
         MaterialApp(

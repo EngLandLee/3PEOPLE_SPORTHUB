@@ -4,6 +4,7 @@ import 'package:sporthub/core/constants/app_colors.dart';
 import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/venue_owner_store.dart';
 import 'package:sporthub/core/theme/theme_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
@@ -15,6 +16,9 @@ void main() {
 
   testWidgets('Consumer Explore header displays quick theme toggle button and switches theme', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
+    final customer = SeedData.demoUsers.first;
+    AuthStore.instance.login(customer.phone, '123456');
+
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
@@ -44,7 +48,8 @@ void main() {
 
   testWidgets('Partner Owner header displays quick theme toggle button and switches theme', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
-    VenueOwnerStore.instance.toggleOwnerMode(true);
+    final owner = SeedData.demoUsers.firstWhere((u) => u.isOwner);
+    AuthStore.instance.login(owner.phone, '123456');
 
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
@@ -74,6 +79,9 @@ void main() {
 
   testWidgets('Profile settings theme toggle switches theme mode when tapped', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
+    final customer = SeedData.demoUsers.first;
+    AuthStore.instance.login(customer.phone, '123456');
+
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
@@ -98,7 +106,8 @@ void main() {
 
   testWidgets('Owner settings theme toggle switches theme mode when tapped', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
-    VenueOwnerStore.instance.toggleOwnerMode(true);
+    final owner = SeedData.demoUsers.firstWhere((u) => u.isOwner);
+    AuthStore.instance.login(owner.phone, '123456');
 
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();

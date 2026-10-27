@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/services/chatbot_service.dart';
+import 'package:sporthub/core/state/auth_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/presentation/widgets/chat/chatbot_bottom_sheet.dart';
 
 void main() {
   setUp(() {
+    AuthStore.instance.reset();
+    final customer = SeedData.demoUsers.first;
+    AuthStore.instance.login(customer.phone, '123456');
     ChatbotService.instance.resetMessages();
   });
 

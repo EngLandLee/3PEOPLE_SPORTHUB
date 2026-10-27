@@ -655,8 +655,7 @@ class ChatbotService {
         final matching = currentSlots
             .where((s) => s.courtNumber == c && s.startTime == slotTimeStr);
         if (matching.isNotEmpty &&
-            (matching.first.status == SlotStatus.booked ||
-                matching.first.status == SlotStatus.locked)) {
+            matching.first.status == SlotStatus.locked) {
           courtFreeForAllHours = false;
           break;
         }

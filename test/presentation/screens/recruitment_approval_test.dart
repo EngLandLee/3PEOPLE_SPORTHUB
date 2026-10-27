@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sporthub/core/state/auth_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/main.dart';
 import 'package:sporthub/domain/entities/community_post.dart';
 import 'package:sporthub/domain/entities/join_request.dart';
@@ -8,6 +10,9 @@ void main() {
   setUp(() {
     CommunityFeedStore.instance.reset();
     UserProfileStore.instance.reset();
+    AuthStore.instance.reset();
+    final customer = SeedData.demoUsers.first;
+    AuthStore.instance.login(customer.phone, '123456');
   });
 
   testWidgets('Sub-filter switches between Tất cả kèo and Kèo của tôi', (tester) async {

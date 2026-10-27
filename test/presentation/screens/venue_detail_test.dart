@@ -188,7 +188,7 @@ void main() {
 
     expect(find.text('1/4'), findsOneWidget);
     expect(find.text('🟢 Đang mở cửa • 06:00 - 23:00'), findsOneWidget);
-    expect(find.text('0909 123 456'), findsOneWidget);
+    expect(find.text(venue.hotline ?? '028 3511 8899'), findsOneWidget);
   });
 
   testWidgets(
@@ -381,7 +381,11 @@ void main() {
     expect(find.textContaining('slot trống'), findsWidgets);
 
     // Tap an available slot in the court overview map
-    final availableSlotFinder = find.text('Còn trống').first;
+    final availableSlotFinder = find.descendant(
+      of: find.byKey(const Key('court_card_1')),
+      matching: find.text('Còn trống'),
+    ).first;
+    await tester.ensureVisible(availableSlotFinder);
     await tester.tap(availableSlotFinder);
     await tester.pumpAndSettle();
 
@@ -390,7 +394,9 @@ void main() {
     expect(find.text('Thanh toán VietQR'), findsOneWidget);
 
     // Switch back to matrix view
-    await tester.tap(find.byKey(const Key('view_mode_matrix')));
+    final matrixToggle = find.byKey(const Key('view_mode_matrix'));
+    await tester.ensureVisible(matrixToggle);
+    await tester.tap(matrixToggle);
     await tester.pumpAndSettle();
 
     expect(find.byType(TimeSlotMatrix), findsOneWidget);
