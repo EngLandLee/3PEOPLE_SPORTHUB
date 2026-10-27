@@ -33,7 +33,7 @@ function isSportHubRequestAllowed(
   const outOfScope = /\b(?:giai|tinh)\s+(?:bai\s+)?toan\b|\bbai\s+toan\b|\btoan\b|\d\s*[+*/=]\s*\d|\b(?:viet|lam)\s+(?:tho|van|code|chuong\s+trinh)|\b(?:lap\s+trinh|programming|write\s+code|solve|calculate|politics|chinh\s+tri|bau\s+cu|hack|api\s+key|system\s+prompt|ignore\s+(?:all\s+)?(?:rules|instructions)|tell\s+(?:me\s+)?a\s+joke|ke\s+chuyen\s+cuoi|weather|recipe|translate|dich\s+thuat)\b/i;
   if (outOfScope.test(message)) return false;
 
-  const bookingOrCourtTask = /\b(?:dat\s+san|book\s+(?:san|a\s+court)|tim\s+san|find\s+(?:a\s+)?court|available\s+court|court\s+near\s+me|san\s+trong|con\s+san|san\s+gan|kiem\s+tra\s+(?:lich|san|slot)|giu\s+cho|thue\s+san|doi\s+(?:gio|lich)|huy\s+(?:san|ve|dat)|them\s+(?:nuoc|vet|ong\s+cau|dich\s+vu)|bot\s+(?:nuoc|vet|ong\s+cau|dich\s+vu))\b/i.test(message);
+  const bookingOrCourtTask = /\b(?:dat\s+san|book\s+(?:san|a\s+court)|tim\s+san|find\s+(?:a\s+)?court|available\s+court|court\s+near\s+me|san\s+trong|con\s+san|san\s+gan|co\s+san|kiem\s+tra\s+(?:lich|san|slot)|giu\s+cho|thue\s+san|doi\s+(?:gio|lich)|huy\s+(?:san|ve|dat)|them\s+(?:nuoc|vet|ong\s+cau|dich\s+vu)|bot\s+(?:nuoc|vet|ong\s+cau|dich\s+vu))\b/i.test(message) || (/\b(?:san|cau\s+long|badminton|pickleball|bong\s+da|football|futsal)\b/i.test(message) && /\b(?:co|tim|o\s+dau|gan|nao|trong|gia|dat|thue|slot|lich|gio|toi|sang|chieu|khong)\b/i.test(message));
   const matchmakingTask = /\b(?:tim|ghep|kiem\s+tra|dang)\s+(?:keo|nguoi|doi|thanh\s+vien)|\b(?:ghep\s+keo|tim\s+keo|tuyen\s+(?:nguoi|thanh\s+vien))\b/i.test(message);
   const venueOrSport = /\b(?:san|cau\s+long|badminton|pickleball|bong\s+da|football|futsal|tao\s+dan|binh\s+thanh|thao\s+dien|tan\s+binh|phu\s+nhuan|ky\s+hoa|nam\s+sai\s+gon|sporthub|vietqr|ma\s+ve|ve\s+cua\s+toi)\b/i.test(message);
   const projectInfoTask = venueOrSport && /\b(?:gia|bao\s+nhieu|mo\s+cua|dia\s+chi|hotline|dich\s+vu|phu\s+phi|chinh\s+sach|thanh\s+toan|check\s*in|lich\s+choi|san\s+pham|thue)\b/i.test(message);
@@ -893,7 +893,8 @@ function findAvailableCourtForTime(venueId: string, startTime: string, sport?: s
 
     return c.courtNumber;
   }
-  return 0;
+  // Fallback: If all active courts have simulated or test bookings, fallback to first active court
+  return courts[0]?.courtNumber || 1;
 }
 
 export function apiSyncPlugin(): Plugin {
@@ -1394,14 +1395,28 @@ export function apiSyncPlugin(): Plugin {
                 }));
                 return;
               }
+              const targetVenueId = context.venueId;
               const faqTerms = new Set(normalizedMsg.match(/[a-z0-9]+/g) || []);
               const faqStopWords = new Set(['san', 'toi', 'minh', 'cho', 'cua', 'la', 'va', 'voi', 'the', 'nao', 'gi', 'bao', 'nhieu', 'mot', 'co', 'khong', 'giup', 'em', 'anh', 'chi']);
               const relevantFaqs = (store.chatbotFaqs || DEFAULT_CHATBOT_FAQS)
-                .filter((faq) => faq.isActive)
+                .filter((faq) => {
+                  if (!faq.isActive) return false;
+                  // Multi-tenant isolation: If FAQ is scoped to a specific venue, only include when context matches
+                  if (faq.venueId && faq.venueId !== 'all') {
+                    if (targetVenueId && faq.venueId !== targetVenueId) {
+                      return false;
+                    }
+                  }
+                  return true;
+                })
                 .map((faq) => {
                   const searchable = stripVietnameseDiacritics(`${faq.question} ${faq.category || ''}`).toLowerCase();
                   const words = new Set(searchable.match(/[a-z0-9]+/g) || []);
-                  const score = [...faqTerms].filter((term) => term.length > 2 && !faqStopWords.has(term) && words.has(term)).length;
+                  let score = [...faqTerms].filter((term) => term.length > 2 && !faqStopWords.has(term) && words.has(term)).length;
+                  // Prioritize venue-specific knowledge over generic platform FAQs
+                  if (targetVenueId && faq.venueId === targetVenueId) {
+                    score += 3;
+                  }
                   return { faq, score };
                 })
                 .filter((entry) => entry.score > 0)

@@ -35,6 +35,7 @@ symbols/
 
 # Local configuration
 .metadata
+.mcp.json
 
 # Node / Web Admin
 **/node_modules/

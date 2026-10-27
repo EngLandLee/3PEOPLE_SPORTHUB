@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportHub - Đặt Sân Thể Thao & Ghép Kèo AI</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols Outlined -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            // SportHub Light Theme Tokens
+            "bg-light": "#F8FAFC",
+            "surface-light": "#FFFFFF",
+            "card-border": "#E2E8F0",
+            "text-primary": "#0F172A",
+            "text-secondary": "#64748B",
+            "primary": "#059669",
+            "primary-hover": "#047857",
+            "primary-light": "#D1FAE5",
+            "primary-neon": "#10B981",
+            "accent": "#22C55E",
+            "accent-light": "#DCFCE7",
+            "warning": "#F59E0B",
+            "danger": "#EF4444"
+          },
+          fontFamily: {
+            sans: ["Manrope", "sans-serif"],
+            display: ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Device Frame Styling */
+    .iphone-frame {
+      width: 400px;
+      height: 855px;
+      border-radius: 50px;
+      border: 11px solid #1E293B;
+      box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 2px #E2E8F0;
+      position: relative;
+      overflow: hidden;
+      background: #F8FAFC;
+      flex-shrink: 0;
+    }
+    .dark .iphone-frame {
+      border-color: #334155;
+      background: #0B0F19;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+    }
+    
+    .dynamic-island {
+      width: 116px;
+      height: 28px;
+      background: #000;
+      border-radius: 20px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+    }
+    .home-indicator {
+      width: 130px;
+      height: 4px;
+      background: #94A3B8;
+      border-radius: 4px;
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+    
+    /* Subtle sporty court lines */
+    .court-grid-pattern {
+      background-image: linear-gradient(to right, rgba(16, 185, 129, 0.08) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+</head>
+<body class="bg-[#F1F5F9] text-text-primary font-sans min-h-screen flex flex-col selection:bg-primary-neon selection:text-white transition-colors duration-200">
+
+  <!-- TOP APPLICATION CONTROL BAR -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-black text-xl shadow-md shadow-primary/30">
+        🏆
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-display font-extrabold text-lg text-slate-900 tracking-tight">SportHub</h1>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Light Mode • Bản Đầy Đủ</span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800">VietQR 1 Chạm</span>
+        </div>
+        <p class="text-xs text-slate-500 font-medium">Đặt sân thể thao • Ghép kèo AI • Quản lý vé QR • Phân hệ chủ sân</p>
+      </div>
+    </div>
+
+    <!-- Mode Selector & Theme Switcher -->
+    <div class="flex items-center gap-3">
+      <!-- Simulator vs Gallery Tabs -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
+        <button id="btn-mode-sim" onclick="setMode('simulator')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all bg-white text-emerald-700 shadow-sm border border-slate-200">
+          <span class="material-symbols-outlined text-[16px]">smartphone</span>
+          Mô Phỏng Điện Thoại
+        </button>
+        <button id="btn-mode-gal" onclick="setMode('gallery')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-semibold text-slate-600 hover:text-slate-900 transition-all">
+          <span class="material-symbols-outlined text-[16px]">view_quilt</span>
+          Xem Toàn Bộ Màn Hình
+        </button>
+      </div>
+
+      <!-- Quick Screen Jump in Simulator Mode -->
+      <div id="sim-jump-bar" class="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-xl border border-slate-200">
+        <span class="text-xs text-slate-500 font-bold ml-1">Tab:</span>
+        <button onclick="switchScreen(0)" class="screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow-sm" data-tab="0">1. Đặt sân</button>
+        <button onclick="switchScreen(1)" class="screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white" data-tab="1">2. Cộng đồng</button>
+        <button onclick="switchScreen(2)" class="screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white" data-tab="2">3. Vé của tôi</button>
+        <button onclick="switchScreen(3)" class="screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white" data-tab="3">4. Hồ sơ</button>
+        <button onclick="switchScreen(4)" class="screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 hover:bg-white" data-tab="4">5. Chủ sân (POS)</button>
+      </div>
+
+      <!-- Theme Switcher (Light / Dark) -->
+      <button onclick="toggleDarkMode()" id="theme-toggle-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm" title="Chuyển đổi giao diện Sáng / Tối">
+        <span class="material-symbols-outlined text-[17px] text-amber-500">light_mode</span>
+        <span>Giao diện Sáng</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-20 right-6 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none bg-emerald-700 text-white font-display font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-sm border border-emerald-500">
+    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+    <span id="toast-msg">Thành công!</span>
+  </div>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 p-6 flex justify-center items-start overflow-y-auto">
+
+    <!-- MODE 1: INTERACTIVE MOBILE SIMULATOR -->
+    <div id="view-simulator" class="flex flex-col items-center gap-3 transition-opacity duration-300">
+      
+      <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Mô phỏng đầy đủ tính năng: Đặt sân trực quan, Chọn sơ đồ Court 1-6, VietQR, Ghép kèo, Vé QR & Phân hệ Chủ sân.</span>
+      </div>
+
+      <!-- IPHONE HARDWARE FRAME -->
+      <div class="iphone-frame shadow-2xl">
+        
+        <!-- Dynamic Island -->
+        <div class="dynamic-island">
+          <div class="w-2.5 h-2.5 rounded-full bg-[#111]"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-[#111] flex items-center justify-center">
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></div>
+          </div>
+        </div>
+
+        <!-- 9:41 iOS Status Bar (Clean Light Theme) -->
+        <div class="absolute top-0 left-0 right-0 h-11 px-7 flex items-center justify-between text-xs font-bold text-slate-800 z-40 pointer-events-none">
+          <span class="font-display text-[13px]">9:41</span>
+          <div class="flex items-center gap-1.5 text-slate-800">
+            <span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+            <span class="material-symbols-outlined text-[16px]">wifi</span>
+            <span class="material-symbols-outlined text-[18px]">battery_full</span>
+          </div>
+        </div>
+
+        <!-- APP CONTENT AREA (Scrollable) -->
+        <div id="phone-screen-content" class="w-full h-full overflow-y-auto no-scrollbar pt-11 pb-24 bg-[#F8FAFC]">
+          
+          <!-- ============================================== -->
+          <!-- TAB 0: ĐẶT SÂN & KHÁM PHÁ (EXPLORE VENUES) -->
+          <!-- ============================================== -->
+          <div id="tab-0" class="app-tab block">
+            
+            <!-- Header User Greeting & Location -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-500 font-medium">Xin chào,</p>
+                <h2 class="font-display font-extrabold text-lg text-slate-900">Pandri Widyaksana</h2>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="showToast('Đã chọn khu vực TP. Hồ Chí Minh')" class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm hover:border-emerald-500 transition-colors">
+                  <span class="material-symbols-outlined text-[15px] text-emerald-600">location_on</span>
+                  <span class="text-[11px]">Bình Thạnh, TP.HCM</span>
+                  <span class="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
+                </button>
+                <button onclick="openNotificationSheet()" class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 relative shadow-sm hover:text-emerald-600">
+                  <span class="material-symbols-outlined text-[18px]">notifications</span>
+                  <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="px-5 my-2.5">
+              <div class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
+                <span class="material-symbols-outlined text-[20px] text-emerald-600">search</span>
+                <input id="venue-search-input" oninput="filterVenues(this.value)" type="text" placeholder="Tìm sân cầu lông, pickleball, bóng đá..." class="w-full bg-transparent border-0 text-xs text-slate-900 placeholder-slate-400 focus:outline-none p-0">
+                <button onclick="showToast('Bộ lọc nâng cao')" class="text-slate-400 hover:text-emerald-600">
+                  <span class="material-symbols-outlined text-[20px]">tune</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Sport Filters Carousel -->
+            <div class="px-5 mb-3.5">
+              <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button onclick="filterBySport('all', this)" class="sport-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-sm whitespace-nowrap">
+                  Tất cả môn
+                </button>
+                <button onclick="filterBySport('badminton', this)" class="sport-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-emerald-400 shadow-sm whitespace-nowrap flex items-center gap-1">
+                  <span>🏸</span> Cầu lông
+                </button>
+                <button onclick="filterBySport('pickleball', this)" class="sport-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-emerald-400 shadow-sm whitespace-nowrap flex items-center gap-1">
+                  <span>🏓</span> Pickleball
+                </button>
+                <button onclick="filterBySport('padel', this)" class="sport-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-emerald-400 shadow-sm whitespace-nowrap flex items-center gap-1">
+                  <span>🎾</span> Padel
+                </button>
+                <button onclick="filterBySport('football', this)" class="sport-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-emerald-400 shadow-sm whitespace-nowrap flex items-center gap-1">
+                  <span>⚽</span> Bóng đá
+                </button>
+              </div>
+            </div>
+
+            <!-- Hero Highlight Promo: Ghép Kèo AI & Giải Đấu -->
+            <div class="px-5 mb-4">
+              <div class="rounded-3xl bg-gradient-to-tr from-emerald-600 via-emerald-700 to-teal-800 p-4 text-white shadow-lg shadow-emerald-900/10 relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-sm">
+                    ⚡ AI SMART MATCH
+                  </span>
+                  <span class="text-xs bg-emerald-500/80 px-2 py-0.5 rounded-full font-bold">19:00 Hôm nay</span>
+                </div>
+
+                <h3 class="font-display font-extrabold text-lg mt-2 leading-tight">
+                  Kèo Đôi Nam Nữ Pickleball
+                </h3>
+                <p class="text-xs text-emerald-100 mt-0.5">Sân Bình Thạnh Sport • Cần thêm 1 bạn trình độ Khá</p>
+
+                <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-white/20">
+                  <div class="flex items-center gap-1 text-xs">
+                    <span class="font-extrabold text-amber-300">50.000đ</span>
+                    <span class="text-emerald-100 text-[10px]">/người (Đã gồm cầu)</span>
+                  </div>
+                  <button onclick="switchScreen(1)" class="px-3.5 py-1.5 rounded-full bg-white text-emerald-800 font-display font-bold text-xs hover:bg-emerald-50 transition-colors shadow-sm">
+                    Tham Gia Ngay →
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Cụm Sân Nổi Bật (Featured Venues) -->
+            <div class="px-5 mb-5">
+              <div class="flex items-center justify-between mb-2.5">
+                <h4 class="font-display font-bold text-sm text-slate-900">Sân thể thao nổi bật</h4>
+                <span class="text-xs text-emerald-600 font-bold hover:underline cursor-pointer">Xem tất cả (8)</span>
+              </div>
+
+              <!-- Venue Cards List -->
+              <div id="venue-cards-container" class="space-y-3">
+
+                <!-- Venue 1: Bình Thạnh Sport -->
+                <div onclick="openVenueBooking('venue_bt_01', 'CLB Cầu Lông & Pickleball Bình Thạnh Sport', '123 Chu Văn An, Bình Thạnh', 150000, 6)" class="venue-card bg-white rounded-2xl p-3.5 border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer group shadow-sm">
+                  <div class="h-32 rounded-xl bg-slate-100 relative overflow-hidden mb-2.5">
+                    <div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" style="background-image: url('https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800')"></div>
+                    <div class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-slate-700">
+                      <span class="material-symbols-outlined text-[16px] text-pink-500">favorite</span>
+                    </div>
+                    <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/70 text-white text-[10px] font-bold backdrop-blur-sm">
+                      1.2 km • 6 Sân trống
+                    </div>
+                  </div>
+
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="flex items-center gap-1.5">
+                        <h5 class="font-display font-bold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">CLB Bình Thạnh Sport</h5>
+                        <span class="material-symbols-outlined text-[15px] text-emerald-500 fill-icon">verified</span>
+                      </div>
+                      <p class="text-xs text-slate-500 mt-0.5">123 Chu Văn An, Q. Bình Thạnh</p>
+                      <div class="flex items-center gap-1.5 mt-2">
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">Cầu lông</span>
+                        <span class="px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 text-[10px] font-bold border border-teal-200">Pickleball</span>
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">Máy lạnh</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="flex items-center justify-end gap-1 text-xs font-bold text-amber-500">
+                        <span>★</span><span>4.9</span>
+                        <span class="text-[10px] text-slate-400 font-normal">(142)</span>
+                      </div>
+                      <p class="font-display font-extrabold text-sm text-emerald-600 mt-2">150.000đ<span class="text-[10px] text-slate-400 font-normal">/h</span></p>
+                      <button class="mt-1 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-sm">
+                        Đặt sân
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Venue 2: Thảo Điền Pickleball Hub -->
+                <div onclick="openVenueBooking('venue_td_02', 'Thảo Điền Pickleball Hub - Thủ Đức', '45 Quốc Hương, Thảo Điền', 200000, 8)" class="venue-card bg-white rounded-2xl p-3.5 border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer group shadow-sm">
+                  <div class="h-32 rounded-xl bg-slate-100 relative overflow-hidden mb-2.5">
+                    <div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" style="background-image: url('https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=800')"></div>
+                    <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/70 text-white text-[10px] font-bold backdrop-blur-sm">
+                      3.5 km • 8 Sân chuẩn USAPA
+                    </div>
+                  </div>
+
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h5 class="font-display font-bold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">Thảo Điền Pickleball Hub</h5>
+                      <p class="text-xs text-slate-500 mt-0.5">45 Quốc Hương, TP. Thủ Đức</p>
+                      <div class="flex items-center gap-1.5 mt-2">
+                        <span class="px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 text-[10px] font-bold border border-teal-200">Pickleball</span>
+                        <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-bold border border-purple-200">Padel</span>
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">Tắm nóng lạnh</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="flex items-center justify-end gap-1 text-xs font-bold text-amber-500">
+                        <span>★</span><span>4.9</span>
+                      </div>
+                      <p class="font-display font-extrabold text-sm text-emerald-600 mt-2">200.000đ<span class="text-[10px] text-slate-400 font-normal">/h</span></p>
+                      <button class="mt-1 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-sm">
+                        Đặt sân
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Venue 3: Sân Bóng Đá Mini Nam Sài Gòn -->
+                <div onclick="openVenueBooking('venue_q7_03', 'Sân Bóng Đá Mini Nam Sài Gòn', '78 Nguyễn Hữu Thọ, Q.7', 250000, 4)" class="venue-card bg-white rounded-2xl p-3.5 border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer group shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h5 class="font-display font-bold text-sm text-slate-900">Sân Bóng Đá Mini Nam Sài Gòn</h5>
+                      <p class="text-xs text-slate-500 mt-0.5">78 Nguyễn Hữu Thọ, Tân Hưng, Q.7</p>
+                      <div class="flex items-center gap-1.5 mt-2">
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold">Bóng đá cỏ nhân tạo</span>
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px]">Đèn LED thi đấu</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-display font-extrabold text-sm text-emerald-600">250.000đ<span class="text-[10px] text-slate-400 font-normal">/h</span></p>
+                      <button class="mt-1 px-3.5 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-sm">
+                        Đặt sân
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ============================================== -->
+          <!-- SUB-VIEW: MA TRẬN ĐẶT SÂN & CHỌN COURT (BOOKING FLOW) -->
+          <!-- ============================================== -->
+          <div id="subview-booking" class="app-tab hidden">
+            <!-- Back Header -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between bg-white border-b border-slate-200 sticky top-0 z-20">
+              <button onclick="closeVenueBooking()" class="flex items-center gap-1 text-slate-700 hover:text-emerald-600 font-bold text-xs">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                <span>Quay lại</span>
+              </button>
+              <h3 id="booking-venue-title" class="font-display font-bold text-sm text-slate-900 truncate max-w-[200px]">
+                Chi tiết đặt sân
+              </h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Live Sync</span>
+            </div>
+
+            <!-- Venue Info Summary Card -->
+            <div class="p-5 pb-3">
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <h4 id="detail-venue-name" class="font-display font-bold text-base text-slate-900">CLB Bình Thạnh Sport</h4>
+                    <p id="detail-venue-address" class="text-xs text-slate-500 mt-0.5">123 Chu Văn An, Q. Bình Thạnh</p>
+                  </div>
+                  <span id="detail-venue-price" class="font-display font-extrabold text-base text-emerald-600">150.000đ/h</span>
+                </div>
+                
+                <!-- Date Picker Ribbon -->
+                <div class="mt-3 pt-3 border-t border-slate-100">
+                  <p class="text-xs font-bold text-slate-700 mb-2">Chọn ngày chơi:</p>
+                  <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                    <button onclick="selectBookingDate(this, 'Hôm nay, 09/10/2026')" class="booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-emerald-600 text-white font-bold shadow-sm">
+                      <span class="text-xs">T6</span>
+                      <span class="text-sm font-display font-black">09</span>
+                      <span class="text-[9px] uppercase font-bold opacity-80">H.Nay</span>
+                    </button>
+                    <button onclick="selectBookingDate(this, 'Thứ 7, 10/10/2026')" class="booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold border border-slate-200 hover:border-emerald-400">
+                      <span class="text-xs">T7</span>
+                      <span class="text-sm font-display font-black">10</span>
+                      <span class="text-[9px] uppercase text-slate-400">T.Mười</span>
+                    </button>
+                    <button onclick="selectBookingDate(this, 'Chủ Nhật, 11/10/2026')" class="booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold border border-slate-200 hover:border-emerald-400">
+                      <span class="text-xs">CN</span>
+                      <span class="text-sm font-display font-black">11</span>
+                      <span class="text-[9px] uppercase text-slate-400">T.Mười</span>
+                    </button>
+                    <button onclick="selectBookingDate(this, 'Thứ 2, 12/10/2026')" class="booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold border border-slate-200 hover:border-emerald-400">
+                      <span class="text-xs">T2</span>
+                      <span class="text-sm font-display font-black">12</span>
+                      <span class="text-[9px] uppercase text-slate-400">T.Mười</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- INTERACTIVE SƠ ĐỒ SÂN (VISUAL COURT MATRIX) -->
+            <div class="px-5 mb-4">
+              <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-3 text-xs">
+                  <span class="font-display font-bold text-slate-900">Sơ đồ ma trận sân (Court Matrix)</span>
+                  <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Trống
+                    </span>
+                    <span class="flex items-center gap-1 text-[11px] text-red-500 font-semibold">
+                      <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Đã đặt
+                    </span>
+                    <span class="flex items-center gap-1 text-[11px] text-amber-500 font-semibold">
+                      <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Đang chọn
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 6 Courts Grid Schematic -->
+                <div class="grid grid-cols-3 gap-2.5 mb-3">
+                  
+                  <!-- Court 1 (Booked) -->
+                  <div class="p-2.5 rounded-xl bg-red-50 border border-red-200 text-center opacity-70 cursor-not-allowed">
+                    <span class="text-xs font-bold text-red-700">Sân 1</span>
+                    <div class="my-1.5 h-6 border-y border-red-300 flex items-center justify-center">
+                      <span class="text-[9px] font-bold text-red-500 uppercase">ĐÃ ĐẶT</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">Hải Nam</span>
+                  </div>
+
+                  <!-- Court 2 (Available) -->
+                  <div onclick="selectMatrixCourt(2)" id="court-cell-2" class="court-cell p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-center cursor-pointer hover:bg-emerald-100 transition-all">
+                    <span class="text-xs font-bold text-emerald-800">Sân 2</span>
+                    <div class="my-1.5 h-6 border-y border-emerald-300 flex items-center justify-center">
+                      <div class="w-full h-px bg-emerald-300"></div>
+                    </div>
+                    <span class="text-[10px] font-bold text-emerald-600">Trống</span>
+                  </div>
+
+                  <!-- Court 3 (Booked) -->
+                  <div class="p-2.5 rounded-xl bg-red-50 border border-red-200 text-center opacity-70 cursor-not-allowed">
+                    <span class="text-xs font-bold text-red-700">Sân 3</span>
+                    <div class="my-1.5 h-6 border-y border-red-300 flex items-center justify-center">
+                      <span class="text-[9px] font-bold text-red-500 uppercase">ĐÃ ĐẶT</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">Khách quen</span>
+                  </div>
+
+                  <!-- Court 4 (Available) -->
+                  <div onclick="selectMatrixCourt(4)" id="court-cell-4" class="court-cell p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-center cursor-pointer hover:bg-emerald-100 transition-all">
+                    <span class="text-xs font-bold text-emerald-800">Sân 4</span>
+                    <div class="my-1.5 h-6 border-y border-emerald-300 flex items-center justify-center">
+                      <div class="w-full h-px bg-emerald-300"></div>
+                    </div>
+                    <span class="text-[10px] font-bold text-emerald-600">Trống</span>
+                  </div>
+
+                  <!-- Court 5 (PROMINENTLY SELECTED) -->
+                  <div onclick="selectMatrixCourt(5)" id="court-cell-5" class="court-cell p-2.5 rounded-xl bg-amber-50 border-2 border-amber-500 text-center cursor-pointer shadow-md transition-all ring-2 ring-amber-300">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-bold text-amber-900">Sân 5</span>
+                      <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    </div>
+                    <!-- Detailed Court Net Lines -->
+                    <div class="my-1.5 h-6 rounded bg-emerald-600/90 border border-amber-400 flex flex-col justify-between p-0.5">
+                      <div class="w-full h-px bg-white/70"></div>
+                      <div class="w-full h-0.5 bg-white"></div>
+                      <div class="w-full h-px bg-white/70"></div>
+                    </div>
+                    <span class="text-[10px] font-extrabold text-amber-700">Đang chọn</span>
+                  </div>
+
+                  <!-- Court 6 (Available) -->
+                  <div onclick="selectMatrixCourt(6)" id="court-cell-6" class="court-cell p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-center cursor-pointer hover:bg-emerald-100 transition-all">
+                    <span class="text-xs font-bold text-emerald-800">Sân 6</span>
+                    <div class="my-1.5 h-6 border-y border-emerald-300 flex items-center justify-center">
+                      <div class="w-full h-px bg-emerald-300"></div>
+                    </div>
+                    <span class="text-[10px] font-bold text-emerald-600">Trống</span>
+                  </div>
+
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <span class="text-slate-600 font-medium">Sân đang chọn:</span>
+                  <span id="selected-court-text" class="font-display font-extrabold text-emerald-700">Sân 05 • Thảm PVC chuẩn Quốc Tế</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time Slot Selection -->
+            <div class="px-5 mb-4">
+              <h4 class="font-display font-bold text-sm text-slate-900 mb-2">Khung giờ đặt sân:</h4>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="selectTimeSlot(this, '05:00 - 06:00 (Sáng sớm)')" class="slot-pill py-2.5 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-emerald-500 flex items-center justify-between shadow-sm">
+                  <span>05:00 - 06:00</span>
+                  <span class="text-[10px] text-emerald-600">120.000đ</span>
+                </button>
+                <button onclick="selectTimeSlot(this, '17:30 - 18:30 (Giờ vàng)')" class="slot-pill py-2.5 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-xs font-bold text-emerald-800 flex items-center justify-between shadow-sm">
+                  <span>17:30 - 18:30</span>
+                  <span class="text-[10px] text-emerald-700">150.000đ</span>
+                </button>
+                <button onclick="selectTimeSlot(this, '19:00 - 20:30 (Cao điểm)')" class="slot-pill py-2.5 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-emerald-500 flex items-center justify-between shadow-sm">
+                  <span>19:00 - 20:30</span>
+                  <span class="text-[10px] text-amber-600">225.000đ</span>
+                </button>
+                <button onclick="selectTimeSlot(this, '20:30 - 22:00 (Tối muộn)')" class="slot-pill py-2.5 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-emerald-500 flex items-center justify-between shadow-sm">
+                  <span>20:30 - 22:00</span>
+                  <span class="text-[10px] text-emerald-600">180.000đ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dịch vụ phụ (Venue Add-ons) -->
+            <div class="px-5 mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-display font-bold text-sm text-slate-900">Dịch vụ phụ kiện & nước (Add-ons)</h4>
+                <span class="text-xs text-slate-500">Tùy chọn</span>
+              </div>
+
+              <div class="space-y-2">
+                <!-- Addon 1 -->
+                <label class="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm cursor-pointer hover:border-emerald-300">
+                  <div class="flex items-center gap-2.5">
+                    <input type="checkbox" onchange="toggleAddon('rent_racket', 30000, this.checked)" class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                    <div>
+                      <p class="text-xs font-bold text-slate-800">🏸 Thuê vợt Yonex Astrox 88D</p>
+                      <p class="text-[11px] text-slate-500">Căng sẵn 10.5kg chuyên nghiệp</p>
+                    </div>
+                  </div>
+                  <span class="text-xs font-extrabold text-emerald-700">+30.000đ</span>
+                </label>
+
+                <!-- Addon 2 -->
+                <label class="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm cursor-pointer hover:border-emerald-300">
+                  <div class="flex items-center gap-2.5">
+                    <input type="checkbox" onchange="toggleAddon('drink_revive', 15000, this.checked)" class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                    <div>
+                      <p class="text-xs font-bold text-slate-800">⚡ Nước điện giải Revive chanh muối</p>
+                      <p class="text-[11px] text-slate-500">Ướp lạnh sẵn tại quầy lễ tân</p>
+                    </div>
+                  </div>
+                  <span class="text-xs font-extrabold text-emerald-700">+15.000đ</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Booking Bottom Action Bar -->
+            <div class="px-5 mb-4 sticky bottom-2 z-20">
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-300 shadow-xl flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-[10px] text-slate-500 uppercase font-bold">Tổng thanh toán:</p>
+                  <p id="booking-total-price" class="font-display font-extrabold text-lg text-emerald-700 leading-tight">150.000đ</p>
+                </div>
+                <button onclick="openVietQRPayment()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]">
+                  <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+                  <span>Thanh Toán VietQR 1 Chạm</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ============================================== -->
+          <!-- TAB 1: CỘNG ĐỒNG GHÉP KÈO AI (COMMUNITY FEED) -->
+          <!-- ============================================== -->
+          <div id="tab-1" class="app-tab hidden">
+            <!-- Header -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between">
+              <div>
+                <h2 class="font-display font-extrabold text-lg text-slate-900">Ghép Kèo Cộng Đồng</h2>
+                <p class="text-xs text-slate-500">Tìm đối thủ & đồng đội cùng trình độ</p>
+              </div>
+              <button onclick="openCreatePostModal()" class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-sm hover:bg-emerald-700">
+                <span class="material-symbols-outlined text-[16px]">add</span>
+                <span>Tạo Kèo</span>
+              </button>
+            </div>
+
+            <!-- Filter Status -->
+            <div class="px-5 my-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <button class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">Tất cả kèo</button>
+              <button class="px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700">Chưa đủ người</button>
+              <button class="px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700">Trình độ Khá</button>
+            </div>
+
+            <!-- Feed Posts -->
+            <div class="px-5 space-y-3 mb-6">
+              
+              <!-- Post 1 -->
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs">
+                      HT
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-900">Hoàng Thiện</h4>
+                      <p class="text-[10px] text-slate-400">15 phút trước</p>
+                    </div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Thiếu 2 người</span>
+                </div>
+
+                <p class="text-xs text-slate-700 font-medium my-2">
+                  Tìm 2 bạn đánh đôi cầu lông giao lưu tối nay, đánh vui vẻ không quạo, sân máy lạnh mát mẻ!
+                </p>
+
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1 my-2.5">
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">stadium</span>
+                    <span class="font-semibold text-slate-900">CLB Bình Thạnh Sport (Sân 3)</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">schedule</span>
+                    <span>19:30 - 21:30 hôm nay</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">payments</span>
+                    <span>Chi phí: 45.000đ/người (Chia đều tiền sân + cầu)</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span class="text-xs text-slate-500 font-medium">Đã tham gia: 2/4 người</span>
+                  <button onclick="showToast('Đã gửi yêu cầu tham gia kèo cho Hoàng Thiện!')" class="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs shadow-sm">
+                    Xin Vào Kèo
+                  </button>
+                </div>
+              </div>
+
+              <!-- Post 2 -->
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                      MN
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-900">Minh Nhật</h4>
+                      <p class="text-[10px] text-slate-400">1 giờ trước</p>
+                    </div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Thiếu 1 người</span>
+                </div>
+
+                <p class="text-xs text-slate-700 font-medium my-2">
+                  Kèo Pickleball đánh giao hữu tại Thảo Điền Hub, tuyển 1 bạn nam/nữ biết dink bóng.
+                </p>
+
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1 my-2.5">
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">stadium</span>
+                    <span class="font-semibold text-slate-900">Thảo Điền Pickleball Hub</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-slate-600">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">schedule</span>
+                    <span>18:00 - 19:30 Thứ 7</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span class="text-xs text-slate-500 font-medium">Đã tham gia: 3/4 người</span>
+                  <button onclick="showToast('Đã gửi yêu cầu tham gia kèo cho Minh Nhật!')" class="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs shadow-sm">
+                    Xin Vào Kèo
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ============================================== -->
+          <!-- TAB 2: VÉ CỦA TÔI & CHECK-IN QR (MY TICKETS) -->
+          <!-- ============================================== -->
+          <div id="tab-2" class="app-tab hidden">
+            <!-- Header -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between">
+              <div>
+                <h2 class="font-display font-extrabold text-lg text-slate-900">Vé Của Tôi</h2>
+                <p class="text-xs text-slate-500">Mã QR Check-in trực tiếp tại sân</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                1 Vé Sắp Tới
+              </span>
+            </div>
+
+            <!-- Active Ticket Card with Big QR Code -->
+            <div class="p-5">
+              <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-lg relative overflow-hidden">
+                <!-- Top Ribbon -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="font-display font-bold text-xs text-emerald-700 uppercase tracking-wider">ĐÃ THANH TOÁN • CHỜ CHECK-IN</span>
+                  </div>
+                  <span class="text-xs font-extrabold text-slate-800 font-display">#SH-82910</span>
+                </div>
+
+                <!-- Big Check-in QR Code Display -->
+                <div class="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 border border-slate-200 mb-4">
+                  <!-- Simulated Clean QR Code Graphic -->
+                  <div class="w-40 h-40 bg-white p-2.5 rounded-xl border border-slate-300 shadow-sm flex items-center justify-center relative">
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <!-- QR Corners -->
+                      <rect x="5" y="5" width="25" height="25" rx="3" stroke="#0F172A" stroke-width="4"/>
+                      <rect x="12" y="12" width="11" height="11" fill="#0F172A"/>
+                      <rect x="70" y="5" width="25" height="25" rx="3" stroke="#0F172A" stroke-width="4"/>
+                      <rect x="77" y="12" width="11" height="11" fill="#0F172A"/>
+                      <rect x="5" y="70" width="25" height="25" rx="3" stroke="#0F172A" stroke-width="4"/>
+                      <rect x="12" y="77" width="11" height="11" fill="#0F172A"/>
+                      <!-- QR Data Nodes -->
+                      <rect x="36" y="10" width="6" height="6" fill="#0F172A"/>
+                      <rect x="46" y="10" width="6" height="18" fill="#059669"/>
+                      <rect x="56" y="20" width="6" height="6" fill="#0F172A"/>
+                      <rect x="10" y="36" width="6" height="6" fill="#059669"/>
+                      <rect x="24" y="42" width="16" height="6" fill="#0F172A"/>
+                      <rect x="46" y="46" width="8" height="8" fill="#059669"/>
+                      <rect x="68" y="38" width="20" height="6" fill="#0F172A"/>
+                      <rect x="36" y="60" width="6" height="14" fill="#0F172A"/>
+                      <rect x="50" y="74" width="12" height="6" fill="#059669"/>
+                      <rect x="70" y="70" width="6" height="20" fill="#0F172A"/>
+                      <rect x="82" y="80" width="10" height="10" fill="#0F172A"/>
+                    </svg>
+                  </div>
+                  <p class="text-[11px] text-slate-500 font-bold mt-2">Đưa mã này cho nhân viên quầy để quét Check-in</p>
+                </div>
+
+                <!-- Match & Court Details -->
+                <div class="space-y-2 text-xs">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Sân thể thao:</span>
+                    <span class="font-bold text-slate-900">CLB Bình Thạnh Sport</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Vị trí sân:</span>
+                    <span class="font-bold text-emerald-700">Sân 05 (PVC Cao Cấp)</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Khung giờ:</span>
+                    <span class="font-bold text-slate-900">17:30 - 18:30 (Hôm nay)</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-500 font-medium">Số tiền đã trả:</span>
+                    <span class="font-extrabold text-emerald-600">150.000đ (VietQR)</span>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <button onclick="showToast('Mở chỉ đường Google Maps đến sân')" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">navigation</span>
+                    <span>Chỉ đường</span>
+                  </button>
+                  <button onclick="showToast('Đã copy link mời bạn bè cùng tham gia!')" class="flex-1 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">share</span>
+                    <span>Mời bạn bè</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================== -->
+          <!-- TAB 3: HỒ SƠ & THỐNG KÊ (PROFILE & STATS) -->
+          <!-- ============================================== -->
+          <div id="tab-3" class="app-tab hidden">
+            <!-- Header -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between">
+              <h2 class="font-display font-extrabold text-lg text-slate-900">Hồ Sơ Vận Động Viên</h2>
+              <button onclick="showToast('Cài đặt tài khoản')" class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">settings</span>
+              </button>
+            </div>
+
+            <!-- User Info Card -->
+            <div class="p-5 pb-3">
+              <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm text-center relative">
+                <!-- Avatar -->
+                <div class="w-20 h-20 mx-auto rounded-full bg-emerald-100 border-2 border-emerald-500 p-1 mb-2.5 relative">
+                  <div class="w-full h-full rounded-full bg-emerald-600 flex items-center justify-center text-white font-extrabold text-2xl">
+                    PW
+                  </div>
+                  <span class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-emerald-500 text-white border-2 border-white flex items-center justify-center text-[11px] font-bold">
+                    ✓
+                  </span>
+                </div>
+
+                <h3 class="font-display font-black text-lg text-slate-900">PANDRI WIDYAKSANA</h3>
+                <p class="text-xs text-slate-500 flex items-center justify-center gap-1 mt-0.5">
+                  <span class="material-symbols-outlined text-[14px] text-emerald-600">location_on</span>
+                  Bình Thạnh, TP. Hồ Chí Minh
+                </p>
+                <p class="text-xs text-slate-600 italic mt-1.5 max-w-[260px] mx-auto">
+                  "Chơi cầu lông & pickleball hàng tuần. Thích đánh đôi phản tạt."
+                </p>
+
+                <!-- Switch to Owner Mode Button -->
+                <div class="mt-4 pt-3 border-t border-slate-100">
+                  <button onclick="switchScreen(4)" class="w-full py-2.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-display font-bold text-xs flex items-center justify-center gap-1.5 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">storefront</span>
+                    <span>Chuyển Sang Chế Độ Chủ Sân (Owner Portal)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Season Snapshot (2x2 Grid) -->
+            <div class="px-5 mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-display font-bold text-sm text-slate-900">Thống kê mùa giải (Season Snapshot)</h4>
+                <span class="text-[11px] font-bold text-emerald-600">Năm 2026</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1.5">
+                    <span class="material-symbols-outlined text-[18px]">sports</span>
+                  </div>
+                  <p class="font-display font-black text-2xl text-slate-900">18</p>
+                  <p class="text-xs text-slate-500 font-medium">Trận đã đấu</p>
+                  <span class="text-[10px] text-emerald-600 font-bold">+3 tháng này</span>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div class="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-1.5">
+                    <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+                  </div>
+                  <p class="font-display font-black text-2xl text-slate-900">27h</p>
+                  <p class="text-xs text-slate-500 font-medium">Giờ trên sân</p>
+                  <span class="text-[10px] text-teal-600 font-bold">1.5h / trận TB</span>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-1.5">
+                    <span class="material-symbols-outlined text-[18px]">speed</span>
+                  </div>
+                  <p class="font-display font-black text-2xl text-slate-900">92%</p>
+                  <p class="text-xs text-slate-500 font-medium">Đúng giờ xuất trận</p>
+                  <span class="text-[10px] text-blue-600 font-bold">Top 5% uy tín</span>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-1.5">
+                    <span class="material-symbols-outlined text-[18px]">event_busy</span>
+                  </div>
+                  <p class="font-display font-black text-2xl text-slate-900">1%</p>
+                  <p class="text-xs text-slate-500 font-medium">Tỷ lệ hủy/vắng mặt</p>
+                  <span class="text-[10px] text-amber-600 font-bold">Hội viên Vàng</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="px-5 mb-5">
+              <h4 class="font-display font-bold text-sm text-slate-900 mb-2">Huy hiệu thành tích</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white p-2.5 rounded-2xl border border-slate-200 text-center shadow-sm">
+                  <span class="text-2xl">🔥</span>
+                  <p class="font-display font-bold text-[11px] text-slate-900 mt-1">3-Week Streak</p>
+                  <span class="text-[9px] text-slate-400">3 tuần liên tiếp</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-2xl border border-slate-200 text-center shadow-sm">
+                  <span class="text-2xl">👟</span>
+                  <p class="font-display font-bold text-[11px] text-slate-900 mt-1">Early Bird</p>
+                  <span class="text-[9px] text-slate-400">Ca sáng 6:00</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-2xl border border-slate-200 text-center shadow-sm">
+                  <span class="text-2xl">🦉</span>
+                  <p class="font-display font-bold text-[11px] text-slate-900 mt-1">Zero No-Shows</p>
+                  <span class="text-[9px] text-slate-400">Không bỏ trận</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================== -->
+          <!-- TAB 4: PHÂN HỆ CHỦ SÂN (OWNER PORTAL & POS) -->
+          <!-- ============================================== -->
+          <div id="tab-4" class="app-tab hidden">
+            <!-- Header -->
+            <div class="px-5 pt-2 pb-2 flex items-center justify-between bg-purple-700 text-white rounded-b-2xl shadow-sm">
+              <div>
+                <span class="text-[10px] uppercase font-bold tracking-wider opacity-80">CHẾ ĐỘ CHỦ SÂN (PARTNER)</span>
+                <h3 class="font-display font-extrabold text-base">CLB Bình Thạnh Sport</h3>
+              </div>
+              <button onclick="switchScreen(0)" class="px-2.5 py-1 rounded-lg bg-white/20 text-xs font-bold hover:bg-white/30">
+                Thoát ✕
+              </button>
+            </div>
+
+            <!-- POS QR Scanner Simulation -->
+            <div class="p-5">
+              <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm mb-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-display font-bold text-sm text-slate-900">Máy Quét Check-in POS Tại Quầy</h4>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                </div>
+                
+                <div class="p-4 rounded-2xl bg-slate-900 text-center text-white relative overflow-hidden">
+                  <span class="material-symbols-outlined text-[36px] text-emerald-400 mb-1">qr_code_scanner</span>
+                  <p class="text-xs font-bold">Sẵn sàng quét mã QR vé của khách</p>
+                  <button onclick="simulateOwnerCheckin()" class="mt-3 px-4 py-2 rounded-full bg-emerald-500 text-slate-900 font-display font-extrabold text-xs shadow-md hover:bg-emerald-400">
+                    Mô Phỏng Quét Vé #SH-82910
+                  </button>
+                </div>
+              </div>
+
+              <!-- Revenue Snapshot -->
+              <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm mb-4">
+                <h4 class="font-display font-bold text-sm text-slate-900 mb-2">Doanh thu hôm nay (09/10/2026)</h4>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                    <p class="text-[11px] text-emerald-700 font-bold">Doanh thu thực nhận:</p>
+                    <p class="font-display font-black text-lg text-emerald-800">4.850.000đ</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-purple-50 border border-purple-100">
+                    <p class="text-[11px] text-purple-700 font-bold">Tỷ lệ lấp đầy sân:</p>
+                    <p class="font-display font-black text-lg text-purple-800">86.4% (31 ca)</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Today Schedule Matrix Overview -->
+              <div class="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm">
+                <h4 class="font-display font-bold text-sm text-slate-900 mb-2">Trạng thái 6 sân lúc này</h4>
+                <div class="space-y-1.5 text-xs">
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                    <span>Sân 1: 17:30 - 18:30</span>
+                    <span class="font-bold text-red-600">Đang chơi (Đã check-in)</span>
+                  </div>
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                    <span>Sân 2: 17:30 - 18:30</span>
+                    <span class="font-bold text-emerald-600">Đang trống</span>
+                  </div>
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                    <span>Sân 5: 17:30 - 18:30</span>
+                    <span class="font-bold text-amber-600">Khách Pandri (Chờ Check-in)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FLOATING AI CHATBOT BUBBLE (SPORTHUB BOT) -->
+        <div id="floating-chat-btn" onclick="toggleChatbot()" class="absolute bottom-20 right-4 z-40 w-13 h-13 w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-xl shadow-emerald-600/40 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[24px]">smart_toy</span>
+          <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-white"></span>
+        </div>
+
+        <!-- CHATBOT BOTTOM SHEET MODAL (SMART AI BOOKING ASSISTANT) -->
+        <div id="chatbot-sheet" class="absolute inset-x-0 bottom-0 top-16 z-50 bg-white rounded-t-3xl shadow-2xl flex flex-col transform translate-y-full transition-transform duration-300 border-t border-slate-200">
+          <!-- Chat Header -->
+          <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-3xl">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm shadow-sm">
+                🤖
+              </div>
+              <div>
+                <h4 class="font-display font-bold text-xs text-slate-900">SportHub AI Assistant</h4>
+                <p class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> FPT Cloud Gemma 26B
+                </p>
+              </div>
+            </div>
+            <button onclick="toggleChatbot()" class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900">
+              <span class="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+
+          <!-- Chat Messages Area -->
+          <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs bg-[#F8FAFC]">
+            <!-- Bot message 1 -->
+            <div class="flex items-start gap-2">
+              <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">AI</div>
+              <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm max-w-[270px]">
+                <p class="text-slate-800">Chào bạn! Tôi có thể giúp bạn kiểm tra sân trống, tự động đặt sân và chia tiền kèo bằng VietQR.</p>
+              </div>
+            </div>
+
+            <!-- Bot suggestions -->
+            <div class="flex flex-wrap gap-1.5 pl-8">
+              <button onclick="sendChatMessage('Tìm sân cầu lông trống tối nay ở Bình Thạnh')" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold hover:bg-emerald-100">
+                🏸 Sân cầu lông tối nay
+              </button>
+              <button onclick="sendChatMessage('Sân pickleball Thảo Điền còn ca nào?')" class="px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-[11px] font-semibold hover:bg-teal-100">
+                🏓 Pickleball Thảo Điền
+              </button>
+            </div>
+          </div>
+
+          <!-- Chat Input Row -->
+          <div class="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
+            <input id="chat-input" type="text" placeholder="Nhắn tin với trợ lý AI..." class="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500">
+            <button onclick="submitChatInput()" class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">send</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- VIETQR 1-TOUCH PAYMENT MODAL DIALOG -->
+        <div id="vietqr-modal" class="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+          <div class="bg-white w-full max-w-[340px] rounded-3xl p-5 shadow-2xl border border-slate-200 text-center animate-in fade-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+              <div class="flex items-center gap-1.5">
+                <span class="font-display font-extrabold text-sm text-slate-900">Thanh Toán VietQR Pro</span>
+              </div>
+              <button onclick="closeVietQRModal()" class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs">✕</button>
+            </div>
+
+            <!-- Bank & Napas Branding -->
+            <div class="flex items-center justify-between px-2 py-1 bg-slate-50 rounded-xl mb-3 text-xs">
+              <span class="font-bold text-blue-700">MB BANK</span>
+              <span class="font-extrabold text-red-600 tracking-wider">Napas 247</span>
+            </div>
+
+            <!-- Dynamic QR Code Container -->
+            <div class="p-3 rounded-2xl bg-white border-2 border-emerald-500 inline-block mb-3 shadow-sm">
+              <div class="w-44 h-44 bg-white p-2 rounded-lg flex items-center justify-center">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Large VietQR matrix -->
+                  <rect x="2" y="2" width="28" height="28" rx="4" stroke="#004A99" stroke-width="4"/>
+                  <rect x="10" y="10" width="12" height="12" fill="#004A99"/>
+                  <rect x="70" y="2" width="28" height="28" rx="4" stroke="#004A99" stroke-width="4"/>
+                  <rect x="78" y="10" width="12" height="12" fill="#004A99"/>
+                  <rect x="2" y="70" width="28" height="28" rx="4" stroke="#004A99" stroke-width="4"/>
+                  <rect x="10" y="78" width="12" height="12" fill="#004A99"/>
+                  <!-- Logo center -->
+                  <circle cx="50" cy="50" r="12" fill="#059669"/>
+                  <text x="50" y="54" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">QR</text>
+                  <!-- Pattern bits -->
+                  <rect x="36" y="8" width="6" height="6" fill="#0F172A"/>
+                  <rect x="52" y="16" width="6" height="6" fill="#059669"/>
+                  <rect x="10" y="38" width="16" height="6" fill="#0F172A"/>
+                  <rect x="76" y="42" width="16" height="6" fill="#059669"/>
+                  <rect x="38" y="74" width="8" height="8" fill="#004A99"/>
+                  <rect x="68" y="80" width="16" height="6" fill="#0F172A"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="text-left bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs space-y-1 mb-4">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Chủ TK:</span>
+                <span class="font-bold text-slate-800">SPORTHUB VIETNAM JSC</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Số tiền:</span>
+                <span id="qr-modal-amount" class="font-extrabold text-emerald-700">150.000đ</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Nội dung:</span>
+                <span class="font-mono font-bold text-slate-800">SPORTHUB 8291</span>
+              </div>
+            </div>
+
+            <!-- Confirm Button -->
+            <button onclick="completePaymentSuccess()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-extrabold text-xs shadow-md shadow-emerald-600/30">
+              Tôi Đã Chuyển Khoản Thành Công
+            </button>
+          </div>
+        </div>
+
+        <!-- DOCKED BOTTOM NAVIGATION (SHARED 4 TABS AS IN FLUTTER APP) -->
+        <nav id="consumer-nav" class="absolute bottom-3 left-3 right-3 z-30 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-full px-2 py-1.5 flex items-center justify-around shadow-lg">
+          
+          <!-- Tab 0: Đặt sân -->
+          <button onclick="switchScreen(0)" id="nav-btn-0" class="nav-tab-btn flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl bg-emerald-50 text-emerald-700 font-bold transition-all">
+            <span class="material-symbols-outlined text-[20px] fill-icon">sports_tennis</span>
+            <span class="text-[10px]">Đặt sân</span>
+          </button>
+          
+          <!-- Tab 1: Cộng đồng -->
+          <button onclick="switchScreen(1)" id="nav-btn-1" class="nav-tab-btn flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl text-slate-500 hover:text-slate-900 transition-all">
+            <span class="material-symbols-outlined text-[20px]">groups</span>
+            <span class="text-[10px]">Cộng đồng</span>
+          </button>
+
+          <!-- Tab 2: Vé của tôi -->
+          <button onclick="switchScreen(2)" id="nav-btn-2" class="nav-tab-btn flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl text-slate-500 hover:text-slate-900 transition-all relative">
+            <div class="relative">
+              <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+              <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500"></span>
+            </div>
+            <span class="text-[10px]">Vé của tôi</span>
+          </button>
+
+          <!-- Tab 3: Hồ sơ -->
+          <button onclick="switchScreen(3)" id="nav-btn-3" class="nav-tab-btn flex-1 flex flex-col items-center gap-0.5 py-1 rounded-2xl text-slate-500 hover:text-slate-900 transition-all">
+            <span class="material-symbols-outlined text-[20px]">person</span>
+            <span class="text-[10px]">Hồ sơ</span>
+          </button>
+        </nav>
+
+        <!-- Home Indicator -->
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- MODE 2: MULTI-SCREEN GALLERY (SIDE-BY-SIDE ALL SCREENS) -->
+    <div id="view-gallery" class="hidden w-full max-w-7xl flex flex-col gap-6">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h2 class="font-display font-extrabold text-xl text-slate-900">Toàn Bộ Giao Diện SportHub (Light Mode)</h2>
+          <p class="text-xs text-slate-500">Màu sắc tươi sáng thể thao, đầy đủ 5 phân hệ theo mã nguồn Flutter của dự án</p>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold">5 Màn hình chuẩn</span>
+      </div>
+
+      <!-- Horizontal Gallery of All 5 Frames -->
+      <div class="flex gap-6 overflow-x-auto pb-8 pt-2">
+        
+        <!-- Frame 1: Khám phá & Đặt sân -->
+        <div class="flex flex-col items-center gap-2">
+          <span class="font-display font-bold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">1. Khám phá & Đặt sân</span>
+          <div class="w-[370px] h-[780px] rounded-[40px] border-4 border-slate-300 bg-[#F8FAFC] overflow-y-auto no-scrollbar shadow-xl p-0 relative">
+            <div id="gal-tab-0" class="p-2"></div>
+          </div>
+        </div>
+
+        <!-- Frame 2: Chi tiết đặt sân & Sơ đồ Ma trận -->
+        <div class="flex flex-col items-center gap-2">
+          <span class="font-display font-bold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">2. Ma trận sơ đồ sân Court 1-6</span>
+          <div class="w-[370px] h-[780px] rounded-[40px] border-4 border-slate-300 bg-[#F8FAFC] overflow-y-auto no-scrollbar shadow-xl p-0 relative">
+            <div id="gal-sub-booking" class="p-2"></div>
+          </div>
+        </div>
+
+        <!-- Frame 3: Ghép kèo Cộng đồng -->
+        <div class="flex flex-col items-center gap-2">
+          <span class="font-display font-bold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">3. Cộng đồng Ghép kèo AI</span>
+          <div class="w-[370px] h-[780px] rounded-[40px] border-4 border-slate-300 bg-[#F8FAFC] overflow-y-auto no-scrollbar shadow-xl p-0 relative">
+            <div id="gal-tab-1" class="p-2"></div>
+          </div>
+        </div>
+
+        <!-- Frame 4: Vé của tôi & QR Check-in -->
+        <div class="flex flex-col items-center gap-2">
+          <span class="font-display font-bold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">4. Vé điện tử & QR Check-in</span>
+          <div class="w-[370px] h-[780px] rounded-[40px] border-4 border-slate-300 bg-[#F8FAFC] overflow-y-auto no-scrollbar shadow-xl p-0 relative">
+            <div id="gal-tab-2" class="p-2"></div>
+          </div>
+        </div>
+
+        <!-- Frame 5: Phân hệ Chủ sân POS -->
+        <div class="flex flex-col items-center gap-2">
+          <span class="font-display font-bold text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">5. Phân hệ Chủ Sân (Owner)</span>
+          <div class="w-[370px] h-[780px] rounded-[40px] border-4 border-purple-300 bg-[#F8FAFC] overflow-y-auto no-scrollbar shadow-xl p-0 relative">
+            <div id="gal-tab-4" class="p-2"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    let currentTab = 0;
+    let selectedCourtNumber = 5;
+    let baseCourtPrice = 150000;
+    let addonsTotal = 0;
+    let selectedTimeSlotText = "17:30 - 18:30 (Giờ vàng)";
+
+    function setMode(mode) {
+      const simView = document.getElementById("view-simulator");
+      const galView = document.getElementById("view-gallery");
+      const btnSim = document.getElementById("btn-mode-sim");
+      const btnGal = document.getElementById("btn-mode-gal");
+      const jumpBar = document.getElementById("sim-jump-bar");
+
+      if (mode === "simulator") {
+        simView.classList.remove("hidden");
+        galView.classList.add("hidden");
+        jumpBar.classList.remove("hidden");
+        btnSim.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all bg-white text-emerald-700 shadow-sm border border-slate-200";
+        btnGal.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-semibold text-slate-600 hover:text-slate-900 transition-all";
+      } else {
+        simView.classList.add("hidden");
+        galView.classList.remove("hidden");
+        jumpBar.classList.add("hidden");
+        btnGal.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all bg-white text-emerald-700 shadow-sm border border-slate-200";
+        btnSim.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-display font-semibold text-slate-600 hover:text-slate-900 transition-all";
+        populateGallery();
+      }
+    }
+
+    function switchScreen(tabIndex) {
+      currentTab = tabIndex;
+
+      // Close subviews if open
+      document.getElementById("subview-booking").classList.add("hidden");
+
+      // Hide all tabs
+      for (let i = 0; i <= 4; i++) {
+        const tab = document.getElementById(`tab-${i}`);
+        if (tab) tab.classList.add("hidden");
+      }
+
+      // Show active tab
+      const activeTab = document.getElementById(`tab-${tabIndex}`);
+      if (activeTab) activeTab.classList.remove("hidden");
+
+      // Scroll phone container to top
+      const scrollBox = document.getElementById("phone-screen-content");
+      if (scrollBox) scrollBox.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Update Top Screen Tab Buttons
+      document.querySelectorAll(".screen-tab-btn").forEach(btn => {
+        const t = parseInt(btn.getAttribute("data-tab"));
+        if (t === tabIndex) {
+          btn.className = "screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow-sm";
+        } else {
+          btn.className = "screen-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white";
+        }
+      });
+
+      // Update Bottom Navigation Bar
+      updateBottomNav(tabIndex);
+    }
+
+    function updateBottomNav(idx) {
+      document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+        btn.classList.remove("bg-emerald-50", "text-emerald-700", "font-bold");
+        btn.classList.add("text-slate-500");
+        const icon = btn.querySelector(".material-symbols-outlined");
+        if (icon) icon.classList.remove("fill-icon");
+      });
+
+      const activeBtn = document.getElementById(`nav-btn-${idx}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("text-slate-500");
+        activeBtn.classList.add("bg-emerald-50", "text-emerald-700", "font-bold");
+        const icon = activeBtn.querySelector(".material-symbols-outlined");
+        if (icon) icon.classList.add("fill-icon");
+      }
+    }
+
+    function openVenueBooking(id, name, address, price, courts) {
+      baseCourtPrice = price;
+      document.getElementById("tab-0").classList.add("hidden");
+      document.getElementById("subview-booking").classList.remove("hidden");
+      
+      document.getElementById("booking-venue-title").textContent = name;
+      document.getElementById("detail-venue-name").textContent = name;
+      document.getElementById("detail-venue-address").textContent = address;
+      document.getElementById("detail-venue-price").textContent = price.toLocaleString("vi-VN") + "đ/h";
+      
+      calculateTotal();
+      
+      const scrollBox = document.getElementById("phone-screen-content");
+      if (scrollBox) scrollBox.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function closeVenueBooking() {
+      document.getElementById("subview-booking").classList.add("hidden");
+      document.getElementById("tab-0").classList.remove("hidden");
+    }
+
+    function selectBookingDate(btn, dateText) {
+      document.querySelectorAll(".booking-date-btn").forEach(b => {
+        b.className = "booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold border border-slate-200 hover:border-emerald-400";
+      });
+      btn.className = "booking-date-btn flex flex-col items-center min-w-[58px] py-2 rounded-xl bg-emerald-600 text-white font-bold shadow-sm";
+      showToast(`Đã chọn ngày: ${dateText}`);
+    }
+
+    function selectMatrixCourt(courtNum) {
+      selectedCourtNumber = courtNum;
+      
+      document.querySelectorAll(".court-cell").forEach(cell => {
+        cell.className = "court-cell p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-center cursor-pointer hover:bg-emerald-100 transition-all";
+        const statusSpan = cell.querySelector("span:last-child");
+        if (statusSpan) {
+          statusSpan.textContent = "Trống";
+          statusSpan.className = "text-[10px] font-bold text-emerald-600";
+        }
+      });
+
+      const selectedCell = document.getElementById(`court-cell-${courtNum}`);
+      if (selectedCell) {
+        selectedCell.className = "court-cell p-2.5 rounded-xl bg-amber-50 border-2 border-amber-500 text-center cursor-pointer shadow-md transition-all ring-2 ring-amber-300";
+        const statusSpan = selectedCell.querySelector("span:last-child");
+        if (statusSpan) {
+          statusSpan.textContent = "Đang chọn";
+          statusSpan.className = "text-[10px] font-extrabold text-amber-700";
+        }
+      }
+
+      document.getElementById("selected-court-text").textContent = `Sân 0${courtNum} • Thảm PVC chuẩn Quốc Tế`;
+      showToast(`Đã chọn Sân 0${courtNum}`);
+    }
+
+    function selectTimeSlot(btn, slotText) {
+      document.querySelectorAll(".slot-pill").forEach(p => {
+        p.className = "slot-pill py-2.5 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:border-emerald-500 flex items-center justify-between shadow-sm";
+      });
+      btn.className = "slot-pill py-2.5 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-xs font-bold text-emerald-800 flex items-center justify-between shadow-sm";
+      selectedTimeSlotText = slotText;
+      showToast(`Đã chọn ca: ${slotText}`);
+    }
+
+    function toggleAddon(id, price, checked) {
+      if (checked) {
+        addonsTotal += price;
+      } else {
+        addonsTotal -= price;
+      }
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      const total = baseCourtPrice + addonsTotal;
+      document.getElementById("booking-total-price").textContent = total.toLocaleString("vi-VN") + "đ";
+      document.getElementById("qr-modal-amount").textContent = total.toLocaleString("vi-VN") + "đ";
+    }
+
+    function openVietQRPayment() {
+      document.getElementById("vietqr-modal").classList.remove("hidden");
+    }
+
+    function closeVietQRModal() {
+      document.getElementById("vietqr-modal").classList.add("hidden");
+    }
+
+    function completePaymentSuccess() {
+      closeVietQRModal();
+      showToast("🎉 Thanh toán VietQR thành công! Vé đã được thêm vào mục Vé Của Tôi.");
+      setTimeout(() => {
+        switchScreen(2); // Go to My Tickets tab
+      }, 400);
+    }
+
+    function filterBySport(sport, btn) {
+      document.querySelectorAll(".sport-chip").forEach(c => {
+        c.className = "sport-chip px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-emerald-400 shadow-sm whitespace-nowrap";
+      });
+      btn.className = "sport-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-sm whitespace-nowrap";
+      showToast(`Đã lọc môn: ${btn.textContent.trim()}`);
+    }
+
+    function filterVenues(keyword) {
+      // live filter cards
+      const cards = document.querySelectorAll(".venue-card");
+      const kw = keyword.toLowerCase();
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(kw)) {
+          card.classList.remove("hidden");
+        } else {
+          card.classList.add("hidden");
+        }
+      });
+    }
+
+    function toggleChatbot() {
+      const sheet = document.getElementById("chatbot-sheet");
+      sheet.classList.toggle("translate-y-full");
+    }
+
+    function sendChatMessage(text) {
+      const chatMessages = document.getElementById("chat-messages");
+      
+      // User bubble
+      const userBubble = document.createElement("div");
+      userBubble.className = "flex justify-end";
+      userBubble.innerHTML = `
+        <div class="bg-emerald-600 text-white p-2.5 rounded-2xl rounded-tr-none shadow-sm max-w-[240px]">
+          <p>${text}</p>
+        </div>
+      `;
+      chatMessages.appendChild(userBubble);
+      
+      // AI Response with Booking Card
+      setTimeout(() => {
+        const aiBubble = document.createElement("div");
+        aiBubble.className = "flex items-start gap-2";
+        aiBubble.innerHTML = `
+          <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">AI</div>
+          <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm max-w-[280px]">
+            <p class="text-slate-800 font-semibold mb-1">Tôi đã tìm thấy sân phù hợp cho bạn:</p>
+            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 my-1.5">
+              <p class="font-bold text-slate-900">🏸 CLB Bình Thạnh Sport</p>
+              <p class="text-[11px] text-emerald-700 font-bold">Sân 5 • 17:30 - 18:30 (150.000đ)</p>
+            </div>
+            <button onclick="openVietQRPayment()" class="w-full mt-1.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-sm">
+              ⚡ Đặt sân & Trả VietQR ngay
+            </button>
+          </div>
+        `;
+        chatMessages.appendChild(aiBubble);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 500);
+
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function submitChatInput() {
+      const input = document.getElementById("chat-input");
+      const val = input.value.trim();
+      if (!val) return;
+      sendChatMessage(val);
+      input.value = "";
+    }
+
+    function simulateOwnerCheckin() {
+      showToast("✅ Đã Check-in thành công khách: Pandri Widyaksana (Sân 5)");
+    }
+
+    function openCreatePostModal() {
+      showToast("Mở hộp thoại tạo bài ghép kèo mới");
+    }
+
+    function openNotificationSheet() {
+      showToast("Bạn có 3 thông báo mới về ca sân và ghép kèo");
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const toastMsg = document.getElementById("toast-msg");
+      toastMsg.textContent = msg;
+      toast.classList.remove("translate-y-[-100px]", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        toast.classList.add("translate-y-[-100px]", "opacity-0");
+        toast.classList.remove("translate-y-0", "opacity-100");
+      }, 2500);
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle("dark");
+      const isDark = document.documentElement.classList.contains("dark");
+      const btn = document.getElementById("theme-toggle-btn");
+      if (isDark) {
+        btn.innerHTML = `<span class="material-symbols-outlined text-[17px] text-blue-400">dark_mode</span><span>Giao diện Tối</span>`;
+      } else {
+        btn.innerHTML = `<span class="material-symbols-outlined text-[17px] text-amber-500">light_mode</span><span>Giao diện Sáng</span>`;
+      }
+      showToast(`Đã chuyển sang ${isDark ? "Giao diện Tối" : "Giao diện Sáng (Khuyến nghị)"}`);
+    }
+
+    function populateGallery() {
+      const map = {
+        "gal-tab-0": "tab-0",
+        "gal-sub-booking": "subview-booking",
+        "gal-tab-1": "tab-1",
+        "gal-tab-2": "tab-2",
+        "gal-tab-4": "tab-4"
+      };
+
+      for (const [targetId, sourceId] of Object.entries(map)) {
+        const dest = document.getElementById(targetId);
+        const src = document.getElementById(sourceId);
+        if (dest && src && dest.innerHTML.trim() === "") {
+          dest.innerHTML = src.innerHTML;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

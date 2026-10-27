@@ -15,9 +15,14 @@ import {
   Activity,
   MessageSquare,
   CheckCircle2,
+  Building2,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { useChatbotStore } from '../../store/chatbotStore';
 import type { ChatbotFaq, ChatbotConversation } from '../../store/chatbotStore';
+import { useAuthStore } from '../../store/authStore';
+import { useVenueStore } from '../../store/venueStore';
 
 export const ChatbotManagementView: React.FC = () => {
   const {
@@ -30,6 +35,12 @@ export const ChatbotManagementView: React.FC = () => {
     deleteFaq,
     testConnection,
   } = useChatbotStore();
+
+  const { role, activeVenueId } = useAuthStore();
+  const { venues } = useVenueStore();
+  const isPartner = role === 'partner';
+  const currentVenue = venues.find((v) => v.id === activeVenueId);
+
   const [activeTab, setActiveTab] = useState<'config' | 'faqs' | 'analytics'>('config');
 
   // Config tab state
@@ -40,6 +51,7 @@ export const ChatbotManagementView: React.FC = () => {
 
   // FAQ tab state
   const [faqCategory, setFaqCategory] = useState('Tất cả');
+  const [venueFilter, setVenueFilter] = useState<string>('all');
   const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
   const [editingFaq, setEditingFaq] = useState<Partial<ChatbotFaq> | null>(null);
 
@@ -71,7 +83,14 @@ export const ChatbotManagementView: React.FC = () => {
     if (faq) {
       setEditingFaq(faq);
     } else {
-      setEditingFaq({ question: '', answer: '', category: 'Chung', sport: 'all', isActive: true });
+      setEditingFaq({
+        question: '',
+        answer: '',
+        category: 'Chung',
+        sport: 'all',
+        venueId: isPartner ? activeVenueId : (venueFilter !== 'all' && venueFilter !== 'general' ? venueFilter : 'all'),
+        isActive: true,
+      });
     }
     setIsFaqModalOpen(true);
   };
@@ -79,10 +98,15 @@ export const ChatbotManagementView: React.FC = () => {
   const handleSaveFaq = () => {
     if (!editingFaq?.question || !editingFaq?.answer) return;
 
+    const faqToSave = {
+      ...editingFaq,
+      venueId: isPartner ? activeVenueId : (editingFaq.venueId || 'all'),
+    };
+
     if (editingFaq.id) {
-      updateFaq(editingFaq.id, editingFaq);
+      updateFaq(editingFaq.id, faqToSave);
     } else {
-      addFaq(editingFaq as any);
+      addFaq(faqToSave as any);
     }
     setIsFaqModalOpen(false);
     setEditingFaq(null);
@@ -149,6 +173,18 @@ export const ChatbotManagementView: React.FC = () => {
       {/* Tab 1: Config */}
       {activeTab === 'config' && (
         <div className="glass-card rounded-[28px] p-6 lg:p-8 space-y-6">
+          {isPartner && (
+            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-3">
+              <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="font-bold text-sm">Chế độ phân quyền Đối tác (Partner)</p>
+                <p className="mt-0.5 leading-relaxed text-slate-600 dark:text-slate-300">
+                  Cấu hình AI Core & API Key toàn hệ thống được quản trị tập trung bởi Quản trị viên cấp cao (Super Admin). Quý đối tác đang quản trị dữ liệu cơ sở tri thức FAQ và chính sách riêng cho cụm sân <strong>{currentVenue?.name || activeVenueId}</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
             <Sparkles className="w-5 h-5 text-emerald-500" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -312,6 +348,70 @@ export const ChatbotManagementView: React.FC = () => {
       {/* Tab 2: FAQs */}
       {activeTab === 'faqs' && (
         <div className="space-y-6">
+          {/* Multi-tenant Venue Filter Bar */}
+          {isPartner ? (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center gap-2.5">
+                <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div>
+                  <span className="text-xs uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-400">
+                    Cụm sân phụ trách:
+                  </span>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {currentVenue?.name || activeVenueId}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    venueFilter === 'partner_only'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'glass-pill text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  onClick={() => setVenueFilter('partner_only')}
+                >
+                  Chỉ FAQ riêng của sân
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    venueFilter === 'all'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'glass-pill text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  onClick={() => setVenueFilter('all')}
+                >
+                  Tất cả (Kèm chính sách chung)
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl glass-card border border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-500" />
+                <label htmlFor="admin-venue-filter" className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Phân quyền Cụm Sân Doanh Nghiệp:
+                </label>
+              </div>
+              <select
+                id="admin-venue-filter"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={venueFilter}
+                onChange={(e) => setVenueFilter(e.target.value)}
+              >
+                <option value="all">🌐 Tất cả cụm sân & Chính sách chung</option>
+                <option value="general">📄 Chính sách chung (Toàn nền tảng)</option>
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    🏟️ {v.name} ({v.district})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex flex-wrap gap-2">
               {['Tất cả', 'Cầu lông', 'Bóng đá', 'Pickleball', 'Chung'].map((cat) => (
@@ -348,6 +448,9 @@ export const ChatbotManagementView: React.FC = () => {
                       Question
                     </th>
                     <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Phạm vi / Cụm sân
+                    </th>
+                    <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Category
                     </th>
                     <th className="px-6 py-3.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -360,7 +463,18 @@ export const ChatbotManagementView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100/70 dark:divide-slate-800/60">
                   {faqs
-                    .filter((f) => faqCategory === 'Tất cả' || f.category === faqCategory)
+                    .filter((faq) => {
+                      if (faqCategory !== 'Tất cả' && faq.category !== faqCategory) return false;
+                      if (isPartner) {
+                        if (venueFilter === 'partner_only') {
+                          return faq.venueId === activeVenueId;
+                        }
+                        return !faq.venueId || faq.venueId === 'all' || faq.venueId === activeVenueId;
+                      }
+                      if (venueFilter === 'all') return true;
+                      if (venueFilter === 'general') return !faq.venueId || faq.venueId === 'all';
+                      return faq.venueId === venueFilter;
+                    })
                     .map((faq) => (
                       <tr
                         key={faq.id}
@@ -368,6 +482,17 @@ export const ChatbotManagementView: React.FC = () => {
                       >
                         <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-white">
                           {faq.question}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          {!faq.venueId || faq.venueId === 'all' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                              Toàn hệ thống
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              🏟️ {venues.find((v) => v.id === faq.venueId)?.name || faq.venueId}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -378,33 +503,52 @@ export const ChatbotManagementView: React.FC = () => {
                           {faq.answer}
                         </td>
                         <td className="px-6 py-4 text-sm text-right font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenFaqModal(faq)}
-                              className="p-2 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-emerald-500/10 transition-all"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteFaq(faq.id)}
-                              className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-500/10 transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {isPartner && faq.venueId !== activeVenueId && (faq.venueId && faq.venueId !== 'all') ? (
+                            <span className="text-xs text-slate-400 inline-flex items-center gap-1 italic">
+                              <Lock className="w-3.5 h-3.5" />
+                              Chỉ đọc
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenFaqModal(faq)}
+                                className="p-2 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-emerald-500/10 transition-all"
+                                title="Sửa FAQ"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteFaq(faq.id)}
+                                className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-500/10 transition-all"
+                                title="Xóa FAQ"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
-                  {faqs.filter((f) => faqCategory === 'Tất cả' || f.category === faqCategory)
-                    .length === 0 && (
+                  {faqs.filter((faq) => {
+                    if (faqCategory !== 'Tất cả' && faq.category !== faqCategory) return false;
+                    if (isPartner) {
+                      if (venueFilter === 'partner_only') {
+                        return faq.venueId === activeVenueId;
+                      }
+                      return !faq.venueId || faq.venueId === 'all' || faq.venueId === activeVenueId;
+                    }
+                    if (venueFilter === 'all') return true;
+                    if (venueFilter === 'general') return !faq.venueId || faq.venueId === 'all';
+                    return faq.venueId === venueFilter;
+                  }).length === 0 && (
                     <tr>
                       <td
-                        colSpan={4}
+                        colSpan={5}
                         className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium"
                       >
-                        Không có câu hỏi nào
+                        Không có câu hỏi nào phù hợp với bộ lọc cụm sân & danh mục này.
                       </td>
                     </tr>
                   )}
@@ -573,6 +717,35 @@ export const ChatbotManagementView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
+              <div>
+                <label htmlFor="faq-venue-select" className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  Cụm sân áp dụng (Phân quyền dữ liệu doanh nghiệp)
+                </label>
+                {isPartner ? (
+                  <div className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300 font-semibold flex items-center justify-between">
+                    <span>🏟️ {currentVenue?.name || activeVenueId}</span>
+                    <span className="text-[11px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md font-bold">
+                      Sân của bạn
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    id="faq-venue-select"
+                    data-testid="faq-venue-select"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={editingFaq.venueId || 'all'}
+                    onChange={(e) => setEditingFaq({ ...editingFaq, venueId: e.target.value })}
+                  >
+                    <option value="all">🌐 Toàn hệ thống (Chính sách chung)</option>
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        🏟️ {v.name} ({v.district})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                   Câu hỏi (Question)

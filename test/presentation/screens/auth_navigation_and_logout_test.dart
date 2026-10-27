@@ -18,6 +18,7 @@ void main() {
   });
 
   testWidgets('ProfileScreen renders logout button and tapping it logs out to AuthScreen', (tester) async {
+    AuthStore.instance.loginWithDemo(SeedData.demoUsers.first);
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
@@ -39,7 +40,8 @@ void main() {
     expect(find.byKey(const Key('auth_tab_login')), findsOneWidget);
   });
 
-  testWidgets('ProfileScreen renders quick switch button and switches account', (tester) async {
+  testWidgets('ProfileScreen removes quick switch button and displays logout button at bottom', (tester) async {
+    AuthStore.instance.loginWithDemo(SeedData.demoUsers.first);
     await tester.pumpWidget(const SportHubApp());
     await tester.pumpAndSettle();
 
@@ -47,20 +49,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_rounded));
     await tester.pumpAndSettle();
 
-    final switchBtn = find.byKey(const Key('profile_quick_switch_button'));
-    await tester.ensureVisible(switchBtn);
-    await tester.tap(switchBtn);
-    await tester.pumpAndSettle();
+    // Ensure quick switch button is removed
+    expect(find.byKey(const Key('profile_quick_switch_button')), findsNothing);
+    expect(find.text('🔄 Đổi tài khoản'), findsNothing);
 
-    // Select second demo user: Trần Thị Bình
-    final secondUser = SeedData.demoUsers[1];
-    final userTile = find.text(secondUser.fullName);
-    expect(userTile, findsOneWidget);
-    await tester.tap(userTile);
-    await tester.pumpAndSettle();
-
-    expect(AuthStore.instance.currentUser?.userId, secondUser.userId);
-    expect(find.text(secondUser.fullName), findsWidgets);
+    // Logout button is present at bottom
+    expect(find.byKey(const Key('profile_logout_button')), findsOneWidget);
   });
 
   testWidgets('Guest mode renders guest banner in ProfileScreen with login button', (tester) async {

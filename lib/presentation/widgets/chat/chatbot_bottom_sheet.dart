@@ -7,6 +7,7 @@ import '../../../core/state/notification_store.dart';
 import '../../../core/state/ticket_store.dart';
 import '../../../core/state/venue_owner_store.dart';
 import '../../../core/utils/seed_data.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/sport_image_catalog.dart';
 import '../../../data/models/ticket_model.dart';
 import '../../../domain/entities/app_notification.dart';
@@ -714,6 +715,49 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
               targetId: bookingId,
             ),
           );
+
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_${DateTime.now().millisecondsSinceEpoch}',
+              title: '💰 Nhận yêu cầu thanh toán (+${CurrencyFormatter.format(totalPrice)})',
+              message:
+                  'Khách hàng $customerName vừa xác nhận chuyển khoản VietQR đơn $bookingId tại $venueName ($courtStr, $startTime - $endTime).',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
+              isRead: false,
+              targetId: bookingId,
+            ),
+          );
+
+          actionCard['isPaid'] = true;
+          actionCard['isBooked'] = true;
+          actionCard['bookingId'] = bookingId;
+
+          ChatbotService.instance.notifyBookingPaid(ticket);
+
+          if (mounted) {
+            setState(() {});
+            _onMessagesUpdated();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Đã xác nhận đặt sân $bookingId! Bấm "Xem vé của tôi" để xem vé.',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.primary,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         },
       ),
     );

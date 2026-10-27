@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/state/auth_store.dart';
 import '../../core/state/venue_owner_store.dart';
 import '../../core/theme/theme_store.dart';
 import 'owner_tabs/owner_checkin_tab.dart';
@@ -156,10 +157,11 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
                 },
               ),
               IconButton(
+                key: const Key('owner_logout_button'),
                 visualDensity: VisualDensity.compact,
-                tooltip: 'Quay lại chế độ người chơi',
-                icon: Icon(Icons.swap_horiz_rounded, color: AppColors.primary),
-                onPressed: () => VenueOwnerStore.instance.toggleOwnerMode(false),
+                tooltip: 'Đăng xuất tài khoản',
+                icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                onPressed: () => AuthStore.instance.logout(),
               ),
               const SizedBox(width: 4),
             ],

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportHub - Giao Diện Mới (Sunset Orange + Floating Chatbot Popup)</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: 'var(--brand-50, #fff7ed)',
+              100: 'var(--brand-100, #ffedd5)',
+              200: 'var(--brand-200, #fed7aa)',
+              300: 'var(--brand-300, #fdba74)',
+              400: 'var(--brand-400, #fb923c)',
+              500: 'var(--brand-500, #f97316)',
+              600: 'var(--brand-600, #ea580c)',
+              700: 'var(--brand-700, #c2410c)',
+              800: 'var(--brand-800, #9a3412)',
+              900: 'var(--brand-900, #7c2d12)',
+              950: 'var(--brand-950, #431407)',
+            },
+            emerald: {
+              50: 'var(--brand-50, #fff7ed)',
+              100: 'var(--brand-100, #ffedd5)',
+              200: 'var(--brand-200, #fed7aa)',
+              300: 'var(--brand-300, #fdba74)',
+              400: 'var(--brand-400, #fb923c)',
+              500: 'var(--brand-500, #f97316)',
+              600: 'var(--brand-600, #ea580c)',
+              700: 'var(--brand-700, #c2410c)',
+              800: 'var(--brand-800, #9a3412)',
+              900: 'var(--brand-900, #7c2d12)',
+              950: 'var(--brand-950, #431407)',
+            },
+            volt: 'var(--brand-accent, #facc15)',
+            amberPeak: '#f59e0b',
+          },
+          boxShadow: {
+            'glow-brand': '0 0 25px -5px rgba(249, 115, 22, 0.45)',
+            'phone-frame': '0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 10px #0f172a, 0 0 0 13px #334155',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      /* Sunset Athletic Orange (Strava / Playtomic Style) */
+      --brand-50: #fff7ed;
+      --brand-100: #ffedd5;
+      --brand-200: #fed7aa;
+      --brand-300: #fdba74;
+      --brand-400: #fb923c;
+      --brand-500: #f97316;
+      --brand-600: #ea580c;
+      --brand-700: #c2410c;
+      --brand-800: #9a3412;
+      --brand-900: #7c2d12;
+      --brand-950: #431407;
+      --brand-accent: #facc15;
+      --brand-rgb: 249, 115, 22;
+    }
+
+    /* Custom Scrollbar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .phone-viewport {
+      width: 380px;
+      height: 790px;
+    }
+
+    @media (max-width: 640px) {
+      .phone-viewport {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col items-center justify-start py-4 px-2 sm:px-6 selection:bg-brand-500 selection:text-white transition-colors duration-300">
+
+  <!-- TOP BAR: Controls for Mode Switching & Color Palettes -->
+  <header class="w-full max-w-7xl px-4 py-3 mb-4 bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-2xl z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center font-display font-black text-white text-xl shadow-lg shadow-brand-500/30">
+        S
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+          SportHub Mobile Architecture
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 font-mono font-bold">4 Tabs + Floating Chatbot Popup</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">Thanh điều hướng 4 Tab chuẩn Flutter + Bong bóng AI nổi mở Bottom Sheet</p>
+      </div>
+    </div>
+
+    <!-- View Mode Switcher -->
+    <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+      <button onclick="setViewMode('showcase')" id="mode-btn-showcase" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-brand-600 text-white shadow-sm flex items-center gap-1.5">
+        <span>🖼️ Trưng bày 5 Màn hình</span>
+      </button>
+      <button onclick="setViewMode('simulator')" id="mode-btn-simulator" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+        <span>📱 1 Máy tương tác (Bấm thử Popup)</span>
+      </button>
+    </div>
+
+    <!-- Theme & Palette Toggles -->
+    <div class="flex items-center gap-2">
+      <button onclick="toggleGlobalTheme()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-colors" title="Bật/Tắt Dark Mode trên điện thoại">
+        <span id="theme-icon">🌙</span>
+        <span id="theme-text" class="hidden sm:inline">Chế độ tối</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 1: TOÀN BỘ 5 MÀN HÌNH SHOWCASE BOARD (SHOWCASE VIEW) -->
+  <!-- ========================================================================= -->
+  <main id="view-showcase" class="w-full max-w-[1920px] flex flex-col items-center">
+    
+    <div class="w-full flex items-center justify-between mb-4 px-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-ping"></span>
+        <h2 class="text-xs sm:text-sm font-bold text-slate-300 uppercase tracking-wider">
+          Showcase Board • 4 Tab Dock Kính Nổi + Chatbot Popup Trượt Lên
+        </h2>
+      </div>
+      <span class="text-xs text-slate-400">Cuộn ngang để xem toàn bộ 5 thiết bị →</span>
+    </div>
+
+    <!-- HORIZONTAL SCROLLABLE SHOWCASE STRIP -->
+    <div class="w-full overflow-x-auto no-scrollbar pb-8 pt-2 flex gap-8 items-start justify-start lg:justify-center px-4">
+
+      <!-- =================================================== -->
+      <!-- SCREEN 1: 🏟️ ĐẶT SÂN & MA TRẬN GIỜ (COURT BOOKING) -->
+      <!-- =================================================== -->
+      <div class="flex flex-col items-center shrink-0">
+        <div class="mb-3 text-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-xs font-extrabold text-brand-400 border border-brand-500/30 shadow-md">
+            Tab 1 • Đặt Sân & Ma Trận Giờ
+          </span>
+          <p class="text-[11px] text-slate-400 mt-1">Court Slot Matrix & Floating AI Bubble</p>
+        </div>
+
+        <div class="phone-viewport phone-frame-box relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-[44px] shadow-phone-frame overflow-hidden flex flex-col border-[5px] border-slate-900 select-none">
+          <!-- Status Bar -->
+          <div class="w-full pt-3 px-6 flex items-center justify-between text-xs font-semibold z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+            <span class="font-mono text-[12px] text-slate-800 dark:text-slate-200">09:41</span>
+            <div class="h-5 w-20 bg-black rounded-full flex items-center justify-center text-[9px] text-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-1 animate-pulse"></span> SportHub
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300">5G 100%</div>
+          </div>
+
+          <!-- Screen Content -->
+          <div class="flex-1 overflow-y-auto no-scrollbar pb-24 p-3 space-y-3">
+            <!-- Header bar -->
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div class="flex justify-between items-center text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400">📍 Vị trí</span>
+                  <div class="font-bold text-slate-900 dark:text-white">Q. Bình Thạnh, TP.HCM</div>
+                </div>
+                <div class="w-7 h-7 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold text-xs">🔔</div>
+              </div>
+              <div class="mt-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl px-3 py-2 text-[11px] text-slate-400 flex items-center gap-1.5">
+                <span>🔍</span> Tìm sân Pickleball, Cầu lông...
+              </div>
+              <div class="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar text-[11px]">
+                <span class="px-2.5 py-1 rounded-full bg-brand-600 text-white font-bold whitespace-nowrap">🔥 Tất cả</span>
+                <span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap">🏓 Pickleball</span>
+                <span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap">🏸 Cầu lông</span>
+              </div>
+            </div>
+
+            <!-- Venue & Visual Matrix -->
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+              <div class="flex gap-2.5">
+                <img src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=150&q=80" alt="Venue" class="w-16 h-16 rounded-xl object-cover">
+                <div>
+                  <h4 class="font-bold text-xs text-slate-900 dark:text-white">CLB Thảo Điền Hub</h4>
+                  <p class="text-[10px] text-slate-400">Cách 1.4km • ★ 4.9 (128 đánh giá)</p>
+                  <div class="mt-1 text-xs font-extrabold text-brand-600 dark:text-brand-400">140k - 180k/h</div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">⚡ Ma trận ca giờ (Hôm nay)</span>
+                <span class="text-[10px] text-brand-500 font-bold">4 ca trống</span>
+              </div>
+
+              <!-- Slot Grid -->
+              <div class="grid grid-cols-4 gap-1.5 text-center text-xs">
+                <div class="p-1.5 rounded-lg border border-brand-500 bg-brand-600 text-white font-bold shadow-sm">
+                  <div class="text-[10px]">17:00</div>
+                  <div class="text-[8px] opacity-90">140k</div>
+                </div>
+                <div class="p-1.5 rounded-lg border border-amber-400 bg-amber-500/10 text-amber-500 font-bold relative">
+                  <span class="absolute -top-1 -right-1 text-[7px] bg-amber-500 text-white px-1 rounded-full">Peak</span>
+                  <div class="text-[10px]">18:00</div>
+                  <div class="text-[8px]">160k</div>
+                </div>
+                <div class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-800 text-slate-400 line-through">
+                  <div class="text-[10px]">19:00</div>
+                  <div class="text-[8px]">Đã đặt</div>
+                </div>
+                <div class="p-1.5 rounded-lg border border-brand-500/40 bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 font-bold">
+                  <div class="text-[10px]">20:00</div>
+                  <div class="text-[8px]">180k</div>
+                </div>
+              </div>
+
+              <!-- Addon -->
+              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                <span class="text-slate-500">Dịch vụ phụ:</span>
+                <span class="px-2 py-0.5 rounded-md bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-bold">+1 Vợt Carbon (30k)</span>
+              </div>
+            </div>
+
+            <!-- Total card -->
+            <div class="p-3 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-500 shadow-md flex items-center justify-between">
+              <div>
+                <span class="text-[9px] text-slate-400 block">Đã chọn 1 ca sân</span>
+                <span class="text-sm font-extrabold text-brand-600 dark:text-brand-400">140.000đ</span>
+              </div>
+              <button class="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-amber-600 text-white font-bold text-xs shadow-md">
+                Thanh toán VietQR →
+              </button>
+            </div>
+          </div>
+
+          <!-- FLOATING AI CHAT BUBBLE (POPUP TRIGGER) -->
+          <div class="absolute bottom-20 right-3.5 z-40">
+            <button onclick="setViewMode('simulator'); setSimTab(0); openChatModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 shadow-lg shadow-brand-500/40 flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 group relative" title="Chạm để mở Trợ lý AI SportHub">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+              <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-black text-white border-2 border-white dark:border-slate-900 shadow-sm">AI</span>
+            </button>
+          </div>
+
+          <!-- 4-TAB FLOATING GLASS DOCK (Tab 0 Active: Đặt sân) -->
+          <nav class="absolute bottom-3 left-3 right-3 h-[64px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-xl shadow-slate-950/15 flex items-center justify-around px-2 z-30">
+            <!-- 0: Đặt sân (ACTIVE) -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-brand-500/15 dark:bg-brand-500/25 border border-brand-500/30 text-brand-600 dark:text-brand-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6ZM3.75 12h16.5M12 3.75v16.5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-extrabold tracking-tight">Đặt sân</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-0.5 shadow-sm shadow-brand-500/50"></span>
+            </div>
+            <!-- 1: Ghép kèo -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.999-3.199a5.971 5.971 0 0 0-.94 3.199m0 0A11.944 11.944 0 0 1 12 21c2.17 0 4.207-.576 5.963-1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Ghép kèo</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 2: Vé của tôi -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Vé của tôi</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 3: Hồ sơ -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Hồ sơ</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <!-- =================================================== -->
+      <!-- SCREEN 2: 👥 GHÉP KÈO AI (COMMUNITY MATCHMAKING) -->
+      <!-- =================================================== -->
+      <div class="flex flex-col items-center shrink-0">
+        <div class="mb-3 text-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-xs font-extrabold text-brand-400 border border-brand-500/30 shadow-md">
+            Tab 2 • Ghép Kèo Thể Thao
+          </span>
+          <p class="text-[11px] text-slate-400 mt-1">Community Feed & Player Recruiting</p>
+        </div>
+
+        <div class="phone-viewport phone-frame-box relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-[44px] shadow-phone-frame overflow-hidden flex flex-col border-[5px] border-slate-900 select-none">
+          <!-- Status Bar -->
+          <div class="w-full pt-3 px-6 flex items-center justify-between text-xs font-semibold z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+            <span class="font-mono text-[12px] text-slate-800 dark:text-slate-200">09:41</span>
+            <div class="h-5 w-20 bg-black rounded-full flex items-center justify-center text-[9px] text-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-1"></span> SportHub
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300">5G 100%</div>
+          </div>
+
+          <!-- Screen Content -->
+          <div class="flex-1 overflow-y-auto no-scrollbar pb-24 p-3 space-y-3">
+            <div class="flex justify-between items-center pb-1">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white">👥 Ghép Kèo Thể Thao</h3>
+                <p class="text-[10px] text-slate-400">8 kèo đang tuyển người quanh bạn</p>
+              </div>
+              <button class="px-2.5 py-1 rounded-xl bg-brand-600 text-white text-[11px] font-bold shadow-sm">
+                + Tạo kèo
+              </button>
+            </div>
+
+            <!-- Recruitment Card 1 -->
+            <div class="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-sm">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80" alt="Host" class="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 dark:text-white">Nguyễn Tuấn Anh</div>
+                    <span class="text-[9px] text-amber-500 font-bold">★ 4.9 • 16 trận đã host</span>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 text-[10px] font-bold border border-brand-500/20">
+                  Pickleball Đôi
+                </span>
+              </div>
+
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl space-y-1 text-[11px]">
+                <div class="text-slate-800 dark:text-slate-200">📍 <strong>CLB Thảo Điền Hub - Sân 2</strong></div>
+                <div class="text-slate-600 dark:text-slate-300">⏰ 19:30 - 21:00 (Tối nay)</div>
+                <div class="text-brand-600 dark:text-brand-400 font-semibold">🎯 Yêu cầu: DUPR 2.75 - 3.25</div>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <div>
+                  <span class="text-[10px] text-slate-400">Đã tham gia: <strong>3/4</strong></span>
+                  <div class="flex -space-x-1.5 mt-0.5">
+                    <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-[8px] flex items-center justify-center font-bold">A</div>
+                    <div class="w-5 h-5 rounded-full bg-purple-500 text-white text-[8px] flex items-center justify-center font-bold">B</div>
+                    <div class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[8px] flex items-center justify-center font-bold">C</div>
+                    <div class="w-5 h-5 rounded-full border border-dashed border-brand-500 text-brand-500 text-[8px] flex items-center justify-center font-bold">+1</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="text-[9px] text-slate-400 block">Chia tiền sân:</span>
+                  <span class="text-xs font-extrabold text-slate-900 dark:text-white">45.000đ/người</span>
+                </div>
+              </div>
+
+              <button class="w-full py-2 rounded-xl bg-gradient-to-r from-brand-600 to-amber-600 text-white font-bold text-xs shadow-md">
+                Xin vào kèo (Còn 1 slot)
+              </button>
+            </div>
+
+            <!-- Recruitment Card 2 -->
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-slate-900 dark:text-white">🏸 Cầu Lông Giao Lưu</span>
+                <span class="text-brand-600 text-[10px] font-bold">35.000đ/người</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Sân Chu Văn An • 20h-22h tối mai • 2/4 slot</p>
+            </div>
+          </div>
+
+          <!-- FLOATING AI CHAT BUBBLE -->
+          <div class="absolute bottom-20 right-3.5 z-40">
+            <button onclick="setViewMode('simulator'); setSimTab(1); openChatModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 shadow-lg shadow-brand-500/40 flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 group relative">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+              <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-black text-white border-2 border-white dark:border-slate-900 shadow-sm">AI</span>
+            </button>
+          </div>
+
+          <!-- 4-TAB FLOATING GLASS DOCK (Tab 1 Active: Ghép kèo) -->
+          <nav class="absolute bottom-3 left-3 right-3 h-[64px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-xl shadow-slate-950/15 flex items-center justify-around px-2 z-30">
+            <!-- 0: Đặt sân -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6ZM3.75 12h16.5M12 3.75v16.5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Đặt sân</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 1: Ghép kèo (ACTIVE) -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-brand-500/15 dark:bg-brand-500/25 border border-brand-500/30 text-brand-600 dark:text-brand-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.999-3.199a5.971 5.971 0 0 0-.94 3.199m0 0A11.944 11.944 0 0 1 12 21c2.17 0 4.207-.576 5.963-1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-extrabold tracking-tight">Ghép kèo</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-0.5 shadow-sm shadow-brand-500/50"></span>
+            </div>
+            <!-- 2: Vé của tôi -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Vé của tôi</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 3: Hồ sơ -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Hồ sơ</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <!-- =================================================== -->
+      <!-- SCREEN 3: 🎟️ VÉ CỦA TÔI & VIETQR (ACTIVE TICKETS) -->
+      <!-- =================================================== -->
+      <div class="flex flex-col items-center shrink-0">
+        <div class="mb-3 text-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-xs font-extrabold text-brand-400 border border-brand-500/30 shadow-md">
+            Tab 3 • Vé Sân & VietQR Động
+          </span>
+          <p class="text-[11px] text-slate-400 mt-1">Boarding Pass & 1-Tap VietQR</p>
+        </div>
+
+        <div class="phone-viewport phone-frame-box relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-[44px] shadow-phone-frame overflow-hidden flex flex-col border-[5px] border-slate-900 select-none">
+          <!-- Status Bar -->
+          <div class="w-full pt-3 px-6 flex items-center justify-between text-xs font-semibold z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+            <span class="font-mono text-[12px] text-slate-800 dark:text-slate-200">09:41</span>
+            <div class="h-5 w-20 bg-black rounded-full flex items-center justify-center text-[9px] text-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-1"></span> SportHub
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300">5G 100%</div>
+          </div>
+
+          <!-- Screen Content: Boarding Pass Style -->
+          <div class="flex-1 overflow-y-auto no-scrollbar pb-24 p-3 space-y-3">
+            <div class="flex justify-between items-center pb-1">
+              <h3 class="font-bold text-sm text-slate-900 dark:text-white">🎟️ Vé Đặt Sân Của Tôi</h3>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-bold">1 vé sắp tới</span>
+            </div>
+
+            <!-- Boarding Pass Container -->
+            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
+              <div class="p-3.5 bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-1.5">
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="font-mono bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded font-bold">#SH-8829-PB</span>
+                  <span class="text-amber-400 font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Giữ chỗ: 09:42
+                  </span>
+                </div>
+                <h4 class="font-bold text-sm text-white">CLB Thảo Điền Pickleball Hub</h4>
+                <p class="text-[11px] text-slate-300">Sân 2 - Pickleball VIP Trong Nhà</p>
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/60 text-xs">
+                  <div>
+                    <span class="text-[9px] text-slate-400 block">Thời gian</span>
+                    <span class="font-bold text-brand-400">19:00 - 20:30</span>
+                  </div>
+                  <div>
+                    <span class="text-[9px] text-slate-400 block">Tổng tiền</span>
+                    <span class="font-bold text-white">210.000đ</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cutout divider -->
+              <div class="relative flex items-center justify-between px-2 bg-white dark:bg-slate-900">
+                <div class="w-3 h-6 bg-slate-50 dark:bg-slate-950 rounded-r-full -ml-3 border-r border-slate-200 dark:border-slate-800"></div>
+                <div class="flex-1 border-b-2 border-dashed border-slate-200 dark:border-slate-800 mx-2"></div>
+                <div class="w-3 h-6 bg-slate-50 dark:bg-slate-950 rounded-l-full -mr-3 border-l border-slate-200 dark:border-slate-800"></div>
+              </div>
+
+              <!-- Lower Half: VietQR -->
+              <div class="p-4 flex flex-col items-center text-center space-y-2">
+                <span class="text-[11px] font-bold text-slate-900 dark:text-white">Mã VietQR Thanh Toán Động</span>
+                <div class="p-2 bg-white rounded-xl border-2 border-brand-500 shadow-sm">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=SPORTHUB-DEMO-PAYMENT" alt="QR" class="w-28 h-28">
+                </div>
+                <div class="text-[10px] text-slate-500">
+                  MBBank • STK: <strong>0388998829</strong> • CK: <strong class="text-brand-500">SPORTHUB 8829</strong>
+                </div>
+                <button class="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md">
+                  ✓ Tôi đã chuyển khoản xong
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FLOATING AI CHAT BUBBLE -->
+          <div class="absolute bottom-20 right-3.5 z-40">
+            <button onclick="setViewMode('simulator'); setSimTab(2); openChatModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 shadow-lg shadow-brand-500/40 flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 group relative">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+              <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-black text-white border-2 border-white dark:border-slate-900 shadow-sm">AI</span>
+            </button>
+          </div>
+
+          <!-- 4-TAB FLOATING GLASS DOCK (Tab 2 Active: Vé của tôi) -->
+          <nav class="absolute bottom-3 left-3 right-3 h-[64px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-xl shadow-slate-950/15 flex items-center justify-around px-2 z-30">
+            <!-- 0: Đặt sân -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6ZM3.75 12h16.5M12 3.75v16.5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Đặt sân</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 1: Ghép kèo -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.999-3.199a5.971 5.971 0 0 0-.94 3.199m0 0A11.944 11.944 0 0 1 12 21c2.17 0 4.207-.576 5.963-1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Ghép kèo</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 2: Vé của tôi (ACTIVE) -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-brand-500/15 dark:bg-brand-500/25 border border-brand-500/30 text-brand-600 dark:text-brand-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-extrabold tracking-tight">Vé của tôi</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-0.5 shadow-sm shadow-brand-500/50"></span>
+            </div>
+            <!-- 3: Hồ sơ -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Hồ sơ</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SCREEN 4: 🤖 TRỢ LÝ AI CHATBOT (POPUP BOTTOM SHEET NỔI TRÊN MÀN HÌNH) -->
+      <!-- ================================================================= -->
+      <div class="flex flex-col items-center shrink-0">
+        <div class="mb-3 text-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-600 text-xs font-extrabold text-white shadow-md shadow-brand-500/30">
+            Trợ Lý AI • Popup Nổi (Bottom Sheet)
+          </span>
+          <p class="text-[11px] text-brand-400 mt-1 font-semibold">⚡ Trượt lên khi chạm vào Bong Bóng Nổi (Floating Bubble)</p>
+        </div>
+
+        <div class="phone-viewport phone-frame-box relative bg-slate-900 text-slate-100 rounded-[44px] shadow-phone-frame overflow-hidden flex flex-col border-[5px] border-slate-900 select-none">
+          
+          <!-- Background App Screen (Dimmed & Blurred underneath to emphasize Popup) -->
+          <div class="absolute inset-0 opacity-25 filter blur-xs p-3 space-y-3 pointer-events-none">
+            <div class="h-16 bg-white/10 rounded-2xl"></div>
+            <div class="h-40 bg-white/10 rounded-2xl"></div>
+            <div class="h-32 bg-white/10 rounded-2xl"></div>
+            <div class="h-32 bg-white/10 rounded-2xl"></div>
+          </div>
+
+          <!-- Status Bar -->
+          <div class="relative w-full pt-3 px-6 flex items-center justify-between text-xs font-semibold z-40 bg-black/50 backdrop-blur-md">
+            <span class="font-mono text-[12px] text-slate-200">09:41</span>
+            <div class="h-5 w-20 bg-black rounded-full flex items-center justify-center text-[9px] text-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-1 animate-pulse"></span> SportHub
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-slate-300">5G 100%</div>
+          </div>
+
+          <!-- THE POPUP MODAL (BOTTOM SHEET SLIDING UP) -->
+          <div class="relative z-30 flex-1 flex flex-col justify-end">
+            <!-- Sheet Container -->
+            <div class="w-full bg-white dark:bg-slate-900 rounded-t-[32px] border-t-2 border-brand-500/40 shadow-2xl flex flex-col max-h-[690px] overflow-hidden">
+              
+              <!-- Drag Handle & Modal Header -->
+              <div class="p-3 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-100 dark:border-slate-800">
+                <div class="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-2"></div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                      🤖
+                    </div>
+                    <div>
+                      <h4 class="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                        Trợ Lý AI SportHub
+                        <span class="text-[9px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-500 font-bold">Gemma 26B</span>
+                      </h4>
+                      <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Sẵn sàng đặt sân & ghép kèo 24/7
+                      </p>
+                    </div>
+                  </div>
+                  <button class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold" title="Đóng popup">
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Chat Message Thread inside Sheet -->
+              <div class="p-3 space-y-2.5 overflow-y-auto no-scrollbar text-xs flex-1 max-h-[460px]">
+                <!-- AI Bubble -->
+                <div class="flex items-start gap-1.5">
+                  <div class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl rounded-tl-xs text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">
+                    Xin chào! Tôi có thể giúp bạn tìm ca sân trống hôm nay, tư vấn giá giờ cao điểm hoặc ghép kèo với bạn chơi phù hợp.
+                  </div>
+                </div>
+
+                <!-- User Bubble -->
+                <div class="flex justify-end">
+                  <div class="bg-brand-600 text-white p-2.5 rounded-2xl rounded-tr-xs leading-relaxed text-[11px] max-w-[85%] shadow-sm">
+                    Tìm giúp tôi sân Pickleball quận Bình Thạnh từ 18h đến 20h nhé!
+                  </div>
+                </div>
+
+                <!-- AI Response with Interactive Booking Card -->
+                <div class="space-y-1.5">
+                  <div class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl rounded-tl-xs text-slate-800 dark:text-slate-200 text-[11px]">
+                    Tìm thấy <strong>CLB Thảo Điền Hub</strong> còn đúng 1 ca giờ vàng theo yêu cầu của bạn:
+                  </div>
+
+                  <!-- In-chat Booking Card Component -->
+                  <div class="bg-white dark:bg-slate-850 p-2.5 rounded-2xl border-2 border-brand-500 shadow-md space-y-1.5">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <h5 class="font-extrabold text-[11px] text-slate-900 dark:text-white">CLB Thảo Điền Hub - Sân 1</h5>
+                        <span class="text-[9px] text-slate-400">Cách 1.4km • Ca giờ vàng (Peak)</span>
+                      </div>
+                      <span class="text-xs font-black text-brand-600 dark:text-brand-400">160.000đ</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-bold text-[9px]">18:00 - 19:00</span>
+                      <button class="flex-1 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] shadow-sm">
+                        Đặt ngay trên ma trận →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Quick prompt chips -->
+                <div class="flex gap-1 overflow-x-auto no-scrollbar pt-1 text-[10px]">
+                  <span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold shrink-0">👥 Ghép kèo 3.0</span>
+                  <span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold shrink-0">💰 Giá sân giờ vàng</span>
+                </div>
+              </div>
+
+              <!-- Input bar inside Sheet -->
+              <div class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                <input type="text" placeholder="Nhập câu hỏi hoặc yêu cầu đặt sân..." class="flex-1 bg-slate-100 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border-none outline-none text-slate-900 dark:text-white placeholder-slate-400">
+                <button class="p-2 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-500">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- =================================================== -->
+      <!-- SCREEN 5: 🏢 PHÂN HỆ CHỦ SÂN POS (VENUE DASHBOARD) -->
+      <!-- =================================================== -->
+      <div class="flex flex-col items-center shrink-0">
+        <div class="mb-3 text-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-xs font-extrabold text-purple-400 border border-purple-500/30 shadow-md">
+            Tab 4 • Phân Hệ Chủ Sân (POS)
+          </span>
+          <p class="text-[11px] text-slate-400 mt-1">Live Revenue, QR Check-in & Shifts</p>
+        </div>
+
+        <div class="phone-viewport phone-frame-box relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-[44px] shadow-phone-frame overflow-hidden flex flex-col border-[5px] border-slate-900 select-none">
+          <!-- Status Bar -->
+          <div class="w-full pt-3 px-6 flex items-center justify-between text-xs font-semibold z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+            <span class="font-mono text-[12px] text-slate-800 dark:text-slate-200">09:41</span>
+            <div class="h-5 w-20 bg-black rounded-full flex items-center justify-center text-[9px] text-white">
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1"></span> SportHub
+            </div>
+            <div class="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300">5G 100%</div>
+          </div>
+
+          <!-- Screen Content: Owner Dashboard -->
+          <div class="flex-1 overflow-y-auto no-scrollbar pb-24 p-3 space-y-3">
+            <div class="flex justify-between items-center pb-1">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white">🏢 Quản Lý Sân (POS)</h3>
+                <p class="text-[10px] text-slate-400">CLB Thảo Điền Pickleball</p>
+              </div>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30">
+                PRO PARTNER
+              </span>
+            </div>
+
+            <!-- Revenue Stats Card -->
+            <div class="bg-gradient-to-br from-slate-900 to-purple-950 text-white p-3.5 rounded-2xl border border-purple-800/40 space-y-2 shadow-sm">
+              <div class="flex justify-between text-[10px] text-purple-200">
+                <span>Doanh thu hôm nay (27/10)</span>
+                <span class="text-brand-400 font-bold">+18.5%</span>
+              </div>
+              <div class="text-xl font-display font-extrabold text-white">4.850.000đ</div>
+              <div class="grid grid-cols-3 gap-1 pt-2 border-t border-purple-800/60 text-center text-[10px]">
+                <div>
+                  <span class="text-slate-400 block">Lấp đầy</span>
+                  <span class="font-bold text-white text-xs">85%</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Tổng ca</span>
+                  <span class="font-bold text-white text-xs">18 ca</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Check-in</span>
+                  <span class="font-bold text-brand-400 text-xs">14/18</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action: Camera QR Scanner -->
+            <button class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5">
+              <span>📷 Quét Mã QR Check-in Khách</span>
+            </button>
+
+            <!-- Upcoming Shifts -->
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div class="font-bold text-slate-900 dark:text-white text-[11px]">Lịch ca sân sắp diễn ra</div>
+              
+              <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-l-4 border-brand-500 flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-[11px] text-slate-900 dark:text-white">18:00 - Sân 1 (Pickleball)</div>
+                  <div class="text-[9px] text-slate-400">Khách: Lê Hải Đăng • 0912***456</div>
+                </div>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-500/20 text-brand-500">Đã Check-in</span>
+              </div>
+
+              <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border-l-4 border-amber-500 flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-[11px] text-slate-900 dark:text-white">19:00 - Sân 2 (VIP Mái Che)</div>
+                  <div class="text-[9px] text-slate-400">Khách: Nguyễn Tuấn Anh • VietQR</div>
+                </div>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-500">Chờ đến</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FLOATING AI CHAT BUBBLE -->
+          <div class="absolute bottom-20 right-3.5 z-40">
+            <button onclick="setViewMode('simulator'); setSimTab(3); openChatModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 shadow-lg shadow-brand-500/40 flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 group relative">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+              <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-black text-white border-2 border-white dark:border-slate-900 shadow-sm">AI</span>
+            </button>
+          </div>
+
+          <!-- 4-TAB FLOATING GLASS DOCK (Tab 3 Active: Chủ sân / Hồ sơ) -->
+          <nav class="absolute bottom-3 left-3 right-3 h-[64px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-xl shadow-slate-950/15 flex items-center justify-around px-2 z-30">
+            <!-- 0: Đặt sân -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6ZM3.75 12h16.5M12 3.75v16.5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Đặt sân</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 1: Ghép kèo -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.999-3.199a5.971 5.971 0 0 0-.94 3.199m0 0A11.944 11.944 0 0 1 12 21c2.17 0 4.207-.576 5.963-1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Ghép kèo</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 2: Vé của tôi -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-medium tracking-tight">Vé của tôi</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5"></span>
+            </div>
+            <!-- 3: Chủ sân (ACTIVE) -->
+            <div class="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-purple-500/15 dark:bg-purple-500/25 border border-purple-500/30 text-purple-600 dark:text-purple-400">
+              <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72m-13.5 8.651h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/></svg>
+              <span class="text-[10px] mt-0.5 font-extrabold tracking-tight">Chủ sân</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-0.5 shadow-sm shadow-purple-500/50"></span>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 2: 1 ĐIỆN THOẠI TƯƠNG TÁC (SIMULATOR VỚI POPUP NỔI HOẠT ĐỘNG THẬT) -->
+  <!-- ========================================================================= -->
+  <main id="view-simulator" class="hidden flex-col items-center justify-center">
+    <div class="phone-viewport relative bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-[50px] shadow-phone-frame overflow-hidden flex flex-col border-[6px] border-slate-950 select-none">
+      
+      <!-- Top Status Bar -->
+      <div class="w-full pt-3 px-7 flex items-center justify-between text-xs font-semibold z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
+        <span class="font-mono text-[13px] tracking-tight text-slate-800 dark:text-slate-200">09:41</span>
+        <div class="h-6 w-24 bg-black rounded-full flex items-center justify-between px-2 text-[10px] text-white">
+          <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+          <span class="text-[9px] font-mono text-slate-300">SportHub</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        </div>
+        <div class="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 text-xs">5G 100%</div>
+      </div>
+
+      <!-- Single Interactive Content Area -->
+      <div id="sim-content" class="flex-1 overflow-y-auto no-scrollbar pb-24 p-4 space-y-3">
+        <!-- Tab 0: Đặt Sân Content -->
+        <div id="sim-tab-0" class="sim-tab-view space-y-3">
+          <div class="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] text-slate-400">📍 Vị trí của bạn</span>
+            <div class="font-bold text-sm text-slate-900 dark:text-white">Quận Bình Thạnh, TP.HCM</div>
+          </div>
+          <div class="p-4 bg-gradient-to-r from-brand-600 to-amber-600 rounded-2xl text-white shadow-md">
+            <h4 class="font-bold text-sm">CLB Thảo Điền Pickleball Hub</h4>
+            <p class="text-xs text-orange-100 mt-1">4 ca trống tối nay • Bấm bóng chat nổi bên dưới để AI hỗ trợ đặt nhanh!</p>
+          </div>
+        </div>
+
+        <!-- Tab 1: Ghép Kèo Content -->
+        <div id="sim-tab-1" class="sim-tab-view hidden space-y-3">
+          <div class="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white">Ghép Kèo Đôi Pickleball 3.0</h4>
+            <p class="text-xs text-slate-400 mt-1">Đã có 3/4 người • 45k/người tại Sân Thảo Điền</p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Vé Của Tôi Content -->
+        <div id="sim-tab-2" class="sim-tab-view hidden space-y-3">
+          <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <span class="text-[10px] font-mono font-bold text-brand-600">#SH-8829-PB</span>
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white mt-1">Sân 2 - VIP Mái Che (19:00)</h4>
+            <p class="text-xs text-amber-500 font-bold mt-1">Giữ chỗ VietQR: 09:42</p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Hồ Sơ Content -->
+        <div id="sim-tab-3" class="sim-tab-view hidden space-y-3">
+          <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+            <div class="w-14 h-14 rounded-full bg-brand-500/20 text-brand-600 font-black text-lg mx-auto flex items-center justify-center">QA</div>
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white mt-2">Quốc Anh (Người chơi)</h4>
+            <span class="text-xs text-brand-500 font-bold">DUPR 3.0 • Uy tín 100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOATING AI CHAT BUBBLE (POPUP TRIGGER IN SIMULATOR) -->
+      <button onclick="openChatModal()" class="absolute bottom-20 right-4 w-13 h-13 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 shadow-xl shadow-brand-500/40 flex items-center justify-center text-white z-40 transition-transform hover:scale-105 active:scale-90 group" title="Bấm vào để mở Chatbot Popup!">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+        <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-black text-white border-2 border-white dark:border-slate-900 shadow-sm animate-bounce">AI</span>
+      </button>
+
+      <!-- SIMULATOR POPUP BOTTOM SHEET (MODAL SLIDING UP) -->
+      <div id="sim-chat-modal" class="hidden absolute inset-0 bg-black/60 backdrop-blur-xs z-50 flex flex-col justify-end transition-opacity">
+        <div class="w-full bg-white dark:bg-slate-900 rounded-t-[32px] border-t-2 border-brand-500 shadow-2xl flex flex-col max-h-[85%] overflow-hidden animate-in slide-in-from-bottom">
+          <!-- Sheet Header -->
+          <div class="p-3.5 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-100 dark:border-slate-800">
+            <div class="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-2"></div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white font-bold text-xs">🤖</div>
+                <div>
+                  <h4 class="font-bold text-xs text-slate-900 dark:text-white">Trợ Lý AI SportHub (Popup Nổi)</h4>
+                  <span class="text-[10px] text-emerald-600 font-semibold">● FPT Cloud Gemma 26B Hybrid</span>
+                </div>
+              </div>
+              <button onclick="closeChatModal()" class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Chat Thread -->
+          <div class="p-3.5 space-y-3 overflow-y-auto no-scrollbar text-xs flex-1">
+            <div class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl rounded-tl-xs text-slate-800 dark:text-slate-200">
+              Chào bạn! Tôi là trợ lý AI nổi của SportHub. Bạn cần đặt sân hay ghép kèo?
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border-2 border-brand-500 shadow-sm space-y-2">
+              <div class="flex justify-between font-bold text-xs text-slate-900 dark:text-white">
+                <span>CLB Thảo Điền Hub - Sân 1</span>
+                <span class="text-brand-600">160.000đ</span>
+              </div>
+              <button onclick="closeChatModal(); setSimTab(0);" class="w-full py-1.5 rounded-xl bg-brand-600 text-white font-bold text-xs">
+                Đặt ngay trên ma trận →
+              </button>
+            </div>
+          </div>
+
+          <!-- Input -->
+          <div class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+            <input type="text" placeholder="Nhập câu hỏi cho AI..." class="flex-1 bg-slate-100 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border-none outline-none text-slate-900 dark:text-white">
+            <button class="px-3 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold">Gửi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulator 4-Tab Bottom Nav -->
+      <nav class="absolute bottom-3 left-3 right-3 h-[64px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-xl shadow-slate-950/15 flex items-center justify-around px-2 z-30">
+        <button onclick="setSimTab(0)" id="sim-nav-0" class="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-brand-500/15 dark:bg-brand-500/25 border border-brand-500/30 text-brand-600 dark:text-brand-400">
+          <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6ZM3.75 12h16.5M12 3.75v16.5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+          <span class="text-[10px] mt-0.5 font-extrabold tracking-tight">Đặt sân</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-0.5 dot-ind"></span>
+        </button>
+        <button onclick="setSimTab(1)" id="sim-nav-1" class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+          <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.999-3.199a5.971 5.971 0 0 0-.94 3.199m0 0A11.944 11.944 0 0 1 12 21c2.17 0 4.207-.576 5.963-1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+          <span class="text-[10px] mt-0.5 font-medium tracking-tight">Ghép kèo</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5 dot-ind"></span>
+        </button>
+        <button onclick="setSimTab(2)" id="sim-nav-2" class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+          <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg>
+          <span class="text-[10px] mt-0.5 font-medium tracking-tight">Vé của tôi</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5 dot-ind"></span>
+        </button>
+        <button onclick="setSimTab(3)" id="sim-nav-3" class="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400">
+          <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+          <span class="text-[10px] mt-0.5 font-medium tracking-tight">Hồ sơ</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5 dot-ind"></span>
+        </button>
+      </nav>
+    </div>
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let isDarkMode = false;
+    let currentMode = 'showcase';
+
+    function setViewMode(mode) {
+      currentMode = mode;
+      const showcaseEl = document.getElementById('view-showcase');
+      const simEl = document.getElementById('view-simulator');
+      const btnShowcase = document.getElementById('mode-btn-showcase');
+      const btnSim = document.getElementById('mode-btn-simulator');
+
+      if (mode === 'showcase') {
+        showcaseEl.classList.remove('hidden');
+        simEl.classList.add('hidden');
+        btnShowcase.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-brand-600 text-white shadow-sm flex items-center gap-1.5";
+        btnSim.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
+      } else {
+        showcaseEl.classList.add('hidden');
+        simEl.classList.remove('hidden');
+        btnSim.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-brand-600 text-white shadow-sm flex items-center gap-1.5";
+        btnShowcase.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
+      }
+    }
+
+    function toggleGlobalTheme() {
+      const phones = document.querySelectorAll('.phone-frame-box');
+      isDarkMode = !isDarkMode;
+      phones.forEach(p => {
+        if (isDarkMode) {
+          p.classList.add('dark');
+        } else {
+          p.classList.remove('dark');
+        }
+      });
+      document.getElementById('theme-icon').innerText = isDarkMode ? '☀️' : '🌙';
+      document.getElementById('theme-text').innerText = isDarkMode ? 'Chế độ sáng' : 'Chế độ tối';
+    }
+
+    function setSimTab(idx) {
+      for (let i = 0; i < 4; i++) {
+        const tabEl = document.getElementById(`sim-tab-${i}`);
+        const btn = document.getElementById(`sim-nav-${i}`);
+        const dot = btn.querySelector('.dot-ind');
+        const label = btn.querySelector('span');
+
+        if (i === idx) {
+          if (tabEl) tabEl.classList.remove('hidden');
+          btn.className = "flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl bg-brand-500/15 dark:bg-brand-500/25 border border-brand-500/30 text-brand-600 dark:text-brand-400 transition-all";
+          label.className = "text-[10px] mt-0.5 font-extrabold tracking-tight";
+          if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-brand-500 mt-0.5 dot-ind";
+        } else {
+          if (tabEl) tabEl.classList.add('hidden');
+          btn.className = "flex flex-col items-center justify-center py-1.5 px-3 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-all";
+          label.className = "text-[10px] mt-0.5 font-medium tracking-tight";
+          if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-transparent mt-0.5 dot-ind";
+        }
+      }
+    }
+
+    function openChatModal() {
+      const modal = document.getElementById('sim-chat-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeChatModal() {
+      const modal = document.getElementById('sim-chat-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

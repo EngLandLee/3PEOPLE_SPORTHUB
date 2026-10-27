@@ -76,6 +76,10 @@ class TicketStore {
     ticketsNotifier.value = List<TicketModel>.from(defaultSampleTickets);
   }
 
+  void clearAll() {
+    ticketsNotifier.value = const [];
+  }
+
   static void Function(TicketModel ticket)? onTicketAdded;
 
   void addTicket(TicketModel ticket) {

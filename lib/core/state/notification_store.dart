@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/app_notification.dart';
+import '../../domain/entities/user_profile.dart';
 
 class NotificationStore {
   NotificationStore._internal() {
@@ -11,7 +12,76 @@ class NotificationStore {
   final ValueNotifier<List<AppNotification>> notificationsNotifier =
       ValueNotifier<List<AppNotification>>([]);
 
+  final Map<String, List<AppNotification>> _userNotifications = {};
+  String? _currentUserId;
+
   List<AppNotification> get notifications => notificationsNotifier.value;
+
+  void loadForUser(UserProfile? user, {bool isNewUser = false}) {
+    if (user == null) {
+      _currentUserId = null;
+      notificationsNotifier.value = const [];
+      return;
+    }
+
+    _currentUserId = user.userId;
+
+    if (isNewUser) {
+      final now = DateTime.now();
+      final welcome = AppNotification(
+        id: 'notif_welcome_${user.userId}',
+        title: user.isOwner
+            ? 'Chào mừng Đối tác Cụm sân mới! 🏟️'
+            : 'Chào mừng ${user.fullName} đến với SportHub! 🎉',
+        message: user.isOwner
+            ? 'Cụm sân của bạn đã được thiết lập thành công. Hãy bắt đầu quản lý lịch và quầy lễ tân ngay.'
+            : 'Tài khoản của bạn đã được kích hoạt thành công. Hãy khám phá và đặt sân thể thao ngay nhé!',
+        timestamp: now,
+        type: NotificationType.system,
+        role: user.isOwner ? NotificationRole.owner : NotificationRole.player,
+        isRead: false,
+      );
+      _userNotifications[user.userId] = [welcome];
+      notificationsNotifier.value = List.unmodifiable([welcome]);
+      return;
+    }
+
+    if (_userNotifications.containsKey(user.userId)) {
+      notificationsNotifier.value =
+          List.unmodifiable(_userNotifications[user.userId]!);
+      return;
+    }
+
+    if (user.userId == 'user_demo_01') {
+      final notifs = _generatePlayerSeedNotifications();
+      _userNotifications[user.userId] = notifs;
+      notificationsNotifier.value = List.unmodifiable(notifs);
+    } else if (user.isOwner) {
+      final notifs = _generateOwnerSeedNotifications();
+      _userNotifications[user.userId] = notifs;
+      notificationsNotifier.value = List.unmodifiable(notifs);
+    } else {
+      final now = DateTime.now();
+      final welcome = AppNotification(
+        id: 'notif_welcome_${user.userId}',
+        title: 'Chào mừng ${user.fullName} quay lại! 👋',
+        message:
+            'SportHub sẵn sàng hỗ trợ bạn tìm sân và kết nối đồng đội thể thao hôm nay.',
+        timestamp: now,
+        type: NotificationType.system,
+        role: NotificationRole.player,
+        isRead: false,
+      );
+      _userNotifications[user.userId] = [welcome];
+      notificationsNotifier.value = List.unmodifiable([welcome]);
+    }
+  }
+
+  void _syncCurrentUserNotifications() {
+    if (_currentUserId != null) {
+      _userNotifications[_currentUserId!] = notificationsNotifier.value;
+    }
+  }
 
   int getUnreadCount({NotificationRole? role}) {
     return notificationsNotifier.value.where((n) {
@@ -35,6 +105,7 @@ class NotificationStore {
       final updated = List<AppNotification>.from(list);
       updated[index] = updated[index].copyWith(isRead: true);
       notificationsNotifier.value = List.unmodifiable(updated);
+      _syncCurrentUserNotifications();
     }
   }
 
@@ -50,17 +121,20 @@ class NotificationStore {
       return n;
     }).toList();
     notificationsNotifier.value = List.unmodifiable(updated);
+    _syncCurrentUserNotifications();
   }
 
   void addNotification(AppNotification notification) {
     final updated = [notification, ...notificationsNotifier.value];
     notificationsNotifier.value = List.unmodifiable(updated);
+    _syncCurrentUserNotifications();
   }
 
   void deleteNotification(String id) {
     final updated =
         notificationsNotifier.value.where((n) => n.id != id).toList();
     notificationsNotifier.value = List.unmodifiable(updated);
+    _syncCurrentUserNotifications();
   }
 
   void clearAll({NotificationRole? role}) {
@@ -72,12 +146,12 @@ class NotificationStore {
           .toList();
       notificationsNotifier.value = List.unmodifiable(updated);
     }
+    _syncCurrentUserNotifications();
   }
 
-  void resetSeedData() {
+  List<AppNotification> _generatePlayerSeedNotifications() {
     final now = DateTime.now();
-    notificationsNotifier.value = List.unmodifiable([
-      // Player Notifications
+    return [
       AppNotification(
         id: 'notif_p_01',
         title: 'Nhắc lịch thi đấu sắp tới 🏸',
@@ -110,8 +184,12 @@ class NotificationStore {
         role: NotificationRole.player,
         isRead: true,
       ),
+    ];
+  }
 
-      // Partner Owner Notifications
+  List<AppNotification> _generateOwnerSeedNotifications() {
+    final now = DateTime.now();
+    return [
       AppNotification(
         id: 'notif_o_01',
         title: 'Đơn đặt sân mới qua App ⚡',
@@ -144,6 +222,18 @@ class NotificationStore {
         role: NotificationRole.owner,
         isRead: true,
       ),
+    ];
+  }
+
+  void resetSeedData() {
+    _currentUserId = 'user_demo_01';
+    final playerNotifs = _generatePlayerSeedNotifications();
+    final ownerNotifs = _generateOwnerSeedNotifications();
+    _userNotifications['user_demo_01'] = playerNotifs;
+    _userNotifications['user_owner_01'] = ownerNotifs;
+    notificationsNotifier.value = List.unmodifiable([
+      ...playerNotifs,
+      ...ownerNotifs,
     ]);
   }
 }
