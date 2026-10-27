@@ -471,6 +471,7 @@ class VenueSyncService {
               final name = rv['name']?.toString() ?? '';
               final address = rv['address']?.toString() ?? '';
               final district = rv['district']?.toString() ?? '';
+              final hotline = rv['hotline']?.toString().trim();
               final sports = (rv['sports'] as List<dynamic>?)
                       ?.map((e) => e.toString())
                       .toList() ??
@@ -493,8 +494,11 @@ class VenueSyncService {
                   Venue(
                     id: (id == 'venue_01') ? 'venue_q1_04' : id,
                     name: name,
-                    address: address,
+                    address: address.isNotEmpty ? address : (existing?.address ?? ''),
                     district: district,
+                    hotline: (hotline?.isNotEmpty ?? false)
+                        ? hotline
+                        : existing?.hotline,
                     sportTypes: sports,
                     hourlyRate: hourlyRate,
                     courtCount: count,

@@ -4,6 +4,7 @@ class Venue {
   final List<String> sportTypes;
   final String address;
   final String district;
+  final String? hotline;
   final int courtCount;
   final double hourlyRate;
   final double rating;
@@ -17,6 +18,7 @@ class Venue {
     required this.sportTypes,
     required this.address,
     required this.district,
+    this.hotline,
     required this.courtCount,
     required this.hourlyRate,
     required this.rating,

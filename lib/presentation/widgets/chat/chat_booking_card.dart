@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/external_link_service.dart';
+import '../../../core/services/venue_sync_service.dart';
+import '../../../core/utils/seed_data.dart';
 import '../../../core/utils/currency_formatter.dart';
+
+class VenueContact {
+  final String address;
+  final String? hotline;
+
+  const VenueContact(this.address, this.hotline);
+}
 
 /// An interactive booking card embedded within chat bubbles, allowing
 /// users to view recommended venue/court slots and take immediate actions.
@@ -78,6 +88,39 @@ class ChatBookingCard extends StatelessWidget {
     return '🏅';
   }
 
+  VenueContact? _resolveVenueContact() {
+    final venueId = actionCard['venueId']?.toString();
+    final venueName = actionCard['venueName']?.toString().toLowerCase();
+    final venues = [
+      ...VenueSyncService.instance.venuesNotifier.value,
+      ...SeedData.sampleVenues,
+    ];
+    for (final venue in venues) {
+      final isTaoDanAlias =
+          (venue.id == 'venue_01' || venue.id == 'venue_q1_04') &&
+              (venueId == 'venue_01' || venueId == 'venue_q1_04');
+      if (venue.id == venueId ||
+          isTaoDanAlias ||
+          (venueName != null && venueName.isNotEmpty &&
+              venue.name.toLowerCase() == venueName)) {
+        return VenueContact(venue.address, venue.hotline);
+      }
+    }
+    final address = actionCard['address']?.toString();
+    final hotline = actionCard['hotline']?.toString();
+    if ((address?.trim().isNotEmpty ?? false) ||
+        (hotline?.trim().isNotEmpty ?? false)) {
+      return VenueContact(address ?? '', hotline);
+    }
+    return null;
+  }
+
+  void _showLaunchError(BuildContext context, String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Không mở được $action. Vui lòng thử lại.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final venueName = actionCard['venueName']?.toString() ?? 'Sân thể thao';
@@ -89,6 +132,13 @@ class ChatBookingCard extends StatelessWidget {
     final sportIcon = _getSportIcon(actionCard['sport']?.toString());
     final status = actionCard['status']?.toString() ?? 'Còn trống';
     final isPaid = actionCard['isPaid'] == true || actionCard['isBooked'] == true;
+    final venueContact = _resolveVenueContact();
+    final address = actionCard['address']?.toString().trim().isNotEmpty == true
+        ? actionCard['address'].toString()
+        : venueContact?.address ?? '';
+    final hotline = actionCard['hotline']?.toString().trim().isNotEmpty == true
+        ? actionCard['hotline'].toString()
+        : venueContact?.hotline;
 
     return Container(
       width: double.infinity,
@@ -153,6 +203,62 @@ class ChatBookingCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+
+          if (address.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.location_on_outlined,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(address,
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (address.isNotEmpty)
+                TextButton.icon(
+                  key: const Key('btn_chat_open_map'),
+                  onPressed: () async {
+                    if (!await ExternalLinkService.openMap(address) &&
+                        context.mounted) {
+                      _showLaunchError(context, 'bản đồ');
+                    }
+                  },
+                  icon: const Icon(Icons.map_outlined, size: 16),
+                  label: const Text('Mở bản đồ'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                ),
+              if (hotline != null && hotline.trim().isNotEmpty)
+                TextButton.icon(
+                  key: const Key('btn_chat_call_venue'),
+                  onPressed: () async {
+                    if (!await ExternalLinkService.callPhone(hotline) &&
+                        context.mounted) {
+                      _showLaunchError(context, 'trình gọi điện');
+                    }
+                  },
+                  icon: const Icon(Icons.call_outlined, size: 16),
+                  label: Text('Gọi sân • $hotline'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
 
           // Court & Availability status
           Row(
