@@ -169,6 +169,89 @@ describe('Chatbot Proactive Recommendation', { timeout: 25000 }, () => {
     expect(data.quickSuggestions[0]).toContain('Pickleball');
   });
 
+  it('preserves venue, sport and date across multi-turn booking modification ("đổi sang 20h - 21h")', async () => {
+    const pendingBooking = {
+      type: 'booking_card',
+      venueId: 'venue_q7_03',
+      venueName: 'Sân Bóng Đá Mini Nam Sài Gòn',
+      sport: 'Bóng đá',
+      court: 'Sân 1',
+      date: 'Hôm nay',
+      time: '19:00',
+      startTime: '19:00',
+      endTime: '20:00',
+      durationHours: 1.0,
+      price: 250000,
+      basePrice: 250000,
+    };
+
+    const res = await fetch(`${serverUrl}/api/chatbot/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'đổi sang 20h - 21h',
+        context: {
+          userName: 'Nguyễn Văn An',
+          preferredSport: 'pickleball',
+          sport: 'pickleball',
+          pendingBooking,
+        },
+        history: [
+          { role: 'user', content: 'tìm sân bóng đá gần tôi' },
+          { role: 'assistant', content: 'Chào anh An! Em gợi ý ngay cho mình Sân Bóng Đá Mini Nam Sài Gòn (Bóng đá) lúc 19:00 nhé.' },
+        ],
+      }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.actionCard).toBeDefined();
+    // MUST retain Nam Sài Gòn and Bóng đá, NOT jump to Thảo Điền Pickleball!
+    expect(data.actionCard.venueId).toBe('venue_q7_03');
+    expect(data.actionCard.venueName).toContain('Nam Sài Gòn');
+    expect(data.actionCard.sport).toBe('Bóng đá');
+    expect(data.actionCard.startTime).toBe('20:00');
+    expect(data.actionCard.endTime).toBe('21:00');
+  });
+
+  it('preserves existing addons when updating time on pending booking', async () => {
+    const pendingBooking = {
+      type: 'booking_card',
+      venueId: 'venue_01',
+      venueName: 'CLB Cầu Lông Tao Đàn',
+      sport: 'Cầu lông',
+      court: 'Sân 1',
+      date: 'Hôm nay',
+      time: '19:00',
+      startTime: '19:00',
+      endTime: '20:00',
+      durationHours: 1.0,
+      price: 210000,
+      basePrice: 180000,
+      addonsTotal: 30000,
+      addonCounts: { drink_pocari: 2 },
+    };
+
+    const res = await fetch(`${serverUrl}/api/chatbot/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'đổi sang 20h - 21h',
+        context: {
+          userName: 'Quốc Anh',
+          pendingBooking,
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.actionCard).toBeDefined();
+    expect(data.actionCard.venueId).toBe('venue_01');
+    expect(data.actionCard.startTime).toBe('20:00');
+    expect(data.actionCard.endTime).toBe('21:00');
+    expect(data.actionCard.addonsTotal).toBe(30000);
+    expect(data.actionCard.addonCounts.drink_pocari).toBe(2);
+  });
+
   it('politely declines off-topic requests and prompt injection without creating action cards', async () => {
     const res = await fetch(`${serverUrl}/api/chatbot/message`, {
       method: 'POST',

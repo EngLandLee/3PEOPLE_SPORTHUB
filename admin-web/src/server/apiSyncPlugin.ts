@@ -1508,6 +1508,15 @@ export function apiSyncPlugin(): Plugin {
                 normalizedMsg.includes('cau long') ||
                 normalizedMsg.includes('danh cau');
 
+              const pendingCard = (
+                (context.pendingBooking && typeof context.pendingBooking === 'object' ? context.pendingBooking : null) ||
+                (context.pendingCard && typeof context.pendingCard === 'object' ? context.pendingCard : null) ||
+                (parsedBody.pendingBooking && typeof parsedBody.pendingBooking === 'object' ? parsedBody.pendingBooking : null) ||
+                (parsedBody.pendingCard && typeof parsedBody.pendingCard === 'object' ? parsedBody.pendingCard : null)
+              ) as Record<string, unknown> | undefined;
+
+              const pendingSportStr = (pendingCard?.sport ? String(pendingCard.sport) : '').toLowerCase();
+
               let quickSuggestions = isOwner
                 ? [
                     "📊 Doanh thu hôm nay",
@@ -1515,19 +1524,19 @@ export function apiSyncPlugin(): Plugin {
                     "🏟️ Tình trạng sân",
                     "📋 Chính sách hoàn hủy",
                   ]
-                : hasFootball
+                : (hasFootball || pendingSportStr.includes('bóng') || pendingSportStr.includes('football'))
                     ? [
                         "⚽ Sân bóng đá mini Q.7",
                         "⚽ Sân bóng đá An Phú Q.2",
                         "🎫 Xem vé của tôi",
                       ]
-                    : hasPickleball
+                    : (hasPickleball || pendingSportStr.includes('pickle'))
                         ? [
                             "🏓 Pickleball Thảo Điền (19h)",
                             "🏓 Sân Pickleball gần tôi",
                             "🎫 Xem vé của tôi",
                           ]
-                        : hasBadminton
+                        : (hasBadminton || pendingSportStr.includes('cầu lông') || pendingSportStr.includes('badminton'))
                             ? [
                                 "🏸 Cầu lông Q.1 (19h)",
                                 "🏸 Cầu lông Bình Thạnh",
@@ -1566,10 +1575,6 @@ export function apiSyncPlugin(): Plugin {
               const hasTimeChange = /(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?/i.test(lowerMsg) ||
                 /^(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|nhé|nha)?$/i.test(lowerMsg.trim());
               const hasColloquialTime = /(\d{1,2})\s*(?:h|gio)?\s*(?:ruoi|kem\s*\d{1,2})/i.test(normalizedMsg);
-
-              const pendingCard = context.pendingBooking && typeof context.pendingBooking === 'object'
-                ? context.pendingBooking as Record<string, unknown>
-                : undefined;
 
               const isMyBookingsQuery = !isDateTimeQuery && (
                 /(?:đã\s*(?:đăng\s*k[yí]|đặt|book)|lịch\s*(?:đã\s*đặt|chơi\s*của\s*tôi)|vé\s*(?:của\s*tôi|đã\s*đặt)|những\s*sân\s*nào\s*đã|sân\s*nào\s*(?:tôi\s*)?đã\s*(?:đăng\s*k[yí]|đặt|book)|tôi\s*(?:có\s*)?lịch\s*sân\s*nào)/i.test(lowerMsg) ||
@@ -1638,20 +1643,44 @@ export function apiSyncPlugin(): Plugin {
               let price = pendingCard ? Number(pendingCard.price || 160000) : 160000;
               let time = '19:00';
               let courtNum = 1;
+              let displayDate = pendingCard?.date ? String(pendingCard.date) : 'Hôm nay';
 
               if (isBooking || isRecruitment) {
                 // 1. Resolve venue, sport, and price from message keywords (location first)
-                if (lowerMsg.includes('bình thạnh') || lowerMsg.includes('binh thanh')) {
+                const hasBinhThanh = lowerMsg.includes('bình thạnh') || lowerMsg.includes('binh thanh');
+                const hasThaoDien = lowerMsg.includes('thảo điền') || lowerMsg.includes('thao dien') || lowerMsg.includes('thủ đức') || lowerMsg.includes('thu duc');
+                const hasTanBinh = lowerMsg.includes('tân bình') || lowerMsg.includes('tan binh');
+                const hasPhuNhuan = lowerMsg.includes('phú nhuận') || lowerMsg.includes('phu nhuan');
+                const hasAnPhu = lowerMsg.includes('an phú') || lowerMsg.includes('an phu') || lowerMsg.includes('quận 2') || lowerMsg.includes('quan 2') || lowerMsg.includes('q2') || lowerMsg.includes('q.2');
+                const hasKyHoa = lowerMsg.includes('kỳ hòa') || lowerMsg.includes('ky hoa') || lowerMsg.includes('quận 10') || lowerMsg.includes('quan 10') || lowerMsg.includes('q10') || lowerMsg.includes('q.10');
+                const hasQuan7 = lowerMsg.includes('quận 7') || lowerMsg.includes('quan 7') || lowerMsg.includes('q7') || lowerMsg.includes('q.7') || lowerMsg.includes('nam sài gòn') || lowerMsg.includes('nam sai gon');
+                const hasTaoDan = lowerMsg.includes('tao đàn') || lowerMsg.includes('tao dan') || lowerMsg.includes('quận 1') || lowerMsg.includes('quan 1') || lowerMsg.includes('q1') || lowerMsg.includes('q.1');
+
+                const hasExplicitLocation = hasBinhThanh || hasThaoDien || hasTanBinh || hasPhuNhuan || hasAnPhu || hasKyHoa || hasQuan7 || hasTaoDan;
+
+                const currentPendingSport = (pendingCard?.sport ? String(pendingCard.sport) : '').toLowerCase();
+                const hasExplicitSportSwitch =
+                  (hasFootball && currentPendingSport !== 'bóng đá' && currentPendingSport !== 'football') ||
+                  (hasPickleball && currentPendingSport !== 'pickleball') ||
+                  (hasBadminton && currentPendingSport !== 'cầu lông' && currentPendingSport !== 'badminton');
+
+                if (pendingCard && !hasExplicitLocation && !hasExplicitSportSwitch) {
+                  // Retain ongoing booking conversation context (venue, sport, base rate)
+                  venueId = String(pendingCard.venueId || venueId);
+                  venueName = String(pendingCard.venueName || venueName);
+                  sport = String(pendingCard.sport || sport);
+                  price = Number(pendingCard.basePrice || pendingCard.price || price);
+                } else if (hasBinhThanh) {
                   venueId = 'venue_bt_01';
                   venueName = 'CLB Cầu Lông & Pickleball Bình Thạnh Sport';
                   sport = lowerMsg.includes('pickleball') ? 'Pickleball' : 'Cầu lông';
                   price = 150000;
-                } else if (lowerMsg.includes('thảo điền') || lowerMsg.includes('thao dien') || lowerMsg.includes('thủ đức') || lowerMsg.includes('thu duc')) {
+                } else if (hasThaoDien) {
                   venueId = 'venue_td_02';
                   venueName = 'Thảo Điền Pickleball Hub';
                   sport = 'Pickleball';
                   price = 200000;
-                } else if (lowerMsg.includes('tân bình') || lowerMsg.includes('tan binh')) {
+                } else if (hasTanBinh) {
                   venueId = 'venue_tb_05';
                   venueName = 'Khu Liên Hợp Thể Thao Tân Bình Arena';
                   if (lowerMsg.includes('bóng đá') || lowerMsg.includes('bong da') || lowerMsg.includes('football')) {
@@ -1662,27 +1691,27 @@ export function apiSyncPlugin(): Plugin {
                     sport = 'Cầu lông';
                   }
                   price = 180000;
-                } else if (lowerMsg.includes('phú nhuận') || lowerMsg.includes('phu nhuan')) {
+                } else if (hasPhuNhuan) {
                   venueId = 'venue_pn_06';
                   venueName = 'CLB Cầu Lông & Pickleball Phú Nhuận Club';
                   sport = lowerMsg.includes('pickleball') ? 'Pickleball' : 'Cầu lông';
                   price = 160000;
-                } else if (lowerMsg.includes('an phú') || lowerMsg.includes('an phu') || lowerMsg.includes('quận 2') || lowerMsg.includes('quan 2') || lowerMsg.includes('q2') || lowerMsg.includes('q.2')) {
+                } else if (hasAnPhu) {
                   venueId = 'venue_q2_07';
                   venueName = 'Sân Bóng Đá Cỏ Nhân Tạo An Phú - Quận 2';
                   sport = 'Bóng đá';
                   price = 270000;
-                } else if (lowerMsg.includes('kỳ hòa') || lowerMsg.includes('ky hoa') || lowerMsg.includes('quận 10') || lowerMsg.includes('quan 10') || lowerMsg.includes('q10') || lowerMsg.includes('q.10')) {
+                } else if (hasKyHoa) {
                   venueId = 'venue_q10_08';
                   venueName = 'Trung Tâm Thể Thao Kỳ Hòa - Quận 10';
                   sport = lowerMsg.includes('pickleball') ? 'Pickleball' : 'Cầu lông';
                   price = 170000;
-                } else if (lowerMsg.includes('quận 7') || lowerMsg.includes('quan 7') || lowerMsg.includes('q7') || lowerMsg.includes('q.7') || lowerMsg.includes('nam sài gòn') || lowerMsg.includes('nam sai gon') || lowerMsg.includes('bóng đá') || lowerMsg.includes('bong da') || lowerMsg.includes('football')) {
+                } else if (hasQuan7 || (!hasExplicitLocation && hasFootball)) {
                   venueId = 'venue_q7_03';
                   venueName = 'Sân Bóng Đá Mini Nam Sài Gòn';
                   sport = 'Bóng đá';
                   price = 250000;
-                } else if (lowerMsg.includes('tao đàn') || lowerMsg.includes('tao dan') || lowerMsg.includes('quận 1') || lowerMsg.includes('quan 1') || lowerMsg.includes('q1') || lowerMsg.includes('q.1')) {
+                } else if (hasTaoDan) {
                   venueId = 'venue_01';
                   venueName = 'CLB Cầu Lông Tao Đàn';
                   const preferred = (context?.sport || context?.preferredSport || '').toLowerCase();
@@ -1732,9 +1761,9 @@ export function apiSyncPlugin(): Plugin {
                   }
                 }
 
-                // 2. Parse date and time (support "mai", "mốt", "tối", "chiều", "sáng")
+                // 2. Parse date and time (support "mai", "mốt", "hôm nay", or retain pendingCard date)
                 let targetDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                let displayDate = 'Hôm nay';
+                displayDate = pendingCard?.date ? String(pendingCard.date) : 'Hôm nay';
                 if (/ngày mai|mai/i.test(lowerMsg)) {
                   const tmr = new Date(now.getTime() + 24 * 60 * 60 * 1000);
                   targetDateStr = `${tmr.getFullYear()}-${pad(tmr.getMonth() + 1)}-${pad(tmr.getDate())}`;
@@ -1743,6 +1772,18 @@ export function apiSyncPlugin(): Plugin {
                   const after = new Date(now.getTime() + 48 * 60 * 60 * 1000);
                   targetDateStr = `${after.getFullYear()}-${pad(after.getMonth() + 1)}-${pad(after.getDate())}`;
                   displayDate = 'Ngày mốt';
+                } else if (/hôm nay/i.test(lowerMsg)) {
+                  targetDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                  displayDate = 'Hôm nay';
+                } else if (pendingCard?.date) {
+                  displayDate = String(pendingCard.date);
+                  if (displayDate === 'Ngày mai') {
+                    const tmr = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                    targetDateStr = `${tmr.getFullYear()}-${pad(tmr.getMonth() + 1)}-${pad(tmr.getDate())}`;
+                  } else if (displayDate === 'Ngày mốt') {
+                    const after = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+                    targetDateStr = `${after.getFullYear()}-${pad(after.getMonth() + 1)}-${pad(after.getDate())}`;
+                  }
                 }
 
                 let startH = 19;
@@ -1835,6 +1876,32 @@ export function apiSyncPlugin(): Plugin {
                 }
 
                 if (courtNum > 0) {
+                  const existingAddonCounts = sanitizeAddonCounts(pendingCard?.addonCounts);
+                  const existingAddonsTotal = Object.entries(existingAddonCounts).reduce(
+                    (sum, [key, quantity]) => sum + (ADDON_PRICES[key] || 0) * quantity,
+                    0,
+                  );
+                  const existingAddons: string[] = [];
+                  if (existingAddonCounts.drink_pocari && existingAddonCounts.drink_pocari > 0) {
+                    const c = existingAddonCounts.drink_pocari * ADDON_PRICES.drink_pocari;
+                    existingAddons.push(`${existingAddonCounts.drink_pocari}x Pocari Sweat Bù Khoáng (+${c.toLocaleString('vi-VN')}đ)`);
+                  }
+                  if (existingAddonCounts.gear_shuttle_tube && existingAddonCounts.gear_shuttle_tube > 0) {
+                    const c = existingAddonCounts.gear_shuttle_tube * ADDON_PRICES.gear_shuttle_tube;
+                    existingAddons.push(`${existingAddonCounts.gear_shuttle_tube}x Ống Cầu Lông Hải Yến (+${c.toLocaleString('vi-VN')}đ)`);
+                  }
+                  if (existingAddonCounts.gear_shuttle_single && existingAddonCounts.gear_shuttle_single > 0) {
+                    const c = existingAddonCounts.gear_shuttle_single * ADDON_PRICES.gear_shuttle_single;
+                    existingAddons.push(`${existingAddonCounts.gear_shuttle_single}x Quả Cầu Lông (+${c.toLocaleString('vi-VN')}đ)`);
+                  }
+                  if (existingAddonCounts.rent_badminton && existingAddonCounts.rent_badminton > 0) {
+                    const c = existingAddonCounts.rent_badminton * ADDON_PRICES.rent_badminton;
+                    existingAddons.push(`${existingAddonCounts.rent_badminton}x Vợt Cầu Lông Yonex (+${c.toLocaleString('vi-VN')}đ)`);
+                  }
+
+                  const baseCourtPrice = price;
+                  const totalPrice = baseCourtPrice + existingAddonsTotal;
+
                   actionCard = {
                     type: 'booking_card',
                     venueId,
@@ -1846,8 +1913,13 @@ export function apiSyncPlugin(): Plugin {
                     startTime,
                     endTime,
                     durationHours,
-                    price,
-                    basePrice: price,
+                    price: totalPrice,
+                    basePrice: baseCourtPrice,
+                    ...(existingAddonsTotal > 0 ? {
+                      addonsTotal: existingAddonsTotal,
+                      addons: existingAddons,
+                      addonCounts: existingAddonCounts,
+                    } : {}),
                   };
                 } else {
                   actionCard = null;
@@ -1934,10 +2006,14 @@ export function apiSyncPlugin(): Plugin {
                 0,
               );
 
+              const isTimeModification = Boolean(pendingCard && (hasTimeChange || hasTimeRange));
+
               let reply = isBooking
                 ? (courtNum > 0
-                    ? `Chào ${context?.userName || 'anh/chị'}! Em đã gợi ý ngay cho mình sân ${venueName} (${sport}) khung giờ ${time} với giá ưu đãi ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút đặt ngay bên dưới hoặc chọn nhanh các gợi ý khác ạ!`
-                    : `Rất tiếc, các sân môn ${sport} tại ${venueName} vào khung giờ ${time} đều đã được đặt kín hoặc đang bảo trì rồi ạ.\n\nAnh/chị có thể tham khảo các khung giờ khác hoặc chuyển sang cụm sân lân cận nhé!`)
+                    ? (isTimeModification
+                        ? `Dạ vâng, em đã cập nhật đổi khung giờ sang **${time}** (${displayDate}) tại **${venueName}** (${sport}, Sân ${courtNum}) cho ${context?.userName ? `anh ${context.userName}` : 'anh/chị'} rồi ạ! Thẻ đặt sân bên dưới đã được cập nhật nhé!`
+                        : `Chào ${context?.userName || 'anh/chị'}! Em đã gợi ý ngay cho mình sân ${venueName} (${sport}) khung giờ ${time} với giá ưu đãi ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút đặt ngay bên dưới hoặc chọn nhanh các gợi ý khác ạ!`)
+                    : `Rất tiếc, các sân môn ${sport} tại ${venueName} vào khung giờ ${time} (${displayDate}) đều đã được đặt kín hoặc đang bảo trì rồi ạ.\n\nAnh/chị có thể tham khảo các khung giờ khác hoặc chuyển sang cụm sân lân cận nhé!`)
                 : "Dạ, em là trợ lý SportHub AI. Em có thể hỗ trợ anh/chị tìm sân trống, xem giá và đặt lịch nhanh chóng tại TP.HCM nhé!";
 
               if (itemsDesc.length > 0) {
@@ -2399,6 +2475,7 @@ Quy tắc phản hồi:
 - TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) để giả lập thẻ đặt sân, không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN NGAY]", "[NHẤN ĐỂ ĐẶT NGAY]", "[Xem giờ khác]", "[📅 Xem giờ khác]", "👉 [NHẤN ĐỂ ĐẶT NGAY]", "[⚽ ...]", "[🏸 ...]", "[Card: ...]".
 - Giao diện ứng dụng SportHub đã tự động hiển thị thẻ đặt sân và các nút gợi ý bấm nhanh (quick suggestions) bên dưới.
 - Khi người dùng muốn đặt sân: Giới thiệu ngắn gọn tên sân, khung giờ và nhắc họ nhấn nút đặt ngay trên thẻ.
+- Khi người dùng muốn đổi giờ/đổi sân: Xác nhận đã đổi giờ/đổi sân thành công tại đúng cụm sân và khung giờ mới, nhắc họ kiểm tra thẻ đặt sân bên dưới.
 - Khi người dùng muốn đặt thêm dịch vụ/nước uống/ống cầu: Xác nhận số lượng, phụ phí và báo nhân viên sân sẽ chuẩn bị sẵn khi tới.
 - RÀNG BUỘC PHẠM VI & BẢO MẬT (GUARDRAILS):
   + Chỉ hỗ trợ các vấn đề thể thao, sân bãi, giá cả, ghép kèo và chính sách của SportHub.
@@ -2412,6 +2489,8 @@ Quy tắc phản hồi:
                   let venueInfo = '';
                   if (itemsDesc.length > 0) {
                     venueInfo = `Đã tự động thêm các dịch vụ: ${itemsDesc.join(', ')}. Thẻ đặt sân đã cập nhật phụ phí tổng ${addonsTotal.toLocaleString('vi-VN')}đ.`;
+                  } else if (isTimeModification) {
+                    venueInfo = `Đã cập nhật đổi khung giờ đặt sân sang: Sân ${courtNum} tại ${venueName} (${sport}) từ ${actionCard?.startTime || time} đến ${actionCard?.endTime || time} (${displayDate}), tổng giá ${price.toLocaleString('vi-VN')}đ. Thẻ đặt sân đã được cập nhật bên dưới.`;
                   } else if (isBooking) {
                     venueInfo = `Đã tự động chọn gợi ý sân: Sân ${courtNum} tại ${venueName} (${sport}) lúc ${time} (${actionCard?.date || 'Hôm nay'}), giá ${price.toLocaleString('vi-VN')}đ. Thẻ đặt sân đã được tạo sẵn bên dưới.`;
                   } else if (context?.venueName) {
@@ -2420,6 +2499,15 @@ Quy tắc phản hồi:
                   const userPrefSport = context?.sport || context?.preferredSport || 'Pickleball';
                   const userSportInfo = `Môn thể thao yêu thích trong hồ sơ cá nhân: ${userPrefSport}.`;
                   const promptContext = `[Hệ thống: ${userName}. ${userSportInfo} Thời gian thực tế hiện tại: ${currentTimeStr} (${currentDayName}, ngày ${currentDateStr}). ${venueInfo}].\nNgười dùng: ${message}`;
+                  const historyMessages = Array.isArray(parsedBody.history)
+                    ? (parsedBody.history as any[])
+                        .filter((h) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string')
+                        .slice(-6)
+                        .map((h) => ({
+                          role: (h.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+                          content: String(h.content).slice(0, 500),
+                        }))
+                    : [];
                   const ollamaMode = config.provider === 'ollama';
                   const fptRes = await fetch(ollamaMode ? `${ollamaEndpoint()}/api/chat` : 'https://mkp-api.fptcloud.com/v1/chat/completions', {
                     method: 'POST',
@@ -2432,6 +2520,7 @@ Quy tắc phản hồi:
                       stream: false,
                       messages: [
                         { role: 'system', content: `${(isBooking || itemsDesc.length > 0) ? proactiveSystemPrompt : (config.systemPrompt || proactiveSystemPrompt)}\n${faqKnowledge}\nAnswer only SportHub venue search, availability, booking, and matchmaking requests. Do not answer unrelated parts, even when mixed into a SportHub request. Use only supplied FAQ and action-card data; never invent venue prices, availability, policies, or addresses.` },
+                        ...historyMessages,
                         { role: 'user', content: promptContext },
                       ],
                       options: { temperature: config.temperature || 0.7 },
@@ -2442,6 +2531,7 @@ Quy tắc phản hồi:
                           role: 'system',
                           content: (isBooking || itemsDesc.length > 0) ? proactiveSystemPrompt : (config.systemPrompt ? `${config.systemPrompt}\n[THỜI GIAN THỰC]: Hôm nay là ${currentDayName}, ngày ${currentDateStr}. Bắt buộc trả lời theo ngày này, tuyệt đối không lấy năm cũ 2024.` : proactiveSystemPrompt),
                         },
+                        ...historyMessages,
                         {
                           role: 'user',
                           content: promptContext,
@@ -2460,7 +2550,9 @@ Quy tắc phản hồi:
                       let cleanReply = aiText.trim();
                       // Anti-questionnaire safeguard: if AI still returns questionnaire on booking, replace with proactive recommendation
                       if (isBooking && (cleanReply.includes('1. Môn thể thao') || cleanReply.includes('1. **Môn') || cleanReply.includes('bạn muốn chơi môn') || (cleanReply.includes('1.') && cleanReply.includes('2.') && cleanReply.includes('3.')))) {
-                        cleanReply = `Chào ${context?.userName || 'anh/chị'}! Em gợi ý ngay cho mình sân ${venueName} (${sport}) lúc ${time} với giá ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút Đặt ngay bên dưới, hoặc chọn nhanh các gợi ý khác ạ!`;
+                        cleanReply = isTimeModification
+                          ? `Dạ vâng, em đã cập nhật đổi khung giờ sang **${time}** (${displayDate}) tại **${venueName}** (${sport}, Sân ${courtNum}) cho ${context?.userName ? `anh ${context.userName}` : 'anh/chị'} rồi ạ! Thẻ đặt sân bên dưới đã được cập nhật nhé!`
+                          : `Chào ${context?.userName || 'anh/chị'}! Em gợi ý ngay cho mình sân ${venueName} (${sport}) lúc ${time} với giá ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút Đặt ngay bên dưới, hoặc chọn nhanh các gợi ý khác ạ!`;
                       }
 
                       // Strip out any hallucinated markdown tables, pseudo links and pseudo-UI tags from LLM
@@ -2531,6 +2623,7 @@ Quy tắc phản hồi:
                 ...(proposal ? { proposal } : {}),
               }));
             } catch (err) {
+              console.error('Chatbot message handler error:', err);
               res.statusCode = 400;
               res.end(JSON.stringify({ error: 'Invalid JSON' }));
             }

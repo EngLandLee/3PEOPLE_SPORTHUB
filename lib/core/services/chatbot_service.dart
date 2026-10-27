@@ -1395,12 +1395,26 @@ class ChatbotService {
           final client = effectiveHttpClient ?? http.Client();
           final shouldClose = effectiveHttpClient == null;
 
+          final recentHistory = messagesNotifier.value
+              .where((m) => m.id != userMessage.id && m.text.trim().isNotEmpty)
+              .toList();
+          final historySlice = recentHistory.length > 6
+              ? recentHistory.sublist(recentHistory.length - 6)
+              : recentHistory;
+          final historyPayload = historySlice
+              .map((m) => {
+                    'role': m.sender == 'user' ? 'user' : 'assistant',
+                    'content': m.text,
+                  })
+              .toList();
+
           final payload = jsonEncode({
             'message': text,
             'context': {
               ...?effectiveContext?.toJson(),
               if (pendingBooking != null) 'pendingBooking': pendingBooking,
             },
+            if (historyPayload.isNotEmpty) 'history': historyPayload,
             if (imageUrl != null) 'imageUrl': imageUrl,
           });
 
