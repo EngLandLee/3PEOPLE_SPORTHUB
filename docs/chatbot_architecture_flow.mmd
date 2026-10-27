@@ -1,0 +1,89 @@
+%% ==============================================================================
+%% SPORTHUB CHATBOT - COMPLETE AGENTIC ARCHITECTURE & DATA FLOW
+%% Format: Mermaid Diagram Definition (.mmd)
+%% Use in: Mermaid Live Editor (https://mermaid.live), Draw.io, Obsidian, Notion, VS Code
+%% ==============================================================================
+
+flowchart TD
+    %% --------------------------------------------------------------------------
+    %% 1. CLIENT INPUT LAYER
+    %% --------------------------------------------------------------------------
+    subgraph ClientInputLayer ["1. TẦNG THU NHẬP ĐẦU VÀO (MOBILE CLIENT)"]
+        UserMsg["👤 Người dùng nhập tin nhắn / chọn gợi ý nhanh"]:::client
+        ClientCtx["📍 Ngữ cảnh động thiết bị (currentVenue, userId, sport, screen)"]:::client
+        UserMsg --> MergeInput["Đóng gói Payload: POST /api/chatbot/message"]:::client
+        ClientCtx --> MergeInput
+    end
+
+    %% --------------------------------------------------------------------------
+    %% 2. SECURITY & NLP LAYER (BACKEND GATEWAY)
+    %% --------------------------------------------------------------------------
+    subgraph SecurityLayer ["2. TẦNG AN NINH & BÓC TÁCH (BACKEND GATEWAY)"]
+        MergeInput --> GuardIn{"🛡️ guardrailIn (Lọc an toàn)\nKiểm tra Prompt Injection / Jailbreak?"}:::security
+        
+        GuardIn -- "Có dấu hiệu tấn công\n(quên chỉ thị, xem prompt, giá 0đ...)" --> RejectBlock["⛔ Chặn ngay lập tức\nTrả lời từ chối lịch sự, 0 tốn token LLM"]:::security
+        
+        GuardIn -- "Hợp lệ" --> NLPParse["🔍 Bóc tách Ý định & Thực thể\n(Môn thể thao, Khu vực, Ngày, Giờ chơi, Add-on đồ uống)"]:::security
+    end
+
+    %% --------------------------------------------------------------------------
+    %% 3. DATA RETRIEVAL LAYER (RAG & REALTIME DB)
+    %% --------------------------------------------------------------------------
+    subgraph RetrievalLayer ["3. TẦNG TRUY XUẤT DỮ LIỆU THỰC TẾ (DATA RETRIEVAL - RAG)"]
+        NLPParse --> ForkRetrieval{"Phân loại nội dung"}:::rag
+        
+        %% Kênh 1: FAQ Knowledge Retrieval
+        ForkRetrieval -- "Hỏi chính sách / quy chế" --> FAQEngine["📚 Kênh 1: Retrieval FAQ (store.chatbotFaqs)\n• Loại bỏ stop-words\n• So khớp từ khóa & tính điểm liên quan\n• Bốc Top 3 FAQ sát nhất"]:::rag
+        FAQEngine --> FAQKnowledge["📄 faqKnowledge (Quy chế hoàn tiền, mưa bão, thuê vợt...)"]:::rag
+        
+        %% Kênh 2: Realtime Court & Slot Availability Retrieval
+        ForkRetrieval -- "Tìm sân / Đặt sân" --> VenueEngine["🏟️ Kênh 2: Realtime Court Store (venues & courts)\n• Tìm sân trống tại cụm (Tao Đàn, Nam Sài Gòn, Thảo Điền...)\n• Xác định giờ thường vs Giờ cao điểm (17h-21h)\n• Tính đúng đơn giá (regularPrice vs peakPrice)"]:::rag
+        VenueEngine --> RealEvidence["📊 Target Evidence (Dữ liệu sân, giờ rảnh, giá tiền thật 100%)"]:::rag
+    end
+
+    %% --------------------------------------------------------------------------
+    %% 4. LLM INFERENCE & ANTI-HALLUCINATION
+    %% --------------------------------------------------------------------------
+    subgraph LLMLayer ["4. TẦNG TỔNG HỢP & MÔ HÌNH NGÔN NGỮ (FPT CLOUD AI)"]
+        FAQKnowledge --> PromptBuilder["🧩 Ghép Ngữ Cảnh Vào Prompt\n[System Prompt] + [Thời gian thực hệ thống] + [faqKnowledge] + [venueInfo]"]:::llm
+        RealEvidence --> PromptBuilder
+        
+        PromptBuilder --> GemmaLLM["🤖 FPT Cloud AI (Gemma 26B LLM)\nĐọc ngữ cảnh thật -> Soạn lời giải thích tự nhiên (1-3 câu)"]:::llm
+        
+        GemmaLLM --> AntiHallucination["🧹 Anti-Hallucination Cleaner\nCắt bỏ bảng markdown tự chế, bỏ nút giả lập"]:::llm
+        AntiHallucination --> GuardOut["🛡️ guardrailOut (Khử PII, ẩn API key [REDACTED])"]:::security
+    end
+
+    %% --------------------------------------------------------------------------
+    %% 5. PROPOSAL FORMULATION (AGENTIC HITL)
+    %% --------------------------------------------------------------------------
+    subgraph ProposalLayer ["5. TẠO ĐỀ XUẤT HÀNH ĐỘNG AGENTIC (HITL)"]
+        RealEvidence --> BuildProposal["📝 Sinh ActionProposal\n• Khoá cứng: venueId, courtId, price bất biến từ CSDL\n• Mở Form Allowlist: timeSlot, note (max 200 ký tự)\n• Thời hạn hiệu lực: 15 phút (expiresAt)"]:::hitl
+        GuardOut --> AssembleResponse["Đóng gói JSON: reply + proposal + actionCard"]:::hitl
+        BuildProposal --> AssembleResponse
+    end
+
+    %% --------------------------------------------------------------------------
+    %% 6. CLIENT PRESENTATION & 2-STAGE HITL FLOW
+    %% --------------------------------------------------------------------------
+    subgraph ClientPresentationLayer ["6. GIAO DIỆN TƯƠNG TÁC 2 GIAI ĐOẠN (FLUTTER APP)"]
+        AssembleResponse --> SendToFlutter["Gửi phản hồi về Flutter App"]:::client
+        
+        SendToFlutter --> Stage1Card["🎴 GIAI ĐOẠN 1: Hiển thị ActionProposalCard (Card 1)\n• Hiện thông tin sân, giờ, giá dự kiến\n• Ẩn Card thanh toán VietQR lúc này (tránh lặp/rối mắt)\n• Cho phép nhập ghi chú cho chủ sân\n• Nút [Hủy] & Nút [Xác nhận đặt sân]"]:::hitl
+        
+        Stage1Card -- "Khách kiểm tra & bấm 'Xác nhận đặt sân'" --> ExecuteAPI["🚀 Gọi POST /api/chatbot/action/execute\n• Server kiểm tra lại giá từ DB (chống hack giá)\n• Kiểm tra Form Allowlist (chặn inject payload)\n• Ghi vé chính thức vào TicketStore"]:::hitl
+        
+        ExecuteAPI --> Stage2Card["💳 GIAI ĐOẠN 2: Hiển thị ChatBookingCard (Card 2)\n• Card 1 chuyển sang xanh lá 'Đã xác nhận thành công'\n• Card 2 xuất hiện ngay bên dưới đồng bộ 100% dữ liệu\n• Có nút: '⚡ Đặt & Thanh toán VietQR ngay'"]:::payment
+        
+        Stage2Card -- "Bấm nút thanh toán" --> VietQRModal["📲 Mở Hộp thoại VietQrPaymentDialog\n(Hiển thị mã QR ngân hàng chuẩn để thanh toán)"]:::payment
+    end
+
+    %% --------------------------------------------------------------------------
+    %% STYLING & THEMES
+    %% --------------------------------------------------------------------------
+    classDef client fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
+    classDef security fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+    classDef rag fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
+    classDef llm fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8;
+    classDef hitl fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;
+    classDef payment fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412;
