@@ -139,6 +139,21 @@ CREATE TABLE IF NOT EXISTS public.chatbot_config (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 10. VENUE ADDONS (Sản phẩm POS & Dịch Vụ Thuê Vợt / Nước Uống)
+CREATE TABLE IF NOT EXISTS public.venue_addons (
+    id TEXT PRIMARY KEY,
+    venue_id TEXT REFERENCES public.venues(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    price NUMERIC NOT NULL DEFAULT 0,
+    unit TEXT NOT NULL DEFAULT 'cái',
+    category TEXT NOT NULL DEFAULT 'rental', -- 'rental', 'beverage', 'gear'
+    icon TEXT DEFAULT '🏸',
+    sport_types TEXT[] DEFAULT '{}',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ==============================================================================
 -- DATABASE FUNCTIONS & CONCURRENCY CONTROLS (Chống Đặt Trùng Ca)
 -- ==============================================================================
@@ -257,10 +272,29 @@ $$;
 -- ==============================================================================
 -- REALTIME PUBLICATIONS (Bắn dữ liệu tức thì xuống Mobile & Web Admin)
 -- ==============================================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.court_slots;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
+DO $$
+BEGIN
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.court_slots;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.venue_addons;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+END $$;
 
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
@@ -271,19 +305,46 @@ ALTER TABLE public.court_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.venue_addons ENABLE ROW LEVEL SECURITY;
 
 -- 1. Venues & Courts: Mọi người đều có thể xem
+DROP POLICY IF EXISTS "Public venues viewable by all" ON public.venues;
 CREATE POLICY "Public venues viewable by all" ON public.venues FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public courts viewable by all" ON public.courts;
 CREATE POLICY "Public courts viewable by all" ON public.courts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public slots viewable by all" ON public.court_slots;
 CREATE POLICY "Public slots viewable by all" ON public.court_slots FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public slots insertable" ON public.court_slots;
+CREATE POLICY "Public slots insertable" ON public.court_slots FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public slots updateable" ON public.court_slots;
+CREATE POLICY "Public slots updateable" ON public.court_slots FOR UPDATE USING (true);
 
 -- 2. Bookings: Khách xem và tạo đơn đặt sân, Chủ sân quản lý
+DROP POLICY IF EXISTS "Public bookings select" ON public.bookings;
 CREATE POLICY "Public bookings select" ON public.bookings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public bookings insert" ON public.bookings;
 CREATE POLICY "Public bookings insert" ON public.bookings FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public bookings update checkin" ON public.bookings;
 CREATE POLICY "Public bookings update checkin" ON public.bookings FOR UPDATE USING (true);
 
--- 3. Transactions & Posts: Mọi người đều xem được
+-- 3. Transactions & Posts & Addons: Mọi người đều xem được
+DROP POLICY IF EXISTS "Public transactions viewable" ON public.transactions;
 CREATE POLICY "Public transactions viewable" ON public.transactions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public transactions insertable" ON public.transactions;
 CREATE POLICY "Public transactions insertable" ON public.transactions FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public posts viewable by all" ON public.community_posts;
 CREATE POLICY "Public posts viewable by all" ON public.community_posts FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public posts insertable" ON public.community_posts;
 CREATE POLICY "Public posts insertable" ON public.community_posts FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public user profiles viewable" ON public.user_profiles;
+CREATE POLICY "Public user profiles viewable" ON public.user_profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public user profiles insertable" ON public.user_profiles;
+CREATE POLICY "Public user profiles insertable" ON public.user_profiles FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public addons viewable" ON public.venue_addons;
+CREATE POLICY "Public addons viewable" ON public.venue_addons FOR SELECT USING (true);
