@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="emerald-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportHub - Slide Thuyết Trình Báo Cáo Đồ Án Cuối Kỳ</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    /* THEME VARIABLES */
+    :root[data-theme="emerald-light"] {
+      --bg: #F8FAFC;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-light: #ECFDF5;
+      --accent: #F97316;
+      --glow: rgba(16, 185, 129, 0.15);
+      --code-bg: #F1F5F9;
+      --badge-bg: #ECFDF5;
+      --badge-border: #A7F3D0;
+      --badge-text: #065F46;
+      --grid-line: rgba(226, 232, 240, 0.6);
+    }
+
+    :root[data-theme="dark-obsidian"] {
+      --bg: #0B0F19;
+      --card-bg: rgba(20, 27, 45, 0.85);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-light: rgba(16, 185, 129, 0.15);
+      --accent: #FB923C;
+      --glow: rgba(16, 185, 129, 0.25);
+      --code-bg: #111827;
+      --badge-bg: rgba(16, 185, 129, 0.15);
+      --badge-border: rgba(16, 185, 129, 0.3);
+      --badge-text: #34D399;
+      --grid-line: rgba(255, 255, 255, 0.04);
+    }
+
+    :root[data-theme="academic-blue"] {
+      --bg: #F0F4F8;
+      --card-bg: rgba(255, 255, 255, 0.96);
+      --card-border: #CBD5E1;
+      --text-main: #0A192F;
+      --text-muted: #475569;
+      --primary: #1D4ED8;
+      --primary-dark: #1E40AF;
+      --primary-light: #EFF6FF;
+      --accent: #D97706;
+      --glow: rgba(29, 78, 216, 0.15);
+      --code-bg: #E2E8F0;
+      --badge-bg: #EFF6FF;
+      --badge-border: #BFDBFE;
+      --badge-text: #1E3A8A;
+      --grid-line: rgba(203, 213, 225, 0.6);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      overflow: hidden;
+      user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    code, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Background Grid Pattern */
+    .bg-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    }
+
+    /* Glass Card */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+      border-radius: 20px;
+    }
+
+    .slide {
+      opacity: 0;
+      transform: translateY(12px) scale(0.99);
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.25rem 3rem;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Pulsing Animation for Flowchart */
+    @keyframes pulseNode {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--glow); }
+      50% { transform: scale(1.02); box-shadow: 0 0 20px 4px var(--glow); }
+    }
+
+    .animate-pulse-node {
+      animation: pulseNode 3s infinite ease-in-out;
+    }
+
+    /* Flowchart Connectors */
+    .flow-line {
+      stroke: var(--primary);
+      stroke-dasharray: 6;
+      animation: dash 1.5s linear infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -12;
+      }
+    }
+
+    /* Phone Mockup Frame - Completely Uncropped & Crisp */
+    .phone-mockup-frame {
+      position: relative;
+      border-radius: 36px;
+      padding: 7px;
+      background: #0F172A;
+      border: 3px solid #334155;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.35);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+    .phone-mockup-frame:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 25px 50px -10px rgba(16, 185, 129, 0.25);
+    }
+    .phone-mockup-frame img {
+      border-radius: 28px;
+      width: auto;
+      object-fit: contain !important;
+      display: block;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 12px;
+      background: #020617;
+      border-radius: 9999px;
+      z-index: 20;
+    }
+
+    /* Browser Mockup Frame - Desktop View Uncropped */
+    .browser-mockup-frame {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      background: #0F172A;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.35);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .browser-mockup-frame:hover {
+      transform: translateY(-3px) scale(1.01);
+    }
+    .browser-mockup-frame img {
+      width: 100%;
+      object-fit: contain !important;
+      display: block;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 9999px;
+    }
+
+    @media print {
+      body {
+        overflow: visible !important;
+      }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        transform: none !important;
+        page-break-after: always;
+        height: 100vh;
+      }
+      #nav-controls, #speaker-notes-panel, #thumbnails-modal {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="w-screen h-screen relative bg-grid">
+
+  <!-- TOP HEADER / CONTROLS BAR -->
+  <header class="fixed top-0 left-0 right-0 h-14 z-50 px-6 flex items-center justify-between border-b border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-md">
+    <!-- Brand Title -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-500/20">
+        ⚡
+      </div>
+      <div>
+        <span class="font-display font-black text-sm tracking-tight text-[var(--text-main)]">SportHub</span>
+        <span class="text-[10px] ml-2 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" style="background: var(--badge-bg); color: var(--badge-text); border: 1px solid var(--badge-border);">
+          CMP177 • Báo Cáo Cuối Kỳ
+        </span>
+      </div>
+    </div>
+
+    <!-- Active Speaker Badge -->
+    <div id="speaker-badge" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass-card border border-[var(--card-border)]">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+      <span id="speaker-name" class="text-[var(--text-main)]">Lê Quốc Anh (Trưởng nhóm)</span>
+    </div>
+
+    <!-- Controls & Theme Switcher -->
+    <div class="flex items-center gap-2">
+      <!-- Theme Switcher Dropdown/Buttons -->
+      <div class="flex items-center gap-1 p-1 rounded-xl bg-[var(--code-bg)] border border-[var(--card-border)] text-xs font-bold">
+        <button onclick="setTheme('emerald-light')" class="theme-btn px-2.5 py-1 rounded-lg transition-all" data-t="emerald-light" title="Theme Sáng Thể Thao">
+          🌿 Sáng
+        </button>
+        <button onclick="setTheme('dark-obsidian')" class="theme-btn px-2.5 py-1 rounded-lg transition-all" data-t="dark-obsidian" title="Theme Tối Obsidian">
+          🌙 Tối
+        </button>
+        <button onclick="setTheme('academic-blue')" class="theme-btn px-2.5 py-1 rounded-lg transition-all" data-t="academic-blue" title="Theme Xanh Học Thuật">
+          🎓 Xanh
+        </button>
+      </div>
+
+      <!-- Speaker Notes Toggle -->
+      <button onclick="toggleSpeakerNotes()" class="p-2 rounded-xl border border-[var(--card-border)] hover:bg-[var(--primary-light)] text-xs font-bold flex items-center gap-1.5 transition-colors" title="Bật/Tắt Lời thoại thuyết trình (Phím N)">
+        🎙️ <span class="hidden sm:inline">Lời thoại</span>
+      </button>
+
+      <!-- Thumbnails Grid -->
+      <button onclick="toggleThumbnails()" class="p-2 rounded-xl border border-[var(--card-border)] hover:bg-[var(--primary-light)] text-xs font-bold transition-colors" title="Danh mục Slide (Phím G)">
+        📑
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button onclick="toggleFullscreen()" class="p-2 rounded-xl border border-[var(--card-border)] hover:bg-[var(--primary-light)] text-xs font-bold transition-colors" title="Toàn màn hình (Phím F)">
+        ⛶
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SLIDES CONTAINER -->
+  <main id="presentation-container" class="w-full h-full pt-14 pb-12 relative overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- SLIDE 1: TRANG BÌA (COVER SLIDE)           -->
+    <!-- ========================================== -->
+    <section class="slide active" data-slide="1" data-speaker="Lê Quốc Anh (Trưởng nhóm)" data-role="Tổng quan Đồ án & Kiến trúc">
+      <div class="max-w-6xl mx-auto w-full grid md:grid-cols-12 gap-8 items-center">
+        <div class="md:col-span-7 space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style="background: var(--badge-bg); color: var(--badge-text); border: 1px solid var(--badge-border);">
+            🏆 Báo Cáo Khóa Luận / Đồ Án Cuối Kỳ
+          </div>
+          <h1 class="text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            SportHub <span style="color: var(--primary);">Platform</span>
+          </h1>
+          <p class="text-xl font-semibold text-[var(--text-muted)]">
+            Ứng Dụng Đặt Sân Thể Thao Thông Minh & Ghép Kèo Thi Đấu AI
+          </p>
+          <p class="text-sm text-[var(--text-muted)] leading-relaxed max-w-xl">
+            Hệ sinh thái di động toàn diện kết nối người chơi, cộng đồng thể thao và đối tác chủ sân theo thời gian thực với trợ lý ảo Dual-Mode AI.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <div class="glass-card p-3 border-l-4" style="border-left-color: var(--primary);">
+              <div class="text-xs text-[var(--text-muted)]">Môn học</div>
+              <div class="font-bold text-sm">Lập trình trên thiết bị di động (CMP177)</div>
+            </div>
+            <div class="glass-card p-3 border-l-4" style="border-left-color: var(--accent);">
+              <div class="text-xs text-[var(--text-muted)]">Giảng viên hướng dẫn</div>
+              <div class="font-bold text-sm text-[var(--accent)]">ThS. Nguyễn Mạnh Hùng</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Members Card -->
+        <div class="md:col-span-5">
+          <div class="glass-card p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-20 blur-2xl" style="background: var(--primary);"></div>
+            <div class="flex items-center justify-between pb-3 border-b border-[var(--card-border)] mb-4">
+              <div>
+                <span class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Nhóm Thực Hiện</span>
+                <h3 class="text-lg font-black text-[var(--primary)]">Nhóm 3 người</h3>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-lg font-mono font-bold bg-[var(--code-bg)] border border-[var(--card-border)]">4 Thành viên</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--code-bg)] border border-[var(--card-border)]">
+                <div>
+                  <div class="font-extrabold text-[var(--text-main)]">1. Lê Quốc Anh</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">Kiến trúc Clean Architecture & Backend Sync</div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md text-white bg-emerald-600">Leader</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--code-bg)] border border-[var(--card-border)]">
+                <div>
+                  <div class="font-extrabold text-[var(--text-main)]">2. Đỗ Minh Nhật</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">UI/UX Flutter, Ma trận giờ & VietQR NAPAS</div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background: var(--primary-light); color: var(--primary);">Mobile UI</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--code-bg)] border border-[var(--card-border)]">
+                <div>
+                  <div class="font-extrabold text-[var(--text-main)]">3. Tưởng Hoàn Thiện</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">Cộng đồng Ghép kèo & Phân hệ Chủ sân (Owner)</div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background: var(--primary-light); color: var(--primary);">Partner/Admin</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--code-bg)] border border-[var(--card-border)]">
+                <div>
+                  <div class="font-extrabold text-[var(--text-main)]">4. Nguyễn Phan Ngọc Trưởng</div>
+                  <div class="text-[11px] text-[var(--text-muted)]">Dual-Mode AI Engine, Guardrails & Action Cards</div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-600 border border-amber-500/30">AI Engineer</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 2: ĐẶT VẤN ĐỀ & THỰC TRẠNG (BẠN 1)    -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="2" data-speaker="Lê Quốc Anh (Trưởng nhóm)" data-role="Đặt vấn đề & Giải pháp">
+      <div class="max-w-5xl mx-auto w-full space-y-6">
+        <div class="border-b border-[var(--card-border)] pb-3 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">01 • Bối Cảnh & Bài Toán Thực Tế</span>
+            <h2 class="text-3xl font-black">Nghịch Lý Phong Trào Thể Thao Đô Thị</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">2.5 Phút</span>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-5">
+          <!-- Problem 1 -->
+          <div class="glass-card p-5 border-t-4 border-rose-500 space-y-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xl font-bold">
+              🔥
+            </div>
+            <h3 class="font-bold text-base text-[var(--text-main)]">Cháy Sân Giờ Cao Điểm</h3>
+            <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+              Các cụm sân Cầu lông & Pickleball tại TP.HCM luôn quá tải khung giờ 17h - 21h. Khách hàng phải gọi điện hàng chục sân vẫn không tìm được ca trống.
+            </p>
+            <div class="text-[11px] font-bold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-lg inline-block">
+              ⚠️ Mất thời gian & Trải nghiệm tệ
+            </div>
+          </div>
+
+          <!-- Problem 2 -->
+          <div class="glass-card p-5 border-t-4 border-amber-500 space-y-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-xl font-bold">
+              👥
+            </div>
+            <h3 class="font-bold text-base text-[var(--text-main)]">Khó Tìm Bạn & Bùng Kèo</h3>
+            <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+              Đặt được sân nhưng thiếu người đánh cùng; tìm người qua Facebook group bị lệch trình độ, không minh bạch chi phí hoặc bị bỏ bom phút chót.
+            </p>
+            <div class="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-lg inline-block">
+              ⚠️ Lệch trình độ & Rủi ro chi phí
+            </div>
+          </div>
+
+          <!-- Problem 3 -->
+          <div class="glass-card p-5 border-t-4 border-indigo-500 space-y-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xl font-bold">
+              📒
+            </div>
+            <h3 class="font-bold text-base text-[var(--text-main)]">Chủ Sân Quản Lý Thủ Công</h3>
+            <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+              Ghi chép sổ sách và Zalo dẫn đến chồng chéo ca (Overbooking), sót tiền phụ phí nước uống, vợt cầu và khó thống kê doanh thu đa kênh.
+            </p>
+            <div class="text-[11px] font-bold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-lg inline-block">
+              ⚠️ Thất thoát & Trùng lịch đặt
+            </div>
+          </div>
+        </div>
+
+        <!-- SportHub Solution Banner -->
+        <div class="glass-card p-4 border border-[var(--primary)] flex items-center justify-between" style="background: var(--primary-light);">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">💡</span>
+            <div>
+              <div class="font-bold text-sm text-[var(--text-main)]">Giải pháp SportHub: Hệ Sinh Thái 3 Trong 1</div>
+              <div class="text-xs text-[var(--text-muted)]">Đặt sân theo buổi/cố định • Ghép kèo AI cân bằng trình độ • Quản trị Chủ sân Realtime</div>
+            </div>
+          </div>
+          <div class="font-mono text-xs font-black text-[var(--primary)] uppercase tracking-wider">
+            100% Digitalized
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 3: KIẾN TRÚC KỸ THUẬT (BẠN 1)         -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="3" data-speaker="Lê Quốc Anh (Trưởng nhóm)" data-role="Kiến trúc Clean Architecture">
+      <div class="max-w-5xl mx-auto w-full space-y-5">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">02 • Kiến Trúc Phần Mềm</span>
+            <h2 class="text-3xl font-black">Clean Architecture & Full-Stack Sync</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">32/32 Test E2E Pass</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-5 items-stretch">
+          <!-- Clean Architecture Layers -->
+          <div class="md:col-span-7 glass-card p-5 space-y-3">
+            <h3 class="font-bold text-sm text-[var(--primary)] uppercase tracking-wider flex items-center gap-2">
+              <span>🏛️</span> Phân Tầng Clean Architecture (Flutter Client)
+            </h3>
+
+            <div class="space-y-2 text-xs">
+              <div class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                <div class="font-black text-emerald-600 dark:text-emerald-400">1. PRESENTATION LAYER (Giao diện & Trạng thái)</div>
+                <div class="text-[11px] text-[var(--text-muted)] mt-1">Widgets, Screens, BLoC Pattern (`BookingBloc`), ValueNotifiers siêu nhẹ.</div>
+              </div>
+              <div class="p-3 rounded-xl border border-blue-500/30 bg-blue-500/5">
+                <div class="font-black text-blue-600 dark:text-blue-400">2. DOMAIN LAYER (Nghiệp vụ cốt lõi)</div>
+                <div class="text-[11px] text-[var(--text-muted)] mt-1">Entities (`Venue`, `TimeSlot`, `Ticket`, `CommunityPost`), UseCases, Contracts.</div>
+              </div>
+              <div class="p-3 rounded-xl border border-purple-500/30 bg-purple-500/5">
+                <div class="font-black text-purple-600 dark:text-purple-400">3. DATA LAYER (Truy xuất & Caching)</div>
+                <div class="text-[11px] text-[var(--text-muted)] mt-1">SQLite CSDL Offline (`sporthub_local.db`), HTTP Sync Gateway, Gemini AI Service.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-Time Sync & Quality Metrics -->
+          <div class="md:col-span-5 space-y-3 flex flex-col justify-between">
+            <div class="glass-card p-4 space-y-2">
+              <div class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Cơ Chế Đồng Bộ Real-Time</div>
+              <div class="font-bold text-sm text-[var(--text-main)]">Sync Gateway + Polling Event Bus</div>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Khi khách đặt sân trên mobile, WebSocket/Polling Gateway lập tức cập nhật lên Web Admin cổng 5173 và ngược lại, triệt tiêu nguy cơ Overbooking.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-2 border-l-4" style="border-left-color: var(--primary);">
+              <div class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Chỉ Số Đảm Bảo Chất Lượng</div>
+              <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                <div class="p-2 rounded-lg bg-[var(--code-bg)]">
+                  <div class="text-xl font-black text-emerald-500">32 / 32</div>
+                  <div class="text-[10px] text-[var(--text-muted)]">Playwright E2E Pass</div>
+                </div>
+                <div class="p-2 rounded-lg bg-[var(--code-bg)]">
+                  <div class="text-xl font-black text-blue-500">&lt; 50ms</div>
+                  <div class="text-[10px] text-[var(--text-muted)]">Local AI Fallback</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 4: UI/UX & MA TRẬN GIỜ (BẠN 2)        -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="4" data-speaker="Đỗ Minh Nhật" data-role="UI/UX Mobile & Ma trận giờ">
+      <div class="max-w-6xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">03 • Trải Nghiệm Khách Hàng</span>
+            <h2 class="text-3xl font-black">Visual Court Matrix & Dynamic Pricing</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">3.0 Phút</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-6 items-center">
+          <!-- Text highlights (col-span-7) -->
+          <div class="md:col-span-7 space-y-3">
+            <div class="glass-card p-4 space-y-1.5 border-l-4" style="border-left-color: var(--primary);">
+              <h3 class="font-bold text-sm text-[var(--primary)] flex items-center gap-2">
+                <span>🎨</span> Material 3 & Dark/Light Mode
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Tối ưu hóa khả năng quan sát khi chơi thể thao ban đêm. Đạt chuẩn tương phản tiếp cận <strong>WCAG AA</strong> và chuyển đổi theme mượt mà không reload app.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-emerald-500">
+              <h3 class="font-bold text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <span>📊</span> Lưới 16 Khung Giờ (Visual Court Matrix)
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Trực quan hóa trạng thái từng slot trong ngày: <span class="font-bold text-emerald-500">Xanh lá (Còn trống)</span>, <span class="font-bold text-slate-400">Xám (Đã đặt)</span>, <span class="font-bold text-amber-500">Vàng (Giữ chỗ 15p)</span>.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-amber-500">
+              <h3 class="font-bold text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <span>⚡</span> Dynamic Tiered Pricing & Add-on Cart
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Tự động nhận diện khung giờ cao điểm (Peak Hours: 17h - 21h) áp dụng bảng giá tương ứng. Cho phép chọn thêm nước Pocari, thuê vợt và tính tổng tức thì.
+              </p>
+            </div>
+          </div>
+
+          <!-- Uncropped Phone Mockup (col-span-5) -->
+          <div class="md:col-span-5 flex flex-col items-center">
+            <!-- View switcher tabs -->
+            <div class="flex items-center gap-2 mb-2">
+              <button id="btn-s4-matrix" onclick="switchSlide4('matrix')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all">
+                📅 Ma Trận 16 Giờ
+              </button>
+              <button id="btn-s4-filter" onclick="switchSlide4('filter')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                🔍 Bộ Lọc Môn Đấu
+              </button>
+            </div>
+
+            <!-- Phone bezel -->
+            <div class="phone-mockup-frame cursor-pointer group" onclick="openLightbox(document.getElementById('slide4-img').src, 'Ma Trận 16 Khung Giờ & Trạng Thái Sân')" title="Nhấp để phóng to Retina 2x">
+              <div class="phone-notch"></div>
+              <img id="slide4-img" src="screenshots/slide_court_matrix.png" alt="Visual Court Matrix" class="max-h-[440px] w-auto object-contain shadow-2xl transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_court_matrix.png';">
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full pointer-events-none flex items-center gap-1 shadow-lg">
+                🔍 Bấm phóng to
+              </div>
+            </div>
+            <div class="text-[10px] text-[var(--text-muted)] font-mono mt-1.5">
+              100% Uncropped • Click ảnh để phóng to
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 5: THANH TOÁN VIETQR & VÉ OFFLINE (BẠN 2) -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="5" data-speaker="Đỗ Minh Nhật" data-role="VietQR & SQLite Offline">
+      <div class="max-w-6xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">04 • Thanh Toán & Vé Điện Tử</span>
+            <h2 class="text-3xl font-black">VietQR NAPAS 247 & CSDL Offline SQLite</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">Hold-Lock 15 Phút</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-6 items-center">
+          <!-- Uncropped Phone Mockup (col-span-5) -->
+          <div class="md:col-span-5 flex flex-col items-center">
+            <!-- View switcher tabs -->
+            <div class="flex items-center gap-2 mb-2">
+              <button id="btn-s5-vietqr" onclick="switchSlide5('vietqr')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all">
+                ⚡ Mã VietQR NAPAS
+              </button>
+              <button id="btn-s5-ticket" onclick="switchSlide5('ticket')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                🎫 Vé Offline SQLite
+              </button>
+            </div>
+
+            <!-- Phone bezel -->
+            <div class="phone-mockup-frame cursor-pointer group" onclick="openLightbox(document.getElementById('slide5-img').src, 'Mã Thanh Toán VietQR & Vé Điện Tử Offline')" title="Nhấp để phóng to Retina 2x">
+              <div class="phone-notch"></div>
+              <img id="slide5-img" src="screenshots/slide_vietqr_modal.png" alt="VietQR Dialog" class="max-h-[440px] w-auto object-contain shadow-2xl transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_vietqr_modal.png';">
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full pointer-events-none flex items-center gap-1 shadow-lg">
+                🔍 Bấm phóng to
+              </div>
+            </div>
+            <div class="text-[10px] text-[var(--text-muted)] font-mono mt-1.5">
+              100% Uncropped • Click ảnh để phóng to
+            </div>
+          </div>
+
+          <!-- Feature Highlights (col-span-7) -->
+          <div class="md:col-span-7 space-y-3">
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-emerald-500">
+              <div class="font-bold text-sm text-[var(--text-main)] flex items-center gap-2">
+                <span>⚡</span> 1. Tạo Mã VietQR Chuẩn NAPAS 247 Tức Thì
+              </div>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Tích hợp generator sinh mã QR ngân hàng động: Nhúng sẵn số tài khoản chủ sân, số tiền chính xác từng đồng và mã đơn <code class="font-bold text-emerald-600 bg-[var(--code-bg)] px-1 py-0.5 rounded">BK-XXXXXX</code>. Người dùng quét là thanh toán ngay, triệt tiêu sai sót nhập liệu.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-amber-500">
+              <div class="font-bold text-sm text-[var(--text-main)] flex items-center gap-2">
+                <span>⏱️</span> 2. Cơ Chế Concurrency Control (Hold-Lock 15 Phút)
+              </div>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Khi Người A bấm thanh toán, slot chuyển sang trạng thái "Holding" tạm thời. Người B vào cùng lúc sẽ thấy sân đang bận. Nếu sau 15 phút không hoàn tất chuyển khoản, hệ thống tự động giải phóng slot về trạng thái trống.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-blue-500">
+              <div class="font-bold text-sm text-[var(--text-main)] flex items-center gap-2">
+                <span>🎫</span> 3. Vé Điện Tử Offline-First (CSDL SQLite)
+              </div>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Vé thanh toán thành công được lưu ngay vào CSDL cục bộ <code class="font-bold text-blue-600 bg-[var(--code-bg)] px-1 py-0.5 rounded">sporthub_local.db</code>. Ra sân thi đấu dù mất sóng 4G/WiFi vẫn mở được mã QR vé để lễ tân quét máy quét check-in.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 6: CỘNG ĐỒNG GHÉP KÈO (BẠN 3)         -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="6" data-speaker="Tưởng Hoàn Thiện" data-role="Cộng đồng Ghép Kèo">
+      <div class="max-w-6xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">05 • Mạng Xã Hội Thể Thao</span>
+            <h2 class="text-3xl font-black">Bảng Tin Ghép Kèo (Community Matchmaking)</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">3.0 Phút</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-6 items-center">
+          <div class="md:col-span-7 space-y-3">
+            <div class="glass-card p-4 space-y-1.5 border-l-4" style="border-left-color: var(--primary);">
+              <h3 class="font-bold text-sm text-[var(--primary)] flex items-center gap-2">
+                <span>🏸</span> Đăng Tin Tuyển Người Chơi 1 Chạm
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Chủ kèo có sân đăng bài công khai: Môn thể thao (Cầu lông, Pickleball, Bóng đá), Địa điểm, Thời gian thi đấu, Số lượng người cần tuyển và chi phí chia đều minh bạch.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-amber-500">
+              <h3 class="font-bold text-sm text-amber-500 flex items-center gap-2">
+                <span>🎯</span> Kiểm Soát Trình Độ Kỹ Năng (Skill Level DUPR)
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Hiển thị thang điểm trình độ (VD: Cầu lông phong trào, Pickleball DUPR 2.5 - 3.5), hạn chế tối đa tình trạng "lệch kèo" làm mất hứng thú thi đấu.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-blue-500">
+              <h3 class="font-bold text-sm text-blue-500 flex items-center gap-2">
+                <span>📩</span> Quy Trình Join Request & Duyệt Trực Quan
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Người xem chỉ cần bấm "Gửi yêu cầu" để tham gia. Chủ bài nhận thông báo tức thời, xem hồ sơ người xin vào kèo và duyệt/từ chối trực tiếp trên ứng dụng.
+              </p>
+            </div>
+          </div>
+
+          <!-- Uncropped Phone Mockup (col-span-5) -->
+          <div class="md:col-span-5 flex flex-col items-center">
+            <!-- View switcher tabs -->
+            <div class="flex items-center gap-2 mb-2">
+              <button id="btn-s6-feed" onclick="switchSlide6('feed')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all">
+                👥 Bảng Tin Ghép Kèo
+              </button>
+              <button id="btn-s6-create" onclick="switchSlide6('create')" class="px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                ✍️ Form Đăng Tuyển
+              </button>
+            </div>
+
+            <!-- Phone bezel -->
+            <div class="phone-mockup-frame cursor-pointer group" onclick="openLightbox(document.getElementById('slide6-img').src, 'Mạng Xã Hội Ghép Kèo & Tuyển Thành Viên')" title="Nhấp để phóng to Retina 2x">
+              <div class="phone-notch"></div>
+              <img id="slide6-img" src="screenshots/slide_community_feed.png" alt="Community Feed" class="max-h-[440px] w-auto object-contain shadow-2xl transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_community_feed.png';">
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full pointer-events-none flex items-center gap-1 shadow-lg">
+                🔍 Bấm phóng to
+              </div>
+            </div>
+            <div class="text-[10px] text-[var(--text-muted)] font-mono mt-1.5">
+              100% Uncropped • Click ảnh để phóng to
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 7: PHÂN HỆ CHỦ SÂN & ADMIN (BẠN 3)    -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="7" data-speaker="Tưởng Hoàn Thiện" data-role="Chủ sân & Web Admin">
+      <div class="max-w-6xl mx-auto w-full space-y-3">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">06 • Vận Hành & Quản Trị</span>
+            <h2 class="text-3xl font-black">Cổng Chủ Sân (Partner) & Web Admin Portal</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">Role Isolation</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-5 items-stretch">
+          <!-- Left: Partner Mobile (col-span-5) -->
+          <div class="md:col-span-5 glass-card p-4 space-y-2.5 border-t-4 border-amber-500 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-[var(--card-border)]">
+                <span class="font-bold text-sm text-[var(--text-main)] flex items-center gap-1.5">
+                  <span>📱</span> Chế Độ Đối Tác (Mobile Partner)
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 font-mono font-bold">Partner Mode</span>
+              </div>
+              <ul class="text-[11px] space-y-1 text-[var(--text-muted)]">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Lịch Sân:</strong> Xem khách đặt và khóa bảo trì tức thì trên app.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Soát Vé POS:</strong> Quét QR trên vé khách để xác nhận check-in.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Doanh Thu:</strong> Thống kê tiền chuyển khoản và phụ phí quầy.</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- View switcher pills & Phone Bezel -->
+            <div class="flex flex-col items-center pt-1">
+              <div class="flex items-center gap-1.5 mb-2">
+                <button id="btn-s7-m-sched" onclick="switchSlide7Mobile('sched')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-white shadow-sm transition-all">
+                  📅 Lịch Sân
+                </button>
+                <button id="btn-s7-m-pos" onclick="switchSlide7Mobile('pos')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                  📷 Soát Vé POS
+                </button>
+                <button id="btn-s7-m-rev" onclick="switchSlide7Mobile('rev')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                  💰 Doanh Thu
+                </button>
+              </div>
+
+              <div class="phone-mockup-frame cursor-pointer group" onclick="openLightbox(document.getElementById('slide7-mobile-img').src, 'Giao Diện Đối Tác Chủ Sân (Mobile Partner)')" title="Nhấp để phóng to Retina 2x">
+                <div class="phone-notch"></div>
+                <img id="slide7-mobile-img" src="screenshots/slide_owner_schedule.png" alt="Owner Mobile Matrix" class="max-h-[300px] w-auto object-contain shadow-xl transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_owner_schedule.png';">
+                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
+                  🔍 Phóng to
+                </div>
+              </div>
+              <div class="text-[9px] text-[var(--text-muted)] font-mono mt-1">100% Uncropped • 3 Màn Hình</div>
+            </div>
+          </div>
+
+          <!-- Right: Web Admin Portal (col-span-7) -->
+          <div class="md:col-span-7 glass-card p-4 space-y-2.5 border-t-4 border-blue-500 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-[var(--card-border)]">
+                <span class="font-bold text-sm text-[var(--text-main)] flex items-center gap-1.5">
+                  <span>🖥️</span> Cổng Web Quản Trị Trung Tâm (Web Admin Portal)
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-600 font-mono font-bold">React 19 + Vite • Cổng 5173</span>
+              </div>
+              <ul class="text-[11px] space-y-1 text-[var(--text-muted)]">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Điều Hành Tổng Thể:</strong> Báo cáo GMV, công suất lấp đầy và quản lý 9 cụm sân.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Đồng Bộ 2 Chiều:</strong> Khóa sân sửa chữa từ Web, app mobile đổi màu bận sau &lt; 1 giây.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Giám Sát AI:</strong> Theo dõi log tương tác chatbot, tinh chỉnh System Prompt và FAQ.</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Web switcher tabs & Browser Mockup -->
+            <div class="flex flex-col pt-1">
+              <div class="flex items-center gap-1.5 mb-2">
+                <button id="btn-s7-w-dash" onclick="switchSlide7Web('dash')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-500 text-white shadow-sm transition-all">
+                  📊 Dashboard GMV
+                </button>
+                <button id="btn-s7-w-venues" onclick="switchSlide7Web('venues')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                  🏟️ Quản Lý Cụm Sân
+                </button>
+                <button id="btn-s7-w-bot" onclick="switchSlide7Web('bot')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all">
+                  🤖 Giám Sát Chatbot AI
+                </button>
+              </div>
+
+              <!-- Browser Mockup Bezel with Mac dots -->
+              <div class="browser-mockup-frame cursor-pointer group" onclick="openLightbox(document.getElementById('slide7-web-img').src, 'Cổng Quản Trị Web Admin Trung Tâm (React 19)')" title="Nhấp để phóng to Retina 2x">
+                <div class="px-3 py-1.5 bg-slate-900 border-b border-slate-700/60 flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  </div>
+                  <div class="text-[10px] font-mono text-slate-400 px-3 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/50 truncate max-w-xs">
+                    http://localhost:5173/admin/dashboard
+                  </div>
+                  <div class="text-[10px] font-mono text-emerald-400 font-bold">200 OK</div>
+                </div>
+                <div class="p-1 bg-slate-950 flex items-center justify-center">
+                  <img id="slide7-web-img" src="screenshots/slide_admin_dashboard.png" alt="Web Admin Dashboard" class="w-full max-h-[265px] object-contain transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_admin_dashboard.png';">
+                </div>
+              </div>
+              <div class="text-[9px] text-[var(--text-muted)] font-mono mt-1 text-center">100% Uncropped Browser View • Click để xem full màn hình</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 8: SƠ ĐỒ QUY TRÌNH CHATBOT (BẠN 4)    -->
+    <!-- (ĐÂY LÀ SLIDE VẼ QUY TRÌNH THEO YÊU CẦU)   -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="8" data-speaker="Nguyễn Phan Ngọc Trưởng" data-role="Kiến trúc AI & Sơ đồ Quy trình">
+      <div class="max-w-6xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">07 • Trọng Tâm Kỹ Thuật AI</span>
+            <h2 class="text-3xl font-black">Sơ Đồ Quy Trình Xử Lý AI Chatbot (Dual-Mode Architecture)</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-amber-500/20 text-amber-600 border border-amber-500/30">Action Card Protocol</span>
+        </div>
+
+        <!-- INTERACTIVE CHATBOT WORKFLOW DIAGRAM -->
+        <div class="glass-card p-5 border border-[var(--card-border)] relative overflow-hidden">
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-center">
+            
+            <!-- Step 1: User Input -->
+            <div class="p-3.5 rounded-2xl bg-[var(--code-bg)] border border-[var(--card-border)] space-y-2 relative">
+              <div class="w-8 h-8 mx-auto rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-sm">1</div>
+              <div class="font-extrabold text-xs text-[var(--text-main)]">Đầu Vào Người Dùng</div>
+              <div class="text-[10px] text-[var(--text-muted)] leading-tight">
+                • Khẩu ngữ tự nhiên<br>
+                • Tiếng Việt không dấu<br>
+                • Ảnh poster giải đấu
+              </div>
+              <div class="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 mt-1 inline-block">
+                "dat san 19h"
+              </div>
+            </div>
+
+            <!-- Arrow 1 to 2 -->
+            <div class="hidden md:flex flex-col items-center justify-center text-[var(--primary)] font-bold text-lg">
+              ➔
+              <span class="text-[9px] font-mono text-[var(--text-muted)]">Input Stream</span>
+            </div>
+
+            <!-- Step 2: Guardrails Layer -->
+            <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2 relative">
+              <div class="w-8 h-8 mx-auto rounded-full bg-rose-500/20 text-rose-600 flex items-center justify-center font-bold text-sm">2</div>
+              <div class="font-extrabold text-xs text-rose-700 dark:text-rose-400">🛡️ Guardrail Layer</div>
+              <div class="text-[10px] text-[var(--text-muted)] leading-tight">
+                • Chặn toán học / code<br>
+                • Chặn chính trị / xúc phạm<br>
+                • Giữ đúng phạm vi thể thao
+              </div>
+              <div class="text-[9px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 mt-1 inline-block">
+                Scope Filter
+              </div>
+            </div>
+
+            <!-- Arrow 2 to 3 -->
+            <div class="hidden md:flex flex-col items-center justify-center text-[var(--primary)] font-bold text-lg">
+              ➔
+              <span class="text-[9px] font-mono text-[var(--text-muted)]">Valid Intent</span>
+            </div>
+
+            <!-- Step 3: Dual-Mode Intelligence Router -->
+            <div class="p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/10 space-y-2 relative animate-pulse-node">
+              <div class="w-8 h-8 mx-auto rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">3</div>
+              <div class="font-extrabold text-xs text-emerald-700 dark:text-emerald-300">Dual-Mode Router</div>
+              <div class="text-[10px] text-[var(--text-muted)] leading-tight text-left pl-1">
+                <strong>Mode A:</strong> FPT Cloud LLM<br>
+                <strong>Mode B:</strong> Local Smart NLP Fallback (&lt;50ms)
+              </div>
+              <div class="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 mt-1 inline-block">
+                + Clock Injection
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Downwards Connector -->
+          <div class="flex justify-center my-3">
+            <div class="px-4 py-1 rounded-full text-[10px] font-bold bg-[var(--code-bg)] border border-[var(--card-border)] text-[var(--primary)]">
+              ⬇ Trích Xuất Thực Thể (Entity Extraction) & Sinh Dữ Liệu Cấu Trúc (Structured JSON)
+            </div>
+          </div>
+
+          <!-- Bottom Row: Output & Action Card -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Step 4: Action Card Protocol -->
+            <div class="p-3.5 rounded-2xl bg-[var(--code-bg)] border border-[var(--card-border)] flex items-start gap-3">
+              <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold text-sm shrink-0">4</div>
+              <div class="space-y-1 text-left">
+                <div class="font-extrabold text-xs text-[var(--text-main)]">Giao Thức Action Card Protocol</div>
+                <p class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                  Thay vì sinh text markdown thuần dễ vỡ giao diện trên smartphone, AI tạo ra đối tượng <code class="text-purple-600 font-bold">ChatBookingCard</code> dạng Widget Native hoàn chỉnh.
+                </p>
+              </div>
+            </div>
+
+            <!-- Step 5: HITL Human-In-The-Loop Confirmation -->
+            <div class="p-3.5 rounded-2xl bg-[var(--code-bg)] border border-[var(--card-border)] flex items-start gap-3">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">5</div>
+              <div class="space-y-1 text-left">
+                <div class="font-extrabold text-xs text-[var(--text-main)]">Human-In-The-Loop (HITL)</div>
+                <p class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                  Người dùng bấm <strong>"Xác nhận đặt sân"</strong> ngay trên khung chat ➔ Kích hoạt hộp thoại VietQR ➔ Ghi nhận vé vào SQLite mà không cần rời màn hình chat.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-center text-[var(--text-muted)] italic">
+          💡 Thiết kế kiến trúc giải quyết triệt để 2 vấn đề lớn: Triệt tiêu ảo giác thời gian và đảm bảo hoạt động 99.9% khi mạng chập chờn.
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 9: ĐIỂM ĐỘT PHÁ CỦA AI CHATBOT (BẠN 4)-->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="9" data-speaker="Nguyễn Phan Ngọc Trưởng" data-role="Đột phá AI & Đa kênh">
+      <div class="max-w-6xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">08 • Điểm Sáng Công Nghệ</span>
+            <h2 class="text-3xl font-black">Khẩu Ngữ Tự Nhiên & Multi-turn Context</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">3.0 Phút</span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-6 items-center">
+          <!-- Chatbot Live Screenshot (col-span-5) -->
+          <div class="md:col-span-5 flex flex-col items-center">
+            <div class="text-[11px] font-mono text-emerald-500 font-bold mb-2 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>🤖 Trợ Lý Đặt Sân Tự Động • Native Card</span>
+            </div>
+
+            <!-- Phone bezel -->
+            <div class="phone-mockup-frame cursor-pointer group" onclick="openLightbox(this.querySelector('img').src, 'Trợ Lý AI Đặt Sân Tự Động Với Thẻ Native')" title="Nhấp để phóng to Retina 2x">
+              <div class="phone-notch"></div>
+              <img src="screenshots/slide_chatbot_proposal.png" alt="Chatbot Proposal" class="max-h-[440px] w-auto object-contain shadow-2xl transition-transform group-hover:scale-[1.01]" onerror="this.src='e2e_playwright/screenshots/slide_chatbot_proposal.png';">
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[10px] font-bold px-3 py-1 rounded-full pointer-events-none flex items-center gap-1 shadow-lg">
+                🔍 Bấm phóng to
+              </div>
+            </div>
+            <div class="text-[10px] text-[var(--text-muted)] font-mono mt-1.5">
+              100% Uncropped • Click ảnh để phóng to
+            </div>
+          </div>
+
+          <!-- Key Breakthroughs (col-span-7) -->
+          <div class="md:col-span-7 space-y-3">
+            <div class="glass-card p-4 space-y-1.5 border-l-4" style="border-left-color: var(--primary);">
+              <h3 class="font-bold text-sm text-[var(--primary)] flex items-center gap-2">
+                <span>🗣️</span> Bóc Tách Khẩu Ngữ Không Dấu Linh Hoạt
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Người dùng gõ: <code class="font-bold text-emerald-600 bg-[var(--code-bg)] px-1 py-0.5 rounded">"dat san cau long tao dan toi nay 7h toi"</code> ➔ AI tự động trích xuất: Môn <em>Cầu lông</em>, Cụm <em>Tao Đàn</em>, Ngày <em>Hôm nay</em>, Giờ <em>19:00 - 20:00</em>.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-blue-500">
+              <h3 class="font-bold text-sm text-blue-500 flex items-center gap-2">
+                <span>🔄</span> Ngữ Cảnh Đa Bước (Context-Aware Memory)
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Người dùng chat tiếp: <em>"Lấy cho mình thêm 2 chai Pocari và 1 ống cầu"</em> ➔ AI tự động cộng dồn phụ phí vào thẻ đang mở mà không bắt người dùng chọn lại từ đầu.
+              </p>
+            </div>
+
+            <div class="glass-card p-4 space-y-1.5 border-l-4 border-purple-500">
+              <h3 class="font-bold text-sm text-purple-500 flex items-center gap-2">
+                <span>👁️</span> Multimodal Vision (Phân Tích Poster Kèo)
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                Người dùng chụp ảnh áp phích giải đấu hoặc ảnh poster giao lưu ➔ Chatbot tự bóc tách thông tin ngày, giờ, địa điểm để tạo ngay bài đăng tuyển thành viên trên app.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 10: TỔNG KẾT & KẾ HOẠCH TƯƠNG LAI     -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="10" data-speaker="Cả Nhóm" data-role="Tổng kết & Định hướng">
+      <div class="max-w-5xl mx-auto w-full space-y-5">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--primary);">09 • Đánh Giá Đồ Án</span>
+            <h2 class="text-3xl font-black">Kết Quả Đạt Được & Lộ Trình Phát Triển</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">Summary</span>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-5">
+          <!-- Achieved -->
+          <div class="glass-card p-5 space-y-3 border-t-4 border-emerald-500">
+            <h3 class="font-bold text-base text-[var(--text-main)] flex items-center gap-2">
+              <span>✅</span> Kết Quả Nghiệm Thu Đạt Được
+            </h3>
+            <ul class="text-xs space-y-2.5 text-[var(--text-muted)]">
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 font-bold">✔</span>
+                <span>Hoàn thiện 100% ứng dụng di động Flutter trên Android, iOS và Chrome Web.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 font-bold">✔</span>
+                <span>Tích hợp thanh toán VietQR động và CSDL vé SQLite phục vụ xuất trình offline.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 font-bold">✔</span>
+                <span>Mạng xã hội ghép kèo cộng đồng giải quyết dứt điểm bài toán thiếu chân thi đấu.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 font-bold">✔</span>
+                <span>Trợ lý AI Dual-Mode đạt độ trễ &lt; 50ms khi fallback, bảo vệ bằng Guardrails 2 lớp.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 font-bold">✔</span>
+                <span>Bộ kiểm thử tự động <strong>32 Test Playwright E2E</strong> đạt tỷ lệ Pass tuyệt đối 100%.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Future Roadmap -->
+          <div class="glass-card p-5 space-y-3 border-t-4 border-blue-500">
+            <h3 class="font-bold text-base text-[var(--text-main)] flex items-center gap-2">
+              <span>🚀</span> Lộ Trình Nâng Cấp Tương Lai
+            </h3>
+            <ul class="text-xs space-y-2.5 text-[var(--text-muted)]">
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 font-bold">➜</span>
+                <span><strong>Hybrid AI On-Device:</strong> Tích hợp model siêu nhẹ (TinyLLM) chạy trực tiếp offline phục vụ gợi ý thói quen tập luyện cá nhân.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 font-bold">➜</span>
+                <span><strong>Bank Webhook Automation:</strong> Kết nối trực tiếp API Casso/SePAY để tự động gạch nợ hóa đơn tức thì trong 2 giây.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 font-bold">➜</span>
+                <span><strong>Hệ Thống Giải Đấu Tự Động:</strong> Tự động bốc thăm chia bảng, tính điểm Elo và xếp hạng VĐV phong trào toàn thành phố.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Thank you card -->
+        <div class="glass-card p-4 text-center border border-[var(--primary)]" style="background: var(--primary-light);">
+          <div class="font-extrabold text-sm text-[var(--text-main)]">
+            Nhóm 3 người xin chân thành cảm ơn ThS. Nguyễn Mạnh Hùng & Hội đồng chấm thi!
+          </div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">
+            Kính mời Quý Thầy/Cô bước vào phiên Hỏi & Đáp Phản Biện (Q&A Defense)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 11: BỘ CÂU HỎI PHẢN BIỆN (Q&A CHEAT)   -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="11" data-speaker="Dự phòng Phản biện Q&A" data-role="Hỏi đáp Hội đồng">
+      <div class="max-w-5xl mx-auto w-full space-y-4">
+        <div class="border-b border-[var(--card-border)] pb-2 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-500">PHỤ LỤC • PHẢN BIỆN HỘI ĐỒNG</span>
+            <h2 class="text-2xl font-black">Bộ Câu Hỏi & Đáp Án Trọng Tâm (Q&A Defense)</h2>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full font-mono font-bold bg-[var(--code-bg)]">Dự Phòng</span>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-3 text-xs">
+          <!-- Q1 -->
+          <div class="glass-card p-3 space-y-1.5 border-l-4 border-emerald-500">
+            <div class="font-bold text-[var(--text-main)]">❓ Q1: Tại sao có cả SQLite lẫn file sync_store.json?</div>
+            <div class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+              <strong>👉 Trả lời (Lê Quốc Anh):</strong> SQLite lưu trữ vé cá nhân cục bộ đảm bảo **Offline-First** khi ra sân mất sóng 4G. `sync_store.json` đóng vai trò kho trung gian ở tầng Gateway đồng bộ 2 chiều tức thì với Web Admin.
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="glass-card p-3 space-y-1.5 border-l-4 border-amber-500">
+            <div class="font-bold text-[var(--text-main)]">❓ Q2: Tranh chấp 2 người cùng bấm đặt 1 slot (Concurrency)?</div>
+            <div class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+              <strong>👉 Trả lời (Đỗ Minh Nhật):</strong> Áp dụng cơ chế **Hold-Lock với Timeout 15 phút**. Khi User A tiến hành thanh toán, slot chuyển màu vàng giữ chỗ, User B thấy bận. Sau 15p không trả tiền, slot tự động nhả ra.
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="glass-card p-3 space-y-1.5 border-l-4 border-blue-500">
+            <div class="font-bold text-[var(--text-main)]">❓ Q3: Làm sao đảm bảo dữ liệu Web Admin và Mobile App đồng bộ?</div>
+            <div class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+              <strong>👉 Trả lời (Tưởng Hoàn Thiện):</strong> Sử dụng `VenueSyncService` chạy cơ chế **Reactive Event Bus kết hợp Polling ngầm**. Web Admin sử dụng Vite Plugin Middleware bắt sự kiện tức thời, độ lệch &lt; 1s.
+            </div>
+          </div>
+
+          <!-- Q4 -->
+          <div class="glass-card p-3 space-y-1.5 border-l-4 border-purple-500">
+            <div class="font-bold text-[var(--text-main)]">❓ Q4: Mất mạng hoặc API AI Cloud nghẽn thì Chatbot có chết không?</div>
+            <div class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+              <strong>👉 Trả lời (Nguyễn Phan Ngọc Trưởng):</strong> Kiến trúc **Dual-Mode Hybrid**: Timeout API 3.5s tự động fallback sang **Local Smart Intent Engine** bằng Regex NLP nội bộ, phản hồi trong **50ms** không bao giờ đơ app.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM BAR / NAVIGATION -->
+  <footer class="fixed bottom-0 left-0 right-0 h-12 z-50 px-6 flex items-center justify-between border-t border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-md">
+    <!-- Slide Progress Bar & Numbers -->
+    <div class="flex items-center gap-3">
+      <div class="font-mono text-xs font-bold text-[var(--text-main)]">
+        <span id="current-slide-num">01</span> / <span id="total-slides-num">11</span>
+      </div>
+      <div class="w-24 sm:w-48 h-1.5 rounded-full bg-[var(--card-border)] overflow-hidden">
+        <div id="slide-progress" class="h-full rounded-full transition-all duration-300" style="background: var(--primary); width: 9%;"></div>
+      </div>
+    </div>
+
+    <!-- Slide Topic Title -->
+    <div id="slide-topic-display" class="hidden md:block text-xs font-semibold text-[var(--text-muted)] truncate max-w-md">
+      Trang Bìa Đồ Án SportHub
+    </div>
+
+    <!-- Arrow Navigation Buttons -->
+    <div class="flex items-center gap-1.5">
+      <button onclick="prevSlide()" class="px-3 py-1 rounded-lg border border-[var(--card-border)] hover:bg-[var(--primary-light)] text-xs font-bold transition-all" title="Slide trước (Phím ⬅ / Mũi tên trái)">
+        ◀ Trước
+      </button>
+      <button onclick="nextSlide()" class="px-3.5 py-1 rounded-lg bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] text-xs font-bold transition-all shadow-sm shadow-emerald-500/20" title="Slide tiếp (Phím ➡ / Mũi tên phải / Space)">
+        Tiếp ▶
+      </button>
+    </div>
+  </footer>
+
+  <!-- SPEAKER NOTES POPUP PANEL (TOGGLEABLE) -->
+  <aside id="speaker-notes-panel" class="hidden fixed bottom-14 right-6 w-96 max-h-[420px] z-50 glass-card p-4 shadow-2xl border border-[var(--card-border)] flex flex-col space-y-2">
+    <div class="flex items-center justify-between pb-2 border-b border-[var(--card-border)]">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-main)]">Lời Thoại Diễn Thuyết</span>
+      </div>
+      <button onclick="toggleSpeakerNotes()" class="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]">✕</button>
+    </div>
+    <div class="text-[11px] font-mono text-[var(--primary)] font-bold" id="note-speaker-role">
+      Người nói: Lê Quốc Anh
+    </div>
+    <div id="note-content" class="text-xs text-[var(--text-muted)] overflow-y-auto leading-relaxed space-y-2 pr-1 flex-1">
+      <!-- Dynamic notes content inserted by JS -->
+    </div>
+  </aside>
+
+  <!-- THUMBNAILS MODAL (GRID VIEW) -->
+  <div id="thumbnails-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm p-8 flex flex-col justify-center items-center">
+    <div class="w-full max-w-4xl glass-card p-6 max-h-[85vh] flex flex-col space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--card-border)]">
+        <h3 class="font-bold text-base text-[var(--text-main)]">📑 Danh Mục Slide Báo Cáo (Nhấp để chuyển nhanh)</h3>
+        <button onclick="toggleThumbnails()" class="text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]">✕ Đóng (G)</button>
+      </div>
+      <div id="thumbnails-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto p-1">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL (FULLSCREEN HIGH-RES IMAGE ZOOM) -->
+  <div id="image-lightbox" class="hidden fixed inset-0 z-[100] bg-black/85 backdrop-blur-md p-4 md:p-8 flex flex-col justify-center items-center transition-all duration-300" onclick="closeLightbox(event)">
+    <div class="relative max-w-5xl max-h-[92vh] flex flex-col items-center" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between w-full pb-2 text-white/90 text-sm font-semibold">
+        <span id="lightbox-title" class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Chi tiết giao diện ứng dụng</span>
+        </span>
+        <button onclick="closeLightbox()" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors">
+          ✕ Đóng (ESC)
+        </button>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-900 flex items-center justify-center p-2">
+        <img id="lightbox-img" src="" alt="Enlarged screenshot" class="max-h-[82vh] max-w-[90vw] object-contain rounded-xl select-none">
+      </div>
+      <div class="text-[11px] text-white/60 mt-2 font-mono">
+        💡 Nhấn ESC hoặc click ra ngoài để đóng • Kéo cuộn chuột hoặc xem chi tiết Retina 2x
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT SLIDE CONTROLLER -->
+  <script>
+    let currentSlide = 1;
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const totalSlides = slides.length;
+
+    // SPEAKER NOTES DATABASE EXTRACTED FROM KICH_BAN_THUYET_TRINH_CUOI_KY_4_NGUOI.md
+    const speakerNotes = {
+      1: `<strong>Lê Quốc Anh (Trưởng nhóm):</strong><br>
+          "Kính thưa Thầy Nguyễn Mạnh Hùng và các bạn sinh viên, em xin đại diện cho Nhóm 3 người gồm 4 thành viên: Lê Quốc Anh, Đỗ Minh Nhật, Tưởng Hoàn Thiện và Nguyễn Phan Ngọc Trưởng trình bày đồ án tốt nghiệp môn Lập trình Thiết bị Di động với đề tài: SportHub - Nền tảng Đặt sân thể thao thông minh & Ghép kèo AI."`,
+      
+      2: `<strong>Lê Quốc Anh (Trưởng nhóm):</strong><br>
+          "Hiện nay phong trào Cầu lông, Pickleball tại TP.HCM đang bùng nổ, nhưng người chơi gặp 2 nghịch lý lớn: Một là cháy sân giờ cao điểm 17h-21h, hai là có sân nhưng thiếu người đánh cùng hoặc bị bùng kèo. Về phía chủ sân, việc ghi sổ thủ công gây chồng chéo lịch và thất thoát phụ phí. SportHub ra đời để số hóa toàn diện quy trình này."`,
+      
+      3: `<strong>Lê Quốc Anh (Trưởng nhóm):</strong><br>
+          "Về kiến trúc, ứng dụng tuân thủ Clean Architecture (Domain - Data - Presentation) với BLoC & ValueNotifier. Tích hợp CSDL SQLite cục bộ (sporthub_local.db) phục vụ xuất trình vé offline khi mất sóng, kết hợp Sync Gateway đồng bộ 2 chiều thời gian thực với Web Admin. Nhóm đã chạy kiểm thử tự động 32/32 Test Playwright E2E Pass 100%."`,
+      
+      4: `<strong>Đỗ Minh Nhật:</strong><br>
+          "Về phía khách hàng, SportHub thiết kế chuẩn Material 3 với Dark/Light Mode bảo vệ mắt khi chơi đêm. Điểm nhấn là Ma trận giờ trực quan (Visual Court Matrix) 16 ca sân với 3 trạng thái màu sắc và thuật toán Dynamic Tiered Pricing tự điều chỉnh theo giờ cao điểm. Khách có thể chọn thêm nước Pocari, vợt và tính tiền tức thì."`,
+      
+      5: `<strong>Đỗ Minh Nhật:</strong><br>
+          "SportHub tích hợp thư viện tạo mã VietQR chuẩn NAPAS 247 động với đầy đủ nội dung đơn đặt. Đi kèm là cơ chế Concurrency Control giữ chỗ 15 phút (Hold-Lock) chống tranh chấp ca. Khi giao dịch xong, vé lập tức lưu vào SQLite để người dùng ra sân không cần 4G/WiFi vẫn mở được mã QR soát vé."`,
+      
+      6: `<strong>Tưởng Hoàn Thiện:</strong><br>
+          "Để giữ chân người dùng, SportHub xây dựng Bảng tin Ghép kèo Cộng đồng. Người chơi đăng bài tuyển thành viên công khai trình độ (DUPR 2.5 - 3.5) và chi phí chia đều. Người xem chỉ cần 1 chạm để gửi Join Request và chủ bài có quyền duyệt/từ chối trực tiếp trên điện thoại."`,
+      
+      7: `<strong>Tưởng Hoàn Thiện:</strong><br>
+          "Hệ thống phân quyền Role Isolation chặt chẽ cho Đối tác Chủ Sân: Trên app có Tab Lịch Sân, Tab Soát Vé quét mã QR và Tab Doanh thu. Đi kèm là Cổng Web Admin (React 19 + Vite) đồng bộ 2 chiều qua Gateway: Khóa sân sửa chữa từ Web Admin thì trên điện thoại lập tức đổi màu bận sau chưa đầy 1 giây."`,
+      
+      8: `<strong>Nguyễn Phan Ngọc Trưởng:</strong><br>
+          "Kính thưa Thầy/Cô, đây là sơ đồ quy trình AI Chatbot của SportHub: Khi người dùng nhắn tin, Layer 1 Guardrail lập tức lọc các câu hỏi toán học hay code để giữ đúng phạm vi thể thao. Sau đó Dual-Mode Router quyết định gửi lên FPT Cloud LLM hoặc fallback sang Local NLP trong vòng 50ms nếu mất mạng. Realtime Clock được tiêm vào prompt chống ảo giác năm cũ, sinh ra Thẻ Đặt Sân Native (Action Card Protocol) cho người dùng 1 chạm xác nhận."`,
+      
+      9: `<strong>Nguyễn Phan Ngọc Trưởng:</strong><br>
+          "Chatbot hiểu khẩu ngữ tự nhiên không dấu như 'dat san cau long tao dan toi nay 7h toi'. Đặc biệt có trí nhớ ngữ cảnh đa bước (Multi-turn Context): Khi nhắn thêm 'lấy 2 chai pocari', bot tự cộng dồn vào thẻ đang mở. Tính năng Multimodal Vision còn cho phép chụp ảnh poster giải đấu để AI tự trích xuất thành bài đăng tuyển người."`,
+      
+      10: `<strong>Cả Nhóm (Đại diện kết luận):</strong><br>
+          "Dự án SportHub là sản phẩm hoàn thiện từ UI/UX Mobile, CSDL offline SQLite, đồng bộ Web Admin đến AI thực chiến. Tương lai nhóm sẽ phát triển mô hình Hybrid AI On-device siêu nhẹ và tự động hóa gạch nợ qua Bank Webhook. Nhóm 3 người xin chân thành cảm ơn Thầy Nguyễn Mạnh Hùng và kính mời Quý Thầy bước vào phiên phản biện Q&A!"`,
+      
+      11: `<strong>Phụ lục Phản biện Q&A:</strong><br>
+          Dành sẵn cho 4 thành viên tra cứu nhanh đáp án khi Thầy hỏi về: SQLite vs JSON Sync, Concurrency Hold-Lock 15 phút, Polling Event Bus, và Fallback Dual-Mode 50ms của Chatbot AI.`
+    };
+
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        if (idx + 1 === currentSlide) {
+          s.classList.add('active');
+        } else {
+          s.classList.remove('active');
+        }
+      });
+
+      // Update counters & progress
+      document.getElementById('current-slide-num').innerText = String(currentSlide).padStart(2, '0');
+      document.getElementById('total-slides-num').innerText = String(totalSlides).padStart(2, '0');
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      document.getElementById('slide-progress').style.width = `${progressPercent}%`;
+
+      // Update speaker badge
+      const activeSlideEl = slides[currentSlide - 1];
+      const speakerName = activeSlideEl.getAttribute('data-speaker') || 'SportHub Team';
+      const speakerRole = activeSlideEl.getAttribute('data-role') || 'Báo cáo';
+      document.getElementById('speaker-name').innerText = speakerName;
+      document.getElementById('slide-topic-display').innerText = `Slide ${currentSlide}: ${speakerRole}`;
+
+      // Update speaker note
+      document.getElementById('note-speaker-role').innerText = `Người nói: ${speakerName} • ${speakerRole}`;
+      document.getElementById('note-content').innerHTML = speakerNotes[currentSlide] || 'Chưa có ghi chú cho slide này.';
+
+      // Update Thumbnails active state
+      document.querySelectorAll('.thumbnail-card').forEach((tb, i) => {
+        if (i + 1 === currentSlide) {
+          tb.classList.add('ring-2', 'ring-emerald-500');
+        } else {
+          tb.classList.remove('ring-2', 'ring-emerald-500');
+        }
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(num) {
+      if (num >= 1 && num <= totalSlides) {
+        currentSlide = num;
+        updateSlide();
+        const modal = document.getElementById('thumbnails-modal');
+        if (!modal.classList.contains('hidden')) {
+          toggleThumbnails();
+        }
+      }
+    }
+
+    // THEME SWITCHER
+    function setTheme(themeName) {
+      document.documentElement.setAttribute('data-theme', themeName);
+      localStorage.setItem('sporthub_slide_theme', themeName);
+      
+      // Update buttons style
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        if (btn.getAttribute('data-t') === themeName) {
+          btn.classList.add('bg-[var(--card-bg)]', 'shadow-sm', 'text-[var(--primary)]');
+        } else {
+          btn.classList.remove('bg-[var(--card-bg)]', 'shadow-sm', 'text-[var(--primary)]');
+        }
+      });
+    }
+
+    // SPEAKER NOTES TOGGLE
+    function toggleSpeakerNotes() {
+      const panel = document.getElementById('speaker-notes-panel');
+      panel.classList.toggle('hidden');
+    }
+
+    // THUMBNAILS TOGGLE
+    function toggleThumbnails() {
+      const modal = document.getElementById('thumbnails-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    // FULLSCREEN TOGGLE
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // LIGHTBOX CONTROLLER
+    function openLightbox(src, title = 'Chi tiết giao diện') {
+      const modal = document.getElementById('image-lightbox');
+      const img = document.getElementById('lightbox-img');
+      const titleEl = document.getElementById('lightbox-title');
+      if (modal && img && titleEl) {
+        img.src = src;
+        titleEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span>${title}</span>`;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeLightbox() {
+      const modal = document.getElementById('image-lightbox');
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    }
+
+    // SLIDE 4 SWITCHER
+    function switchSlide4(view) {
+      const img = document.getElementById('slide4-img');
+      const btnMatrix = document.getElementById('btn-s4-matrix');
+      const btnFilter = document.getElementById('btn-s4-filter');
+      if (!img || !btnMatrix || !btnFilter) return;
+      if (view === 'matrix') {
+        img.src = 'screenshots/slide_court_matrix.png';
+        btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnFilter.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      } else {
+        img.src = 'screenshots/slide_sport_filter.png';
+        btnFilter.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      }
+    }
+
+    // SLIDE 5 SWITCHER
+    function switchSlide5(view) {
+      const img = document.getElementById('slide5-img');
+      const btnQr = document.getElementById('btn-s5-vietqr');
+      const btnTicket = document.getElementById('btn-s5-ticket');
+      if (!img || !btnQr || !btnTicket) return;
+      if (view === 'vietqr') {
+        img.src = 'screenshots/slide_vietqr_modal.png';
+        btnQr.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnTicket.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      } else {
+        img.src = 'screenshots/slide_my_tickets.png';
+        btnTicket.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnQr.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      }
+    }
+
+    // SLIDE 6 SWITCHER
+    function switchSlide6(view) {
+      const img = document.getElementById('slide6-img');
+      const btnFeed = document.getElementById('btn-s6-feed');
+      const btnCreate = document.getElementById('btn-s6-create');
+      if (!img || !btnFeed || !btnCreate) return;
+      if (view === 'feed') {
+        img.src = 'screenshots/slide_community_feed.png';
+        btnFeed.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnCreate.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      } else {
+        img.src = 'screenshots/slide_create_recruitment.png';
+        btnCreate.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--primary)] text-white shadow-sm transition-all';
+        btnFeed.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      }
+    }
+
+    // SLIDE 7 PARTNER MOBILE SWITCHER
+    function switchSlide7Mobile(view) {
+      const img = document.getElementById('slide7-mobile-img');
+      const bSched = document.getElementById('btn-s7-m-sched');
+      const bPos = document.getElementById('btn-s7-m-pos');
+      const bRev = document.getElementById('btn-s7-m-rev');
+      if (!img || !bSched || !bPos || !bRev) return;
+      const activeClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 text-white shadow-sm transition-all';
+      const inactiveClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      bSched.className = inactiveClass;
+      bPos.className = inactiveClass;
+      bRev.className = inactiveClass;
+      if (view === 'sched') {
+        img.src = 'screenshots/slide_owner_schedule.png';
+        bSched.className = activeClass;
+      } else if (view === 'pos') {
+        img.src = 'screenshots/slide_owner_checkin.png';
+        bPos.className = activeClass;
+      } else {
+        img.src = 'screenshots/slide_owner_revenue.png';
+        bRev.className = activeClass;
+      }
+    }
+
+    // SLIDE 7 WEB ADMIN SWITCHER
+    function switchSlide7Web(view) {
+      const img = document.getElementById('slide7-web-img');
+      const bDash = document.getElementById('btn-s7-w-dash');
+      const bVen = document.getElementById('btn-s7-w-venues');
+      const bBot = document.getElementById('btn-s7-w-bot');
+      if (!img || !bDash || !bVen || !bBot) return;
+      const activeClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-500 text-white shadow-sm transition-all';
+      const inactiveClass = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--code-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--card-border)] transition-all';
+      bDash.className = inactiveClass;
+      bVen.className = inactiveClass;
+      bBot.className = inactiveClass;
+      if (view === 'dash') {
+        img.src = 'screenshots/slide_admin_dashboard.png';
+        bDash.className = activeClass;
+      } else if (view === 'venues') {
+        img.src = 'screenshots/slide_admin_venues.png';
+        bVen.className = activeClass;
+      } else {
+        img.src = 'screenshots/slide_admin_chatbot.png';
+        bBot.className = activeClass;
+      }
+    }
+
+    // KEYBOARD NAVIGATION
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'n' || e.key === 'N') {
+        toggleSpeakerNotes();
+      } else if (e.key === 'g' || e.key === 'G') {
+        toggleThumbnails();
+      } else if (e.key === '1') {
+        setTheme('emerald-light');
+      } else if (e.key === '2') {
+        setTheme('dark-obsidian');
+      } else if (e.key === '3') {
+        setTheme('academic-blue');
+      }
+    });
+
+    // BUILD THUMBNAILS GRID
+    function buildThumbnailsGrid() {
+      const grid = document.getElementById('thumbnails-grid');
+      grid.innerHTML = '';
+      slides.forEach((s, idx) => {
+        const num = idx + 1;
+        const speaker = s.getAttribute('data-speaker') || '';
+        const role = s.getAttribute('data-role') || '';
+        const card = document.createElement('div');
+        card.className = `thumbnail-card p-3 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] cursor-pointer hover:scale-105 transition-all text-left text-xs ${num === currentSlide ? 'ring-2 ring-emerald-500' : ''}`;
+        card.onclick = () => goToSlide(num);
+        card.innerHTML = `
+          <div class="flex items-center justify-between font-mono font-bold text-[var(--primary)] text-[10px]">
+            <span>SLIDE ${String(num).padStart(2, '0')}</span>
+            <span>${num === 8 ? '⭐ AI Flow' : ''}</span>
+          </div>
+          <div class="font-bold text-[var(--text-main)] mt-1 truncate">${role}</div>
+          <div class="text-[10px] text-[var(--text-muted)] truncate">${speaker}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('sporthub_slide_theme') || 'emerald-light';
+      setTheme(savedTheme);
+      buildThumbnailsGrid();
+      updateSlide();
+    });
+  </script>
+</body>
+</html>

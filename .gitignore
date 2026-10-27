@@ -36,8 +36,21 @@ symbols/
 # Local configuration
 .metadata
 .mcp.json
+.env
+.env.local
+*.env
 
 # Node / Web Admin
 **/node_modules/
 admin-web/dist/
 admin-web/dist-ssr/
+admin-web/.env
+admin-web/.env.local
+
+# Temporary local artifacts
+flutter_after_login.png
+flutter_web_initial.png
+sporthub_slides.html
+screenshots/
+e2e_playwright/
+admin-web/public/screenshots/

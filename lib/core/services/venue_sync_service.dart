@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../domain/entities/venue.dart';
 import '../state/venue_owner_store.dart';
 import '../utils/seed_data.dart';
+import 'supabase_service.dart';
 
 /// Service for synchronizing venue court availability and status
 /// between the SportHub Admin/Partner Web Portal and the Flutter Mobile App.
@@ -319,6 +320,29 @@ class VenueSyncService {
       );
     } catch (_) {}
 
+    // Synchronize to Supabase PostgreSQL with concurrency safety if configured
+    if (SupabaseService.instance.isConfigured) {
+      try {
+        await SupabaseService.instance.createBookingSafely(
+          bookingId: bookingId,
+          venueId: venueId,
+          courtNumber: courtNumber,
+          courtName: courtName,
+          sport: sport,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+          customerName: customerName,
+          customerPhone: customerPhone,
+          price: totalPrice,
+          paymentMethod: paymentMethod,
+          addOns: addOns,
+        );
+      } catch (e) {
+        debugPrint('⚠️ [VenueSyncService] Supabase createBookingSafely fallback notice: $e');
+      }
+    }
+
     if (!isSyncEnabled) return true;
     if (client == null && isTestEnvironment) return true;
 
@@ -432,6 +456,15 @@ class VenueSyncService {
     try {
       VenueOwnerStore.instance.checkIn(ticketId);
     } catch (_) {}
+
+    // 3. Synchronize check-in to Supabase PostgreSQL if configured
+    if (SupabaseService.instance.isConfigured) {
+      try {
+        await SupabaseService.instance.checkInTicket(ticketId);
+      } catch (e) {
+        debugPrint('⚠️ [VenueSyncService] Supabase checkInTicket fallback notice: $e');
+      }
+    }
 
     if (!isSyncEnabled) return true;
     if (client == null && isTestEnvironment) return true;
@@ -654,12 +687,63 @@ class VenueSyncService {
     });
     // Immediately trigger initial sync
     syncWithServer();
+
+    // Subscribe to Supabase Realtime WebSocket changes if configured
+    if (SupabaseService.instance.isConfigured) {
+      SupabaseService.instance.subscribeToLiveBookings(
+        onInsert: (newRecord) {
+          final id = (newRecord['booking_id'] ?? newRecord['id'])?.toString();
+          if (id != null && !bookingsNotifier.value.any((b) => b['id'] == id)) {
+            final formatted = {
+              'id': id,
+              'bookingId': id,
+              'venueId': newRecord['venue_id'],
+              'courtNumber': newRecord['court_number'],
+              'courtName': newRecord['court_name'],
+              'sport': newRecord['sport'],
+              'date': newRecord['date']?.toString(),
+              'startTime': newRecord['start_time'],
+              'endTime': newRecord['end_time'],
+              'customerName': newRecord['customer_name'],
+              'customerPhone': newRecord['customer_phone'],
+              'price': (newRecord['price'] as num?)?.toDouble() ?? 0.0,
+              'paymentStatus': newRecord['payment_status'] ?? 'pending',
+              'paymentMethod': newRecord['payment_method'] ?? 'vietqr',
+              'checkedIn': newRecord['checked_in'] == true,
+              'addOns': newRecord['add_ons'] is List ? newRecord['add_ons'] : [],
+            };
+            final updated = List<Map<String, dynamic>>.from(bookingsNotifier.value);
+            updated.insert(0, formatted);
+            bookingsNotifier.value = List.unmodifiable(updated);
+          }
+        },
+        onUpdate: (updatedRecord) {
+          final id = (updatedRecord['booking_id'] ?? updatedRecord['id'])?.toString();
+          if (id != null) {
+            final updated = List<Map<String, dynamic>>.from(bookingsNotifier.value);
+            final idx = updated.indexWhere((b) => b['id'] == id || b['bookingId'] == id);
+            if (idx != -1) {
+              updated[idx] = {
+                ...updated[idx],
+                'checkedIn': updatedRecord['checked_in'] == true,
+                'checkedInAt': updatedRecord['checked_in_at'],
+                'paymentStatus': updatedRecord['payment_status'] ?? updated[idx]['paymentStatus'],
+              };
+              bookingsNotifier.value = List.unmodifiable(updated);
+            }
+          }
+        },
+      );
+    }
   }
 
   /// Stops background polling
   void stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
+    if (SupabaseService.instance.isConfigured) {
+      SupabaseService.instance.dispose();
+    }
   }
 
   /// Reset to clean initial state (court 1 of Tao Dan inactive as pre-configured)

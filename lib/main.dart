@@ -42,6 +42,7 @@ import 'core/state/ticket_store.dart';
 import 'presentation/widgets/chat/floating_chat_bubble.dart';
 import 'presentation/widgets/chat/chatbot_bottom_sheet.dart';
 import 'core/services/chatbot_service.dart';
+import 'core/services/supabase_service.dart';
 
 class MainNavigationController {
   static void Function(int index)? switchToTab;
@@ -210,7 +211,9 @@ class UserProfileStore {
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.instance.initialize();
   runApp(const SportHubApp());
 }
 

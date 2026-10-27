@@ -17,6 +17,11 @@ import {
   getTodayDateString,
 } from './seedData';
 import { notificationStore } from './notificationStore';
+import {
+  isSupabaseConfigured,
+  subscribeToLiveBookings,
+  checkInTicketInSupabase,
+} from '../services/supabaseClient';
 
 const STORAGE_KEY = 'sporthub_venue_store_v2';
 
@@ -100,6 +105,13 @@ class VenueStoreEngine {
         window.setInterval(() => {
           this.initSync();
         }, 1500);
+
+        if (isSupabaseConfigured()) {
+          subscribeToLiveBookings(
+            (b) => this.handleExternalBooking(b),
+            (b) => this.handleExternalBookingUpdate(b)
+          );
+        }
       }
     }
   }
@@ -198,6 +210,54 @@ class VenueStoreEngine {
         .catch(() => {});
     }
   }
+
+  public handleExternalBooking = (newBooking: BookingTicket): void => {
+    const exists = this.state.bookings.some((b) => b.id === newBooking.id);
+    if (exists) return;
+
+    this.state.bookings.unshift(newBooking);
+
+    // Update corresponding slot in schedule matrix
+    const targetSlotId = newBooking.slotId;
+    const targetCourtId = newBooking.courtId;
+    const slot = this.state.slots.find(
+      (s) =>
+        s.id === targetSlotId ||
+        (s.courtId === targetCourtId &&
+          (s.startTime === newBooking.timeSlot.split(' - ')[0] ||
+            `${s.startTime} - ${s.endTime}` === newBooking.timeSlot ||
+            s.startTime === newBooking.timeSlot))
+    );
+    if (slot) {
+      slot.status = 'bookedApp';
+      slot.ticketId = newBooking.id;
+      slot.customerName = newBooking.customerName;
+      slot.customerPhone = newBooking.customerPhone;
+    }
+
+    try {
+      notificationStore.addNotification({
+        type: 'booking',
+        title: 'Đặt sân mới qua App 📱',
+        message: `${newBooking.customerName} vừa đặt ${newBooking.courtName} (${newBooking.timeSlot}) tại ${newBooking.venueName}. Mã: ${newBooking.id}`,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      });
+    } catch {
+      // Ignore notification errors in background
+    }
+
+    this.save();
+    this.notify();
+  };
+
+  public handleExternalBookingUpdate = (updatedBooking: BookingTicket): void => {
+    const ticket = this.state.bookings.find((b) => b.id === updatedBooking.id);
+    if (!ticket) return;
+
+    Object.assign(ticket, updatedBooking);
+    this.save();
+    this.notify();
+  };
 
   private save(): void {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -539,6 +599,12 @@ class VenueStoreEngine {
 
     ticket.checkedIn = true;
     ticket.checkedInAt = new Date().toISOString();
+
+    if (isSupabaseConfigured()) {
+      checkInTicketInSupabase(cleanId).catch((err) => {
+        console.warn('[VenueStore] Supabase checkIn background error:', err);
+      });
+    }
 
     this.save();
     this.notify();

@@ -2244,8 +2244,8 @@ export function apiSyncPlugin(): Plugin {
                   for (const b of venueBookings) {
                     if (Array.isArray(b.addOns)) {
                       for (const item of b.addOns) {
-                        const price = Number(item.price || item.unitPrice || 0);
-                        const qty = Number(item.quantity || item.qty || 1);
+                        const price = Number((item as any).price || item.unitPrice || 0);
+                        const qty = Number(item.quantity || (item as any).qty || 1);
                         addOnsRevenue += price * qty;
                         if (item.name) addOnsSet.add(item.name);
                       }
@@ -2340,7 +2340,7 @@ export function apiSyncPlugin(): Plugin {
                   const targetVenueId = context?.venueId || 'venue_01';
                   const targetVenueName = context?.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn';
                   const venueCourts = (store.courts || []).filter((c: any) => c.venueId === targetVenueId);
-                  const venueSlots = (store.slots || []).filter((s: any) => s.venueId === targetVenueId);
+                  const venueSlots = ((store as any).slots || []).filter((s: any) => s.venueId === targetVenueId);
 
                   const totalCourts = venueCourts.length > 0 ? venueCourts.length : 8;
                   const bookedSlots = venueSlots.filter((s: any) => s.status === 'bookedApp' || s.status === 'reservedManual');
