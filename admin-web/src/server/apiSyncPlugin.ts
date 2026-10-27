@@ -1,6 +1,14 @@
 import type { Plugin } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { guardrailIn, guardrailOut } from './guardrails';
+import {
+  handleActionExecute,
+  handleActionCancel,
+  createMockProposal,
+  activeProposals,
+  type ActionProposal,
+} from './actionController';
 
 function stripVietnameseDiacritics(value: string): string {
   const map: Record<string, string> = {
@@ -1333,6 +1341,24 @@ export function apiSyncPlugin(): Plugin {
             try {
               const parsedBody = JSON.parse(bodyStr) as Record<string, unknown>;
               const message = typeof parsedBody.message === 'string' ? parsedBody.message : '';
+
+              const guardrail = guardrailIn(message);
+              if (!guardrail.allowed) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 200;
+                res.end(JSON.stringify({
+                  reply: guardrail.reason,
+                  violation: true,
+                  actionCard: null,
+                  quickSuggestions: [
+                    'Tìm sân cầu lông Q.1 lúc 19h',
+                    'Tìm sân pickleball gần tôi',
+                    'Tìm kèo cầu lông cuối tuần',
+                  ],
+                }));
+                return;
+              }
+
               const context = parsedBody.context && typeof parsedBody.context === 'object'
                 ? parsedBody.context as ChatRequestContext
                 : {};
@@ -2319,11 +2345,92 @@ Quy tắc phản hồi:
                 }
               }
 
+              reply = guardrailOut(reply);
+
+              const hasBookingIntent = isBooking ||
+                lowerMsg.includes('đặt sân') ||
+                lowerMsg.includes('book') ||
+                lowerMsg.includes('giữ chỗ') ||
+                normalizedMsg.includes('dat san') ||
+                normalizedMsg.includes('giu cho');
+
+              let proposal: ActionProposal | undefined = undefined;
+              if (hasBookingIntent) {
+                const effectiveVenueId = actionCard?.venueId || venueId || 'venue_01';
+                const effectiveVenueName = actionCard?.venueName || venueName || 'CLB Cầu Lông Tao Đàn';
+                const effectiveCourtNum = courtNum > 0 ? courtNum : 1;
+                const effectiveCourtId = `court_${effectiveCourtNum}`;
+                const effectiveCourtName = actionCard?.court || `Sân ${effectiveCourtNum}`;
+                const effectiveDate = actionCard?.date || currentDateStr || '2026-10-27';
+                const effectiveTimeSlot = actionCard?.startTime && actionCard?.endTime
+                  ? `${actionCard.startTime} - ${actionCard.endTime}`
+                  : (actionCard?.time
+                      ? `${actionCard.time} - ${(parseInt(actionCard.time.split(':')[0], 10) + 1).toString().padStart(2, '0')}:${actionCard.time.split(':')[1] || '00'}`
+                      : '18:00 - 19:30');
+                const effectivePrice = Number(actionCard?.price || price || 150000);
+
+                proposal = createMockProposal({
+                  venueId: effectiveVenueId,
+                  venueName: effectiveVenueName,
+                  courtId: effectiveCourtId,
+                  courtName: effectiveCourtName,
+                  date: effectiveDate,
+                  timeSlot: effectiveTimeSlot,
+                  price: effectivePrice,
+                });
+                activeProposals.set(proposal.id, proposal);
+              }
+
               res.setHeader('Content-Type', 'application/json');
               res.statusCode = 200;
-              res.end(JSON.stringify({ reply, actionCard, quickSuggestions }));
+              res.end(JSON.stringify({
+                reply,
+                actionCard,
+                quickSuggestions,
+                ...(proposal ? { proposal } : {}),
+              }));
             } catch (err) {
               res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            }
+          });
+          return;
+        }
+
+        // 8b. Chatbot HITL Action Execute
+        if ((url === '/api/chatbot/action/execute' || url.startsWith('/api/chatbot/action/execute?')) && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            try {
+              const parsedBody = bodyStr ? JSON.parse(bodyStr) : {};
+              const result = await handleActionExecute(parsedBody);
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify(result));
+            } catch (err) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            }
+          });
+          return;
+        }
+
+        // 8c. Chatbot HITL Action Cancel
+        if ((url === '/api/chatbot/action/cancel' || url.startsWith('/api/chatbot/action/cancel?')) && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', async () => {
+            try {
+              const parsedBody = bodyStr ? JSON.parse(bodyStr) : {};
+              const result = await handleActionCancel(parsedBody.proposalId || '');
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify(result));
+            } catch (err) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ error: 'Invalid JSON' }));
             }
           });
