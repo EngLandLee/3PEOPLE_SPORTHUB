@@ -982,7 +982,13 @@ class _AuthScreenState extends State<AuthScreen> {
     required String identifier,
     required Color color,
   }) {
+    final keyStr = roleLabel == 'Chủ sân'
+        ? 'quick_login_chusan'
+        : roleLabel == 'Super Admin'
+            ? 'quick_login_admin'
+            : 'quick_login_customer';
     return InkWell(
+      key: Key(keyStr),
       onTap: () {
         setState(() {
           _loginPhoneController.text = identifier;

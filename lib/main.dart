@@ -2661,6 +2661,22 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               targetId: newBookingId,
             ),
           );
+
+          final courtSlotSummary = selectedSlots
+              .map((s) => 'Sân ${s.courtNumber} (${s.startTime} - ${s.endTime})')
+              .join(', ');
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_${DateTime.now().millisecondsSinceEpoch}',
+              title: '⚡ Đơn đặt sân mới qua App',
+              message:
+                  'Khách hàng $custName vừa đặt $courtSlotSummary tại ${widget.venue.name}. Mã vé: $newBookingId.',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
+              targetId: newBookingId,
+            ),
+          );
           context.read<BookingBloc>().add(ClearSelectedSlotsEvent());
           setState(() {
             _slots = _slots.map<TimeSlot>((s) {
@@ -3978,6 +3994,19 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               timestamp: DateTime.now(),
               type: NotificationType.booking,
               role: NotificationRole.player,
+              targetId: newBookingId,
+            ),
+          );
+
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_fixed_${DateTime.now().millisecondsSinceEpoch}',
+              title: '⚡ Đơn đặt lịch cố định mới qua App',
+              message:
+                  'Khách hàng $custName vừa đăng ký lịch cố định $fullDayNames ($_fixedTimeSlot) tại ${widget.venue.name}. Mã vé: $newBookingId.',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
               targetId: newBookingId,
             ),
           );

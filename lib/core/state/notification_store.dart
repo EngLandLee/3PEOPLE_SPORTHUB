@@ -13,6 +13,7 @@ class NotificationStore {
       ValueNotifier<List<AppNotification>>([]);
 
   final Map<String, List<AppNotification>> _userNotifications = {};
+  final List<AppNotification> _ownerNotifications = [];
   String? _currentUserId;
 
   List<AppNotification> get notifications => notificationsNotifier.value;
@@ -46,6 +47,19 @@ class NotificationStore {
       return;
     }
 
+    if (user.isOwner) {
+      final baseList = _userNotifications[user.userId] ?? List<AppNotification>.from(_ownerNotifications);
+      final merged = List<AppNotification>.from(baseList);
+      for (final n in _ownerNotifications) {
+        if (!merged.any((existing) => existing.id == n.id)) {
+          merged.insert(0, n);
+        }
+      }
+      _userNotifications[user.userId] = merged;
+      notificationsNotifier.value = List.unmodifiable(merged);
+      return;
+    }
+
     if (_userNotifications.containsKey(user.userId)) {
       notificationsNotifier.value =
           List.unmodifiable(_userNotifications[user.userId]!);
@@ -54,10 +68,6 @@ class NotificationStore {
 
     if (user.userId == 'user_demo_01') {
       final notifs = _generatePlayerSeedNotifications();
-      _userNotifications[user.userId] = notifs;
-      notificationsNotifier.value = List.unmodifiable(notifs);
-    } else if (user.isOwner) {
-      final notifs = _generateOwnerSeedNotifications();
       _userNotifications[user.userId] = notifs;
       notificationsNotifier.value = List.unmodifiable(notifs);
     } else {
@@ -125,12 +135,33 @@ class NotificationStore {
   }
 
   void addNotification(AppNotification notification) {
+    if (notification.role == NotificationRole.owner ||
+        notification.role == NotificationRole.all) {
+      _ownerNotifications.removeWhere((n) => n.id == notification.id);
+      _ownerNotifications.insert(0, notification);
+      for (final key in _userNotifications.keys) {
+        if (key.contains('owner') || key.contains('partner') || key.contains('admin')) {
+          final list = List<AppNotification>.from(_userNotifications[key] ?? []);
+          list.removeWhere((n) => n.id == notification.id);
+          list.insert(0, notification);
+          _userNotifications[key] = list;
+        }
+      }
+    }
+
     final updated = [notification, ...notificationsNotifier.value];
     notificationsNotifier.value = List.unmodifiable(updated);
     _syncCurrentUserNotifications();
   }
 
   void deleteNotification(String id) {
+    _ownerNotifications.removeWhere((n) => n.id == id);
+    for (final key in _userNotifications.keys) {
+      final list = _userNotifications[key];
+      if (list != null) {
+        _userNotifications[key] = list.where((n) => n.id != id).toList();
+      }
+    }
     final updated =
         notificationsNotifier.value.where((n) => n.id != id).toList();
     notificationsNotifier.value = List.unmodifiable(updated);
@@ -140,11 +171,15 @@ class NotificationStore {
   void clearAll({NotificationRole? role}) {
     if (role == null || role == NotificationRole.all) {
       notificationsNotifier.value = const [];
+      _ownerNotifications.clear();
     } else {
       final updated = notificationsNotifier.value
           .where((n) => n.role != role && n.role != NotificationRole.all)
           .toList();
       notificationsNotifier.value = List.unmodifiable(updated);
+      if (role == NotificationRole.owner) {
+        _ownerNotifications.clear();
+      }
     }
     _syncCurrentUserNotifications();
   }
@@ -229,8 +264,11 @@ class NotificationStore {
     _currentUserId = 'user_demo_01';
     final playerNotifs = _generatePlayerSeedNotifications();
     final ownerNotifs = _generateOwnerSeedNotifications();
-    _userNotifications['user_demo_01'] = playerNotifs;
-    _userNotifications['user_owner_01'] = ownerNotifs;
+    _ownerNotifications.clear();
+    _ownerNotifications.addAll(ownerNotifs);
+    _userNotifications['user_demo_01'] = List<AppNotification>.from(playerNotifs);
+    _userNotifications['user_owner_01'] = List<AppNotification>.from(ownerNotifs);
+    _userNotifications['user_owner_02'] = List<AppNotification>.from(ownerNotifs);
     notificationsNotifier.value = List.unmodifiable([
       ...playerNotifs,
       ...ownerNotifs,
