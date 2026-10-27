@@ -1881,8 +1881,26 @@ class ChatbotService {
         final double manualRevenue =
             manualSlots.fold(0.0, (sum, s) => sum + s.price);
 
-        const double addOnsRevenue = 690000.0;
-        const int addOnsGroups = 4; // Pocari, Aquafina, Quấn cán, Thuê vợt
+        // Real add-ons from synced bookings
+        final bookings = VenueSyncService.instance.bookingsNotifier.value;
+        double addOnsRevenue = 0.0;
+        final addOnNames = <String>{};
+        for (final b in bookings) {
+          final addOnsList = b['addOns'];
+          if (addOnsList is List) {
+            for (final item in addOnsList) {
+              if (item is Map) {
+                final p = (item['price'] ?? item['unitPrice'] ?? 0) as num;
+                final q = (item['quantity'] ?? item['qty'] ?? 1) as num;
+                addOnsRevenue += p.toDouble() * q.toDouble();
+                if (item['name'] != null) {
+                  addOnNames.add(item['name'].toString());
+                }
+              }
+            }
+          }
+        }
+        final addOnsGroups = addOnNames.length;
 
         final int totalCourtBookings = appCount + manualCount;
         final double totalRevenue = appRevenue + manualRevenue + addOnsRevenue;
@@ -1904,14 +1922,18 @@ class ChatbotService {
             ? 'Thưa $ownerName'
             : 'Kính chào $ownerName';
 
+        final addOnsSummaryText = addOnsRevenue > 0
+            ? '• Dịch vụ phụ (Nước, Cầu, Thuê vợt): **$formattedAddOns** ($addOnsGroups dịch vụ)\n'
+            : '• Dịch vụ phụ: **0 đ** (Chưa có dịch vụ phụ phát sinh hôm nay)\n';
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
           text: '📊 **Báo cáo Doanh thu hôm nay ($vName):**\n\n'
               '• $greeting, tổng doanh thu thực tế hôm nay đạt **$formattedTotal** '
-              '(từ $totalCourtBookings lượt đặt sân và dịch vụ phụ).\n'
+              '(từ $totalCourtBookings lượt đặt sân${addOnsRevenue > 0 ? " và $addOnsGroups dịch vụ phụ" : ""}).\n'
               '• Đặt qua SportHub App: **$appCount lượt** ($formattedApp)\n'
               '• Đặt tại quầy / Khách quen: **$manualCount lượt** ($formattedManual)\n'
-              '• Dịch vụ phụ (Nước, Cầu, Thuê vợt): **$formattedAddOns**\n'
+              '$addOnsSummaryText'
               '• Tỷ lệ thanh toán online: **100% qua VietQR**',
           sender: 'assistant',
           timestamp: DateTime.now(),
@@ -1936,9 +1958,9 @@ class ChatbotService {
               ],
               [
                 'Dịch vụ phụ (Nước, Cầu)',
-                '$addOnsGroups nhóm',
+                '$addOnsGroups dịch vụ',
                 formattedAddOns,
-                'Tại quầy'
+                addOnsRevenue > 0 ? 'Tại quầy / App' : 'Chưa có',
               ],
               [
                 'TỔNG DOANH THU',
@@ -2019,22 +2041,8 @@ class ChatbotService {
           ]);
         }
 
-        // Add manual walk-in rows
-        final manualBooked = slots
-            .where((s) => s.status == CourtSlotStatus.reservedManual)
-            .take(2);
-        for (final s in manualBooked) {
-          final sportLabel = s.sportType == 'pickleball'
-              ? 'Pickleball'
-              : (s.sportType == 'football' ? 'Bóng đá' : 'Cầu lông');
-          final startTime = s.timeRange.split(' - ').first;
-          rows.add([
-            'QUAY-${s.slotId.length >= 4 ? s.slotId.substring(s.slotId.length - 4) : "00"}',
-            s.customerName ?? 'Khách tại quầy',
-            '${s.courtName} ($sportLabel)',
-            startTime,
-            'Đã nhận sân',
-          ]);
+        if (rows.isEmpty) {
+          rows.add(['-', 'Chưa có vé nào', '-', '-', 'Trống']);
         }
 
         textBuffer.writeln(

@@ -151,6 +151,8 @@ class VenueOwnerStore {
     return true;
   }
 
+  bool checkIn(String ticketId) => checkInTicket(ticketId);
+
   bool isCheckedIn(String ticketId) => _checkedInTickets.contains(ticketId);
 
   DateTime? getCheckInTime(String ticketId) => _checkInTimestamps[ticketId];

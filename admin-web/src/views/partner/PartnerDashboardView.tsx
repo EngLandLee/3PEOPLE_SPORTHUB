@@ -43,27 +43,54 @@ export const PartnerDashboardView: React.FC = () => {
     (sum, tx) => sum + (tx.status === 'completed' ? tx.amount : 0),
     0
   );
-  const totalRevenueToday = Math.max(bookingRevenue, txRevenue, 1480000);
+  const totalRevenueToday = bookingRevenue + txRevenue;
 
   // 2. Số ca đã đặt (app + manual)
   const bookedSlots = venueSlots.filter(
     (s) => s.status === 'bookedApp' || s.status === 'reservedManual'
   );
-  const bookedSlotsCount = bookedSlots.length || 7;
-  const appBookedCount = venueSlots.filter((s) => s.status === 'bookedApp').length || 4;
-  const manualBookedCount = venueSlots.filter((s) => s.status === 'reservedManual').length || 3;
+  const bookedSlotsCount = bookedSlots.length;
+  const appBookedCount = venueSlots.filter((s) => s.status === 'bookedApp').length;
+  const manualBookedCount = venueSlots.filter((s) => s.status === 'reservedManual').length;
 
   // 3. Tỷ lệ lấp đầy
   const occupancyRate =
-    venueSlots.length > 0 ? Math.round((bookedSlotsCount / venueSlots.length) * 100) : 78;
+    venueSlots.length > 0 ? Math.round((bookedSlotsCount / venueSlots.length) * 100) : 0;
 
   // 4. Khách đã check-in
-  const checkedInCount = venueBookings.filter((b) => b.checkedIn).length || 5;
+  const checkedInCount = venueBookings.filter((b) => b.checkedIn).length;
+
+  // 5. Môn thể thao tỷ lệ lấp đầy thực tế
+  const badmintonCourts = venueCourts.filter((c) => c.sport === 'badminton');
+  const badmintonSlots = venueSlots.filter((s) =>
+    badmintonCourts.some((c) => c.id === s.courtId)
+  );
+  const badmintonBooked = badmintonSlots.filter(
+    (s) => s.status === 'bookedApp' || s.status === 'reservedManual'
+  ).length;
+  const badmintonRate =
+    badmintonSlots.length > 0 ? Math.round((badmintonBooked / badmintonSlots.length) * 100) : 0;
+
+  const pickleballCourts = venueCourts.filter((c) => c.sport === 'pickleball');
+  const pickleballSlots = venueSlots.filter((s) =>
+    pickleballCourts.some((c) => c.id === s.courtId)
+  );
+  const pickleballBooked = pickleballSlots.filter(
+    (s) => s.status === 'bookedApp' || s.status === 'reservedManual'
+  ).length;
+  const pickleballRate =
+    pickleballSlots.length > 0 ? Math.round((pickleballBooked / pickleballSlots.length) * 100) : 0;
 
   // Determine current court live status badge
   const getCourtLiveStatus = (courtId: string) => {
     const courtSlots = venueSlots.filter((s) => s.courtId === courtId);
-    if (!courtSlots.length) return { label: 'Trống', color: 'slate', percent: 35 };
+    const courtBooked = courtSlots.filter(
+      (s) => s.status === 'bookedApp' || s.status === 'reservedManual'
+    ).length;
+    const percent =
+      courtSlots.length > 0 ? Math.round((courtBooked / courtSlots.length) * 100) : 0;
+
+    if (!courtSlots.length) return { label: 'Trống', color: 'slate', percent: 0 };
 
     const currentHour = new Date().getHours();
     const currentHourStr = String(currentHour).padStart(2, '0');
@@ -79,15 +106,15 @@ export const PartnerDashboardView: React.FC = () => {
     }
 
     if (activeSlot.status === 'maintenance') {
-      return { label: 'Bảo trì', color: 'rose', percent: 0 };
+      return { label: 'Bảo trì', color: 'rose', percent };
     }
     if (activeSlot.status === 'bookedApp') {
-      return { label: 'Có khách', color: 'emerald', percent: 86 };
+      return { label: 'Có khách', color: 'emerald', percent };
     }
     if (activeSlot.status === 'reservedManual') {
-      return { label: 'Giữ chỗ', color: 'amber', percent: 62 };
+      return { label: 'Giữ chỗ', color: 'amber', percent };
     }
-    return { label: 'Trống', color: 'slate', percent: 43 };
+    return { label: 'Trống', color: 'slate', percent };
   };
 
   const filteredCourts = venueCourts.filter(
@@ -158,7 +185,7 @@ export const PartnerDashboardView: React.FC = () => {
           {/* Live Weather & Time Widget Pill */}
           <div className="glass-pill px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
             <SunMedium className="w-4 h-4 text-amber-500 animate-spin-slow" />
-            <span>10:37 AM</span>
+            <span>{new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">Nắng ráo 29°C</span>
           </div>
@@ -508,22 +535,28 @@ export const PartnerDashboardView: React.FC = () => {
               {/* Badminton */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold mb-1 text-slate-700 dark:text-slate-200">
-                  <span>Cầu lông (4 sân)</span>
-                  <span className="font-bold">85%</span>
+                  <span>Cầu lông ({badmintonCourts.length} sân)</span>
+                  <span className="font-bold">{badmintonRate}%</span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-white/80 dark:bg-slate-800 p-0.5 shadow-inner">
-                  <div className="h-full rounded-full bg-lime-500 w-[85%] transition-all" />
+                  <div
+                    className="h-full rounded-full bg-lime-500 transition-all"
+                    style={{ width: `${badmintonRate}%` }}
+                  />
                 </div>
               </div>
 
               {/* Pickleball */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold mb-1 text-slate-700 dark:text-slate-200">
-                  <span>Pickleball (4 sân)</span>
-                  <span className="font-bold">92%</span>
+                  <span>Pickleball ({pickleballCourts.length} sân)</span>
+                  <span className="font-bold">{pickleballRate}%</span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-white/80 dark:bg-slate-800 p-0.5 shadow-inner">
-                  <div className="h-full rounded-full bg-lime-500 w-[92%] transition-all" />
+                  <div
+                    className="h-full rounded-full bg-lime-500 transition-all"
+                    style={{ width: `${pickleballRate}%` }}
+                  />
                 </div>
               </div>
 
@@ -572,7 +605,7 @@ export const PartnerDashboardView: React.FC = () => {
                 {checkedInCount}
               </span>
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                / {venueBookings.length || 7} khách
+                / {venueBookings.length} khách
               </span>
             </div>
 
@@ -602,12 +635,12 @@ export const PartnerDashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Bottom Table: "Lịch đặt sân & Trạng thái 8 cụm sân" (Last notes style) */}
+      {/* 4. Bottom Table: "Lịch đặt sân & Trạng thái các cụm sân" (Last notes style) */}
       <div className="glass-card rounded-[28px] p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Lịch đặt sân & Trạng thái 8 cụm sân Tao Đàn</span>
+              <span>Lịch đặt sân & Trạng thái {venueCourts.length} cụm sân {currentVenue ? currentVenue.name : 'Tao Đàn'}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Cập nhật trực tiếp tình trạng vận hành của từng sân thi đấu

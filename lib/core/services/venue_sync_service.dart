@@ -258,6 +258,7 @@ class VenueSyncService {
     required String customerName,
     required String customerPhone,
     String paymentMethod = 'vietqr',
+    List<Map<String, dynamic>>? addOns,
     http.Client? client,
   }) async {
     final now = DateTime.now();
@@ -289,6 +290,7 @@ class VenueSyncService {
       'paymentStatus': 'pending',
       'paymentMethod': paymentMethod,
       'checkedIn': false,
+      'addOns': addOns ?? [],
       'createdAt': DateTime.now().toIso8601String(),
     };
 
@@ -380,6 +382,7 @@ class VenueSyncService {
     required String customerName,
     required String customerPhone,
     String paymentMethod = 'vietqr',
+    List<Map<String, dynamic>>? addOns,
     http.Client? client,
   }) =>
       createBooking(
@@ -396,8 +399,85 @@ class VenueSyncService {
         customerName: customerName,
         customerPhone: customerPhone,
         paymentMethod: paymentMethod,
+        addOns: addOns,
         client: client,
       );
+
+  /// Synchronizes check-in of a booking ticket with backend server (/api/checkin)
+  /// and updates local store state.
+  Future<bool> checkInBooking(String ticketId, {http.Client? client}) async {
+    final cleanId = ticketId.trim().toUpperCase();
+
+    // 1. Update local bookingsNotifier
+    final current = List<Map<String, dynamic>>.from(bookingsNotifier.value);
+    bool foundInNotifier = false;
+    for (int i = 0; i < current.length; i++) {
+      final b = current[i];
+      if ((b['id']?.toString().toUpperCase() == cleanId) ||
+          (b['bookingId']?.toString().toUpperCase() == cleanId)) {
+        current[i] = {
+          ...b,
+          'checkedIn': true,
+          'checkedInAt': DateTime.now().toIso8601String(),
+        };
+        foundInNotifier = true;
+        break;
+      }
+    }
+    if (foundInNotifier) {
+      bookingsNotifier.value = List.unmodifiable(current);
+    }
+
+    // 2. Update VenueOwnerStore
+    try {
+      VenueOwnerStore.instance.checkIn(ticketId);
+    } catch (_) {}
+
+    if (!isSyncEnabled) return true;
+    if (client == null && isTestEnvironment) return true;
+
+    final httpClient = client ?? http.Client();
+    final payload = jsonEncode({'ticketId': ticketId});
+    try {
+      if (client != null) {
+        final uri = Uri.parse('$serverBaseUrl/api/checkin');
+        final response = await httpClient
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: payload,
+            )
+            .timeout(const Duration(milliseconds: 2500));
+        return response.statusCode == 200 || response.statusCode == 201;
+      }
+
+      for (final baseUrl in candidateServerUrls) {
+        try {
+          final uri = Uri.parse('$baseUrl/api/checkin');
+          final response = await httpClient
+              .post(
+                uri,
+                headers: {'Content-Type': 'application/json'},
+                body: payload,
+              )
+              .timeout(const Duration(milliseconds: 1500));
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            serverBaseUrl = baseUrl;
+            return true;
+          }
+        } catch (_) {}
+      }
+      return false;
+    } catch (_) {
+      return false;
+    } finally {
+      if (client == null) {
+        try {
+          httpClient.close();
+        } catch (_) {}
+      }
+    }
+  }
 
   /// Fetches latest sync state from Web Admin Portal (/api/sync)
   Future<bool> syncWithServer({http.Client? client}) async {

@@ -2631,6 +2631,32 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           );
           TicketStore.instance.addTicket(newTicket);
 
+          final addOnsList = <Map<String, dynamic>>[];
+          for (final entry in addonCounts.entries) {
+            if (entry.value > 0) {
+              final item = SeedData.sampleAddons.firstWhere(
+                (a) => a.id == entry.key,
+                orElse: () => VenueAddonItem(
+                  id: entry.key,
+                  name: entry.key,
+                  description: '',
+                  price: 0,
+                  unit: 'mục',
+                  category: AddonCategory.gear,
+                  icon: '📦',
+                  sportTypes: const ['all'],
+                ),
+              );
+              addOnsList.add({
+                'id': item.id,
+                'name': item.name,
+                'quantity': entry.value,
+                'unitPrice': item.price,
+                'total': item.price * entry.value,
+              });
+            }
+          }
+
           // Sync booking to server & local booked slots for each selected slot
           for (final slot in selectedSlots) {
             VenueSyncService.instance.createBooking(
@@ -2646,6 +2672,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               totalPrice: grandTotal,
               customerName: custName,
               customerPhone: custPhone,
+              addOns: addOnsList,
             );
           }
 

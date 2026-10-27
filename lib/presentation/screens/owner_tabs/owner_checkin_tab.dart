@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/venue_sync_service.dart';
 import '../../../core/state/venue_owner_store.dart';
 import '../../../domain/entities/court_slot_item.dart';
 
@@ -44,14 +45,32 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
   }
 
   String _getAddOnsSummary(String? ticketId) {
-    if (ticketId == 'SH-8291') {
-      return '2x Nước suối Aquafina, 1x Quấn cán vợt';
-    } else if (ticketId == 'SH-8292') {
-      return '2x Pocari Sweat';
-    } else if (ticketId == 'SH-7714') {
-      return '1x Thuê vợt Pickleball, 1x Aquafina';
+    if (ticketId == null || ticketId.isEmpty) {
+      return 'Không có (Chỉ thuê sân)';
     }
-    return '1x Nước suối Aquafina';
+    final clean = ticketId.trim().toUpperCase();
+    final bookings = VenueSyncService.instance.bookingsNotifier.value;
+    final booking = bookings.firstWhere(
+      (b) =>
+          (b['id']?.toString().toUpperCase() == clean) ||
+          (b['bookingId']?.toString().toUpperCase() == clean),
+      orElse: () => <String, dynamic>{},
+    );
+    final addOns = booking['addOns'];
+    if (addOns is List && addOns.isNotEmpty) {
+      final summaryList = <String>[];
+      for (final item in addOns) {
+        if (item is Map) {
+          final qty = item['quantity'] ?? item['qty'] ?? 1;
+          final name = item['name'] ?? 'Dịch vụ';
+          summaryList.add('${qty}x $name');
+        }
+      }
+      if (summaryList.isNotEmpty) {
+        return summaryList.join(', ');
+      }
+    }
+    return 'Không có (Chỉ thuê sân)';
   }
 
   void _openQrScannerModal(BuildContext context) {
@@ -311,6 +330,7 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
                         }
                         final success = store.checkInTicket(code);
                         if (success) {
+                          VenueSyncService.instance.checkInBooking(code);
                           Navigator.of(modalContext).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -869,6 +889,7 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
                       key: Key('confirm_checkin_$ticketId'),
                       onPressed: () {
                         store.checkInTicket(ticketId);
+                        VenueSyncService.instance.checkInBooking(ticketId);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

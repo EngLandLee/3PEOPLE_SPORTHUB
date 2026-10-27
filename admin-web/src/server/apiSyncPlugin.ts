@@ -36,10 +36,10 @@ function isSportHubRequestAllowed(
   const bookingOrCourtTask = /\b(?:dat\s+san|book\s+(?:san|a\s+court)|tim\s+san|find\s+(?:a\s+)?court|available\s+court|court\s+near\s+me|san\s+trong|con\s+san|san\s+gan|co\s+san|kiem\s+tra\s+(?:lich|san|slot)|giu\s+cho|thue\s+san|doi\s+(?:gio|lich)|huy\s+(?:san|ve|dat)|them\s+(?:nuoc|vet|ong\s+cau|dich\s+vu)|bot\s+(?:nuoc|vet|ong\s+cau|dich\s+vu))\b/i.test(message) || (/\b(?:san|cau\s+long|badminton|pickleball|bong\s+da|football|futsal)\b/i.test(message) && /\b(?:co|tim|o\s+dau|gan|nao|trong|gia|dat|thue|slot|lich|gio|toi|sang|chieu|khong)\b/i.test(message));
   const matchmakingTask = /\b(?:tim|ghep|kiem\s+tra|dang)\s+(?:keo|nguoi|doi|thanh\s+vien)|\b(?:ghep\s+keo|tim\s+keo|tuyen\s+(?:nguoi|thanh\s+vien))\b/i.test(message);
   const venueOrSport = /\b(?:san|cau\s+long|badminton|pickleball|bong\s+da|football|futsal|tao\s+dan|binh\s+thanh|thao\s+dien|tan\s+binh|phu\s+nhuan|ky\s+hoa|nam\s+sai\s+gon|sporthub|vietqr|ma\s+ve|ve\s+cua\s+toi)\b/i.test(message);
-  const projectInfoTask = venueOrSport && /\b(?:gia|bao\s+nhieu|mo\s+cua|dia\s+chi|hotline|dich\s+vu|phu\s+phi|chinh\s+sach|thanh\s+toan|check\s*in|lich\s+choi|san\s+pham|thue)\b/i.test(message);
-  const projectHelpTask = /\b(?:chinh\s+sach|hoan\s+huy|quy\s+dinh\s+(?:giay|san|thue)|bang\s+gia\s+san|gia\s+san|doanh\s+thu|check\s*in|soat\s+ve|tinh\s+trang\s+san|ve\s+cua\s+toi|ma\s+ve|thanh\s+toan)\b/i.test(message);
+  const projectInfoTask = venueOrSport && /\b(?:gia|bao\s+nhieu|mo\s+cua|dia\s+chi|hotline|dich\s+vu|phu\s+phi|chinh\s+sach|thanh\s+toan|check[\s-]*in|lich\s+choi|san\s+pham|thue)\b/i.test(message);
+  const projectHelpTask = /\b(?:chinh\s+sach|hoan\s+huy|quy\s+dinh\s+(?:giay|san|thue)|bang\s+gia\s+san|gia\s+san|doanh\s+thu|check[\s-]*in|soat\s+ve|tinh\s+trang\s+san|ve\s+cua\s+toi|ma\s+ve|thanh\s+toan)\b/i.test(message);
   const bookingFollowUp = options.hasPendingBooking && /\b(?:doi|chuyen|them|bot|huy|xac\s+nhan|thanh\s+toan|ve|san|gio|lich)\b/i.test(message);
-  const ownerTask = options.isOwner && /\b(?:doanh\s+thu|check\s*in|soat\s+ve|tinh\s+trang\s+san|lich\s+san|chinh\s+sach|hoan\s+huy)\b/i.test(message);
+  const ownerTask = options.isOwner && /\b(?:doanh\s+thu|check[\s-]*in|soat\s+ve|tinh\s+trang\s+san|lich\s+san|chinh\s+sach|hoan\s+huy)\b/i.test(message);
   const posterRecruitment = options.hasImage && (message.length === 0 || matchmakingTask);
   const greetingTask = /^(?:hi|hello|hey|alo|chao|chao\s+ban|chao\s+em|chao\s+ad|xin\s+chao|hi\s+ad|hi\s+bot|hello\s+bot)\b/i.test(message);
 
@@ -238,7 +238,15 @@ export interface SyncedBooking {
   paymentStatus: 'paid' | 'pending' | 'cancelled';
   paymentMethod?: 'vietqr' | 'momo' | 'zalopay' | 'vnpay' | 'cash';
   checkedIn: boolean;
+  checkedInAt?: string;
   createdAt: string;
+  addOns?: Array<{
+    id?: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    total?: number;
+  }>;
 }
 
 export interface ChatbotConfig {
@@ -1189,6 +1197,49 @@ export function apiSyncPlugin(): Plugin {
               res.setHeader('Content-Type', 'application/json');
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, booking: store.bookings[idx] }));
+            } catch (err) {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 3d. POST /api/checkin or POST /api/bookings/:id/checkin
+        const checkinMatch = url.match(/^\/api\/bookings\/([^/]+)\/checkin\/?$/);
+        if ((url === '/api/checkin' || url === '/api/checkin/' || checkinMatch) && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => {
+            bodyStr += chunk;
+          });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const ticketId = (checkinMatch ? checkinMatch[1] : (body.ticketId || body.id || body.bookingId || '')).trim().toUpperCase();
+              if (!ticketId) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'ticketId or booking id is required' }));
+                return;
+              }
+              if (!store.bookings) store.bookings = [...DEFAULT_SYNC_BOOKINGS];
+              const booking = store.bookings.find(
+                (b) => b.id.toUpperCase() === ticketId || (b.bookingId && b.bookingId.toUpperCase() === ticketId)
+              );
+              if (!booking) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: `Booking ticket not found: ${ticketId}` }));
+                return;
+              }
+              booking.checkedIn = true;
+              booking.checkedInAt = new Date().toISOString();
+              store.timestamp = Date.now();
+              saveSyncStore(store);
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, booking }));
             } catch (err) {
               res.setHeader('Content-Type', 'application/json');
               res.statusCode = 400;
@@ -2180,18 +2231,27 @@ export function apiSyncPlugin(): Plugin {
                     (b: SyncedBooking) => !b.venueId || b.venueId === targetVenueId || targetVenueName.includes(b.venueName || '')
                   );
 
-                  const appBookings = venueBookings.filter((b: SyncedBooking) => b.paymentStatus === 'paid');
+                  const appBookings = venueBookings.filter((b: SyncedBooking) => b.paymentMethod !== 'cash');
                   const appCount = appBookings.length;
                   const appRevenue = appBookings.reduce((sum: number, b: SyncedBooking) => sum + (b.price || 0), 0);
 
-                  const manualBookings = venueBookings.filter((b: SyncedBooking) => b.paymentStatus !== 'paid' || b.paymentMethod === 'cash');
-                  const manualCount = manualBookings.length > 0 ? manualBookings.length : 3;
-                  const manualRevenue = manualBookings.length > 0
-                    ? manualBookings.reduce((sum: number, b: SyncedBooking) => sum + (b.price || 0), 0)
-                    : 540000;
+                  const manualBookings = venueBookings.filter((b: SyncedBooking) => b.paymentMethod === 'cash');
+                  const manualCount = manualBookings.length;
+                  const manualRevenue = manualBookings.reduce((sum: number, b: SyncedBooking) => sum + (b.price || 0), 0);
 
-                  const addOnsRevenue = 690000;
-                  const addOnsGroups = 4;
+                  let addOnsRevenue = 0;
+                  const addOnsSet = new Set<string>();
+                  for (const b of venueBookings) {
+                    if (Array.isArray(b.addOns)) {
+                      for (const item of b.addOns) {
+                        const price = Number(item.price || item.unitPrice || 0);
+                        const qty = Number(item.quantity || item.qty || 1);
+                        addOnsRevenue += price * qty;
+                        if (item.name) addOnsSet.add(item.name);
+                      }
+                    }
+                  }
+                  const addOnsGroups = addOnsSet.size;
 
                   const totalCourtBookings = appCount + manualCount;
                   const totalRevenue = appRevenue + manualRevenue + addOnsRevenue;
@@ -2203,7 +2263,12 @@ export function apiSyncPlugin(): Plugin {
                     ? `Thưa ${ownerName}`
                     : `Kính chào ${ownerName}`;
 
-                  reply = `📊 ${greeting}, tổng doanh thu thực tế hôm nay tại **${targetVenueName}** đạt **${formatVnd(totalRevenue)}** từ ${totalCourtBookings} lượt đặt sân và dịch vụ phụ (SportHub App: ${appCount} lượt, tại quầy: ${manualCount} lượt). 100% thanh toán qua app được ghi nhận trực tuyến qua VietQR.`;
+                  if (totalCourtBookings === 0 && totalRevenue === 0) {
+                    reply = `📊 ${greeting}, hôm nay tại **${targetVenueName}** chưa có lượt đặt sân nào (0đ). Khi có khách đặt qua App hoặc quầy lễ tân, số liệu sẽ tự động ghi nhận theo thời gian thực.`;
+                  } else {
+                    reply = `📊 ${greeting}, tổng doanh thu thực tế hôm nay tại **${targetVenueName}** đạt **${formatVnd(totalRevenue)}** từ ${totalCourtBookings} lượt đặt sân${addOnsRevenue > 0 ? ` và ${addOnsGroups} dịch vụ phụ` : ''} (SportHub App: ${appCount} lượt, tại quầy: ${manualCount} lượt). 100% thanh toán qua app được ghi nhận trực tuyến qua VietQR.`;
+                  }
+
                   actionCard = {
                     type: 'table_card',
                     title: 'Bảng Phân Tích Doanh Thu',
@@ -2213,7 +2278,7 @@ export function apiSyncPlugin(): Plugin {
                     rows: [
                       ['SportHub App', `${appCount} lượt`, formatVnd(appRevenue), '100% VietQR'],
                       ['Tại quầy / Khách quen', `${manualCount} lượt`, formatVnd(manualRevenue), 'Tiền mặt / CK'],
-                      ['Dịch vụ phụ (Nước, Cầu)', `${addOnsGroups} nhóm`, formatVnd(addOnsRevenue), 'Tại quầy'],
+                      ['Dịch vụ phụ (Nước, Cầu)', `${addOnsGroups} dịch vụ`, formatVnd(addOnsRevenue), addOnsRevenue > 0 ? 'Tại quầy / App' : 'Chưa có'],
                       ['TỔNG DOANH THU', `${totalTransactions} mục`, formatVnd(totalRevenue), 'Đã đối soát'],
                     ],
                     footer: '💡 Số liệu đồng bộ theo thời gian thực với tab Báo Cáo Doanh Thu của sân.',
@@ -2230,7 +2295,7 @@ export function apiSyncPlugin(): Plugin {
 
                   const rows: string[][] = [];
                   if (pending.length === 0) {
-                    reply = `🎫 Hiện tại cụm sân ${targetVenueName} không có vé nào đang chờ check-in. Tất cả khách đặt đã nhận sân!`;
+                    reply = `🎫 Hiện tại cụm sân ${targetVenueName} không có vé nào đang chờ check-in. Tất cả khách đặt đã nhận sân hoặc chưa có ca đặt mới!`;
                   } else {
                     const summaryList = pending.slice(0, 3).map((b: SyncedBooking) => `${b.id} (${b.customerName || 'Khách'} - ${b.startTime || '18:00'} ${b.courtName || 'Sân 1'})`).join(', ');
                     reply = `🎫 Danh sách ${pending.length} vé chờ khách tới quầy check-in hôm nay: ${summaryList}. Anh/chị có thể quét QR tại mục Soát vé nhé!`;
@@ -2244,11 +2309,7 @@ export function apiSyncPlugin(): Plugin {
                   }
 
                   if (rows.length === 0) {
-                    rows.push(
-                      ['SH-8291', 'Nguyễn Văn An', 'Sân 1 (Cầu lông)', '18:00', 'Chờ check-in'],
-                      ['SH-8292', 'Trần Thuỳ Linh', 'Sân 1 (Cầu lông)', '19:00', 'Chờ check-in'],
-                      ['SH-7714', 'Lê Minh', 'Sân 5 (Pickleball)', '18:00', 'Chờ check-in']
-                    );
+                    rows.push(['-', 'Chưa có vé nào', '-', '-', 'Trống']);
                   }
 
                   actionCard = {
@@ -2276,24 +2337,57 @@ export function apiSyncPlugin(): Plugin {
                     footer: '💡 Chính sách giúp bảo vệ doanh thu tối đa cho chủ sân khi khách báo hủy sát giờ.',
                   };
                 } else {
-                  reply = "🏟️ Báo cáo cụm sân Tao Đàn: 8/8 sân đang vận hành tốt (4 sân cầu lông, 4 sân pickleball). Tỷ lệ lấp đầy hôm nay đạt 85%, kín 100% các sân 1, 2, 5 trong khung giờ vàng 18:00 - 20:00.";
+                  const targetVenueId = context?.venueId || 'venue_01';
+                  const targetVenueName = context?.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn';
+                  const venueCourts = (store.courts || []).filter((c: any) => c.venueId === targetVenueId);
+                  const venueSlots = (store.slots || []).filter((s: any) => s.venueId === targetVenueId);
+
+                  const totalCourts = venueCourts.length > 0 ? venueCourts.length : 8;
+                  const bookedSlots = venueSlots.filter((s: any) => s.status === 'bookedApp' || s.status === 'reservedManual');
+                  const totalSlots = venueSlots.length > 0 ? venueSlots.length : (totalCourts * 16);
+                  const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots.length / totalSlots) * 100) : 0;
+
+                  const rows: string[][] = [];
+                  if (venueCourts.length > 0) {
+                    for (const court of venueCourts) {
+                      const cSlots = venueSlots.filter((s: any) => s.courtId === court.id);
+                      const cBooked = cSlots.filter((s: any) => s.status === 'bookedApp' || s.status === 'reservedManual').length;
+                      const cMaint = cSlots.some((s: any) => s.status === 'maintenance');
+                      const cPeak = cSlots.filter((s: any) => (s.isPeakHour || (s.startTime && s.startTime >= '17:00')) && (s.status === 'bookedApp' || s.status === 'reservedManual')).length;
+                      
+                      let statusText = 'Còn trống';
+                      if (cMaint) statusText = 'Có giờ bảo trì';
+                      else if (cPeak >= 3) statusText = 'Kín giờ vàng';
+                      else if (cBooked > 0) statusText = 'Đang có khách';
+                      else statusText = 'Trống toàn bộ';
+
+                      const sportLabel = court.sport === 'pickleball' ? 'Pickleball' : (court.sport === 'football' ? 'Bóng đá' : 'Cầu lông');
+                      rows.push([
+                        court.name,
+                        sportLabel,
+                        '06:00 - 22:00',
+                        `${cBooked}/${cSlots.length || 16} ca`,
+                        statusText,
+                      ]);
+                    }
+                  } else {
+                    rows.push(
+                      ['Sân 1', 'Cầu lông', '06:00 - 22:00', '0/16 ca', 'Trống toàn bộ'],
+                      ['Sân 2', 'Cầu lông', '06:00 - 22:00', '0/16 ca', 'Trống toàn bộ'],
+                      ['Sân 3', 'Cầu lông', '06:00 - 22:00', '0/16 ca', 'Trống toàn bộ'],
+                      ['Sân 4', 'Cầu lông', '06:00 - 22:00', '0/16 ca', 'Trống toàn bộ'],
+                    );
+                  }
+
+                  reply = `🏟️ Báo cáo cụm sân ${targetVenueName}: ${totalCourts}/${totalCourts} sân đang vận hành tốt. Tỷ lệ lấp đầy hôm nay đạt ${occupancyRate}%, ghi nhận ${bookedSlots.length} ca đã được đặt.`;
                   actionCard = {
                     type: 'table_card',
-                    title: 'Bảng Tình Trạng 8 Sân Tao Đàn',
+                    title: `Bảng Tình Trạng Sân ${targetVenueName}`,
                     subtitle: 'Khung giờ hoạt động 06:00 - 22:00',
                     icon: 'court',
                     headers: ['Sân', 'Môn thể thao', 'Giờ mở', 'Lấp đầy', 'Trạng thái'],
-                    rows: [
-                      ['Sân 1', 'Cầu lông', '06:00 - 22:00', '8/16 slot', 'Kín 18h-20h'],
-                      ['Sân 2', 'Cầu lông', '06:00 - 22:00', '7/16 slot', 'Kín 17h-19h'],
-                      ['Sân 3', 'Cầu lông', '06:00 - 22:00', '5/16 slot', 'Còn trống'],
-                      ['Sân 4', 'Cầu lông', '06:00 - 22:00', '4/16 slot', 'Bảo trì 12h'],
-                      ['Sân 5', 'Pickleball', '06:00 - 22:00', '9/16 slot', 'Kín 18h-21h'],
-                      ['Sân 6', 'Pickleball', '06:00 - 22:00', '6/16 slot', 'Còn trống'],
-                      ['Sân 7', 'Pickleball', '06:00 - 22:00', '3/16 slot', 'Bảo trì 14h'],
-                      ['Sân 8', 'Pickleball', '06:00 - 22:00', '5/16 slot', 'Còn trống'],
-                    ],
-                    footer: '💡 Khung giờ tối 18h-21h đã kín 85% công suất.',
+                    rows,
+                    footer: `💡 Tỷ lệ lấp đầy toàn sân hiện đạt ${occupancyRate}%.`,
                   };
                 }
               }

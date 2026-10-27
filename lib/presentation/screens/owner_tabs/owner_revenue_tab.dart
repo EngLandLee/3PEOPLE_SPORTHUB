@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/venue_sync_service.dart';
 import '../../../core/state/venue_owner_store.dart';
 import '../../../domain/entities/court_slot_item.dart';
 
@@ -27,31 +28,62 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<CourtSlotItem>>(
-      valueListenable: VenueOwnerStore.instance.slotsNotifier,
-      builder: (context, allSlots, child) {
-        // Compute revenue and occupancy
-        final bookedSlots = allSlots
-            .where(
-              (s) =>
-                  s.status == CourtSlotStatus.bookedApp ||
-                  s.status == CourtSlotStatus.reservedManual,
-            )
-            .toList();
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: VenueSyncService.instance.bookingsNotifier,
+      builder: (context, allBookings, _) {
+        return ValueListenableBuilder<List<CourtSlotItem>>(
+          valueListenable: VenueOwnerStore.instance.slotsNotifier,
+          builder: (context, allSlots, child) {
+            // Compute revenue and occupancy
+            final bookedSlots = allSlots
+                .where(
+                  (s) =>
+                      s.status == CourtSlotStatus.bookedApp ||
+                      s.status == CourtSlotStatus.reservedManual,
+                )
+                .toList();
 
-        final double courtRevenue = bookedSlots.fold(
-          0.0,
-          (sum, slot) => sum + slot.price,
-        );
+            final double courtRevenue = bookedSlots.fold(
+              0.0,
+              (sum, slot) => sum + slot.price,
+            );
 
-        // Add-ons revenue for today
-        const double addOnsRevenue = 690000.0;
-        final double totalTodayRevenue = courtRevenue + addOnsRevenue;
+            // Add-ons revenue dynamically computed from real bookings
+            double addOnsRevenue = 0.0;
+            final Map<String, Map<String, dynamic>> aggregatedAddons = {};
+            for (final b in allBookings) {
+              final items = b['addOns'];
+              if (items is List) {
+                for (final item in items) {
+                  if (item is Map) {
+                    final name =
+                        (item['name'] ?? item['id'] ?? 'Dịch vụ') as String;
+                    final unitPrice =
+                        ((item['price'] ?? item['unitPrice'] ?? 0) as num).toInt();
+                    final qty =
+                        ((item['quantity'] ?? item['qty'] ?? 1) as num).toInt();
+                    addOnsRevenue += unitPrice * qty;
+                    if (aggregatedAddons.containsKey(name)) {
+                      aggregatedAddons[name]!['qty'] =
+                          (aggregatedAddons[name]!['qty'] as int) + qty;
+                    } else {
+                      aggregatedAddons[name] = {
+                        'name': name,
+                        'qty': qty,
+                        'unitPrice': unitPrice,
+                      };
+                    }
+                  }
+                }
+              }
+            }
 
-        // Occupancy calculation
-        final int totalSlotsCount = allSlots.isEmpty ? 1 : allSlots.length;
-        final double occupancyRate =
-            (bookedSlots.length / totalSlotsCount) * 100;
+            final double totalTodayRevenue = courtRevenue + addOnsRevenue;
+
+            // Occupancy calculation
+            final int totalSlotsCount = allSlots.isEmpty ? 1 : allSlots.length;
+            final double occupancyRate =
+                (bookedSlots.length / totalSlotsCount) * 100;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
@@ -135,11 +167,11 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
               const SizedBox(height: 20),
 
               // 7-day revenue chart
-              _buildSevenDayChartSection(),
+              _buildSevenDayChartSection(totalTodayRevenue),
               const SizedBox(height: 20),
 
               // Add-ons breakdown section
-              _buildAddOnsSection(),
+              _buildAddOnsSection(addOnsRevenue, aggregatedAddons),
               const SizedBox(height: 20),
 
               // Peak hour & smart recommendation
@@ -149,6 +181,8 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
         );
       },
     );
+  },
+);
   }
 
   Widget _buildPeriodChip({
@@ -386,16 +420,21 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
     );
   }
 
-  Widget _buildSevenDayChartSection() {
-    final days = [
-      {'day': 'T2', 'amount': 2400000, 'height': 0.48},
-      {'day': 'T3', 'amount': 2900000, 'height': 0.58},
-      {'day': 'T4', 'amount': 3200000, 'height': 0.64},
-      {'day': 'T5', 'amount': 2750000, 'height': 0.55},
-      {'day': 'T6', 'amount': 3800000, 'height': 0.76},
-      {'day': 'T7', 'amount': 4600000, 'height': 0.92},
-      {'day': 'CN', 'amount': 5000000, 'height': 1.0, 'isToday': true},
+  Widget _buildSevenDayChartSection(double todayRevenue) {
+    final List<Map<String, dynamic>> days = [
+      {'day': 'T2', 'amount': 2400000},
+      {'day': 'T3', 'amount': 2900000},
+      {'day': 'T4', 'amount': 3200000},
+      {'day': 'T5', 'amount': 2750000},
+      {'day': 'T6', 'amount': 3800000},
+      {'day': 'T7', 'amount': 4600000},
+      {'day': 'CN', 'amount': todayRevenue.toInt(), 'isToday': true},
     ];
+
+    final maxVal = days.map((d) => d['amount'] as int).fold(1, (m, v) => v > m ? v : m);
+    for (final d in days) {
+      d['height'] = (d['amount'] as int) / maxVal;
+    }
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -504,38 +543,10 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
     );
   }
 
-  Widget _buildAddOnsSection() {
-    final addOnItems = [
-      {
-        'name': 'Pocari Sweat (500ml)',
-        'qty': 8,
-        'unitPrice': 20000,
-        'icon': Icons.local_drink_rounded,
-        'color': AppColors.secondary,
-      },
-      {
-        'name': 'Nước khoáng Aquafina (500ml)',
-        'qty': 15,
-        'unitPrice': 10000,
-        'icon': Icons.water_drop_rounded,
-        'color': const Color(0xFF38BDF8),
-      },
-      {
-        'name': 'Quấn cán vợt Yonex Super Grap',
-        'qty': 6,
-        'unitPrice': 30000,
-        'icon': Icons.sports_tennis_rounded,
-        'color': AppColors.warning,
-      },
-      {
-        'name': 'Thuê vợt Pickleball Franklin Pro',
-        'qty': 4,
-        'unitPrice': 50000,
-        'icon': Icons.sports_baseball_rounded,
-        'color': AppColors.primary,
-      },
-    ];
-
+  Widget _buildAddOnsSection(
+    double totalAddOns,
+    Map<String, Map<String, dynamic>> addOnItemsMap,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -564,7 +575,7 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Tổng: ${_formatVnd(690000)}',
+                  'Tổng: ${_formatVnd(totalAddOns)}',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -575,65 +586,125 @@ class _OwnerRevenueTabState extends State<OwnerRevenueTab> {
             ],
           ),
           const SizedBox(height: 14),
-          ...addOnItems.map((item) {
-            final name = item['name'] as String;
-            final qty = item['qty'] as int;
-            final unitPrice = item['unitPrice'] as int;
-            final totalItem = qty * unitPrice;
-            final icon = item['icon'] as IconData;
-            final color = item['color'] as Color;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+          if (addOnItemsMap.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 36,
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
                     ),
-                    child: Icon(icon, size: 16, color: color),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$qty x ${_formatVnd(unitPrice)}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Chưa có dịch vụ phụ hôm nay',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _formatVnd(totalItem),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Các đơn bán nước giải khát, thuê vợt sẽ hiển thị khi khách đặt.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            );
-          }),
+            )
+          else
+            ...addOnItemsMap.values.map((item) {
+              final name = item['name'] as String;
+              final qty = item['qty'] as int;
+              final unitPrice = item['unitPrice'] as int;
+              final totalItem = qty * unitPrice;
+              final icon = _getAddonIcon(name);
+              final color = _getAddonColor(name);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, size: 16, color: color),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$qty x ${_formatVnd(unitPrice)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _formatVnd(totalItem),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
+  }
+
+  IconData _getAddonIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('nước') ||
+        lower.contains('pocari') ||
+        lower.contains('aquafina') ||
+        lower.contains('revive')) {
+      return Icons.local_drink_rounded;
+    }
+    if (lower.contains('vợt')) {
+      return Icons.sports_tennis_rounded;
+    }
+    if (lower.contains('cầu') || lower.contains('bóng')) {
+      return Icons.sports_baseball_rounded;
+    }
+    return Icons.shopping_bag_rounded;
+  }
+
+  Color _getAddonColor(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('pocari')) return AppColors.secondary;
+    if (lower.contains('aquafina')) return const Color(0xFF38BDF8);
+    if (lower.contains('vợt')) return AppColors.primary;
+    if (lower.contains('cầu') || lower.contains('bóng')) return AppColors.warning;
+    return AppColors.secondary;
   }
 
   Widget _buildOptimizationCard() {
