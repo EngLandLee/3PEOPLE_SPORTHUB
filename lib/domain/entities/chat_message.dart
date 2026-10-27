@@ -100,6 +100,141 @@ class ChatContext {
   }
 }
 
+/// Represents a specification for an editable field within an [ActionProposal].
+class FormFieldSpec {
+  final String key;
+  final String label;
+  final String type;
+  final bool required;
+  final int? maxLength;
+  String currentValue;
+
+  FormFieldSpec({
+    required this.key,
+    required this.label,
+    required this.type,
+    this.required = false,
+    this.maxLength,
+    required this.currentValue,
+  });
+
+  factory FormFieldSpec.fromJson(Map<String, dynamic> json) {
+    return FormFieldSpec(
+      key: json['key']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'text',
+      required: json['required'] as bool? ?? false,
+      maxLength: json['maxLength'] is int
+          ? json['maxLength'] as int
+          : int.tryParse(json['maxLength']?.toString() ?? ''),
+      currentValue: json['currentValue']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'label': label,
+      'type': type,
+      'required': required,
+      if (maxLength != null) 'maxLength': maxLength,
+      'currentValue': currentValue,
+    };
+  }
+
+  FormFieldSpec copyWith({
+    String? key,
+    String? label,
+    String? type,
+    bool? required,
+    int? maxLength,
+    String? currentValue,
+  }) {
+    return FormFieldSpec(
+      key: key ?? this.key,
+      label: label ?? this.label,
+      type: type ?? this.type,
+      required: required ?? this.required,
+      maxLength: maxLength ?? this.maxLength,
+      currentValue: currentValue ?? this.currentValue,
+    );
+  }
+}
+
+/// Represents an action proposal emitted by the AI assistant in the HAIA architecture,
+/// requiring Human-In-The-Loop (HITL) approval before state mutations are executed.
+class ActionProposal {
+  final String id;
+  final String tool;
+  String status; // 'pending' | 'approved' | 'rejected' | 'cancelled' | 'executed'
+  final Map<String, dynamic> target;
+  final List<FormFieldSpec> form;
+  final int expiresAt;
+
+  ActionProposal({
+    required this.id,
+    required this.tool,
+    this.status = 'pending',
+    required this.target,
+    required this.form,
+    required this.expiresAt,
+  });
+
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved' || status == 'executed';
+  bool get isRejected => status == 'rejected' || status == 'cancelled';
+  bool get isExecuted => status == 'executed';
+  bool get isExpired => DateTime.now().millisecondsSinceEpoch > expiresAt;
+
+  factory ActionProposal.fromJson(Map<String, dynamic> json) {
+    return ActionProposal(
+      id: json['id']?.toString() ?? '',
+      tool: json['tool']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'pending',
+      target: json['target'] is Map
+          ? Map<String, dynamic>.from(json['target'] as Map)
+          : <String, dynamic>{},
+      form: (json['form'] as List<dynamic>?)
+              ?.whereType<Map>()
+              .map((e) => FormFieldSpec.fromJson(Map<String, dynamic>.from(e)))
+              .toList() ??
+          <FormFieldSpec>[],
+      expiresAt: json['expiresAt'] is int
+          ? json['expiresAt'] as int
+          : int.tryParse(json['expiresAt']?.toString() ?? '') ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'tool': tool,
+      'status': status,
+      'target': target,
+      'form': form.map((e) => e.toJson()).toList(),
+      'expiresAt': expiresAt,
+    };
+  }
+
+  ActionProposal copyWith({
+    String? id,
+    String? tool,
+    String? status,
+    Map<String, dynamic>? target,
+    List<FormFieldSpec>? form,
+    int? expiresAt,
+  }) {
+    return ActionProposal(
+      id: id ?? this.id,
+      tool: tool ?? this.tool,
+      status: status ?? this.status,
+      target: target ?? this.target,
+      form: form ?? this.form,
+      expiresAt: expiresAt ?? this.expiresAt,
+    );
+  }
+}
+
 /// Represents an individual chat message in the conversation between user and AI assistant.
 class ChatMessage {
   final String id;
@@ -109,21 +244,27 @@ class ChatMessage {
   final Map<String, dynamic>? actionCard;
   final List<String>? quickSuggestions;
   final String? imageUrl;
+  final ActionProposal? proposal;
 
-  const ChatMessage({
-    required this.id,
+  ChatMessage({
+    String? id,
     required this.text,
-    required this.sender,
-    required this.timestamp,
+    String? sender,
+    bool? isUser,
+    DateTime? timestamp,
     this.actionCard,
     this.quickSuggestions,
     this.imageUrl,
-  });
+    this.proposal,
+  })  : id = id ?? 'msg_${DateTime.now().millisecondsSinceEpoch}',
+        sender = sender ?? (isUser == true ? 'user' : 'assistant'),
+        timestamp = timestamp ?? DateTime.now();
 
   bool get isUser => sender == 'user';
   bool get isAssistant => sender == 'assistant';
   bool get hasActionCard => actionCard != null;
   bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
+  bool get hasProposal => proposal != null;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
@@ -133,13 +274,16 @@ class ChatMessage {
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      actionCard: json['actionCard'] is Map<String, dynamic>
+      actionCard: json['actionCard'] is Map
           ? Map<String, dynamic>.from(json['actionCard'] as Map)
           : null,
       quickSuggestions: (json['quickSuggestions'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
       imageUrl: json['imageUrl']?.toString(),
+      proposal: json['proposal'] is Map
+          ? ActionProposal.fromJson(Map<String, dynamic>.from(json['proposal'] as Map))
+          : null,
     );
   }
 
@@ -152,6 +296,7 @@ class ChatMessage {
       if (actionCard != null) 'actionCard': actionCard,
       if (quickSuggestions != null) 'quickSuggestions': quickSuggestions,
       if (imageUrl != null) 'imageUrl': imageUrl,
+      if (proposal != null) 'proposal': proposal!.toJson(),
     };
   }
 
@@ -163,6 +308,7 @@ class ChatMessage {
     Map<String, dynamic>? actionCard,
     List<String>? quickSuggestions,
     String? imageUrl,
+    ActionProposal? proposal,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -172,6 +318,7 @@ class ChatMessage {
       actionCard: actionCard ?? this.actionCard,
       quickSuggestions: quickSuggestions ?? this.quickSuggestions,
       imageUrl: imageUrl ?? this.imageUrl,
+      proposal: proposal ?? this.proposal,
     );
   }
 }
