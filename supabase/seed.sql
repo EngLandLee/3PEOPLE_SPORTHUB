@@ -515,6 +515,23 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. VENUE ADDONS (Sản Phẩm Bán Lẻ POS & Cho Thuê Dụng Cụ)
+CREATE TABLE IF NOT EXISTS public.venue_addons (
+    id TEXT PRIMARY KEY,
+    venue_id TEXT REFERENCES public.venues(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    price NUMERIC NOT NULL DEFAULT 0,
+    unit TEXT NOT NULL DEFAULT 'cái',
+    category TEXT NOT NULL DEFAULT 'rental',
+    icon TEXT DEFAULT '🏸',
+    sport_types TEXT[] DEFAULT '{}',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.venue_addons ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public addons viewable" ON public.venue_addons;
+CREATE POLICY "Public addons viewable" ON public.venue_addons FOR SELECT USING (true);
+
 INSERT INTO public.venue_addons (id, venue_id, name, description, price, unit, category, icon, sport_types, is_active)
 VALUES
 ('rent_badminton', 'venue_01', 'Vợt Cầu Lông Yonex Astrox', 'Dòng Astrox chuyên công căng sẵn 10.5kg', 30000, 'cây', 'rental', '🏸', ARRAY['badminton'], true),
