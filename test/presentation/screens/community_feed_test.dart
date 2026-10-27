@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sporthub/core/state/auth_store.dart';
+import 'package:sporthub/core/state/ticket_store.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
   setUp(() {
+    AuthStore.instance.login('0901 234 567', '123456');
+    TicketStore.instance.reset();
     CommunityFeedStore.instance.reset();
   });
 

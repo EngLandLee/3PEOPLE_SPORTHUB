@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/state/auth_store.dart';
+import 'package:sporthub/core/state/ticket_store.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
   setUp(() {
-    AuthStore.instance.reset();
+    AuthStore.instance.login('0909 123 456', '123456');
     UserProfileStore.instance.reset();
+    TicketStore.instance.reset();
   });
 
   testWidgets('Bottom navigation includes 4 tabs and switches to ProfileScreen', (tester) async {

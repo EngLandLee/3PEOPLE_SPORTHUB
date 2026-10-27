@@ -37,6 +37,7 @@ import 'core/state/notification_store.dart';
 import 'domain/entities/app_notification.dart';
 import 'presentation/widgets/notification_center_sheet.dart';
 import 'core/services/venue_sync_service.dart';
+import 'core/services/external_link_service.dart';
 import 'core/state/ticket_store.dart';
 import 'presentation/widgets/chat/floating_chat_bubble.dart';
 import 'presentation/widgets/chat/chatbot_bottom_sheet.dart';
@@ -2907,14 +2908,21 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                 child: _buildQuickActionButton(
                   icon: Icons.phone_in_talk_rounded,
                   label: 'Gọi hotline',
-                  subLabel: '0909 123 456',
+                  subLabel: widget.venue.hotline ?? 'Chưa có số liên hệ',
                   color: AppColors.primary,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('📞 Đang gọi Hotline: 0909 123 456...')),
-                    );
+                  onTap: () async {
+                    final phone = widget.venue.hotline;
+                    if (phone == null || phone.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sân chưa cập nhật số liên hệ.')),
+                      );
+                      return;
+                    }
+                    if (!await ExternalLinkService.callPhone(phone) && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Không mở được trình gọi điện.')),
+                      );
+                    }
                   },
                 ),
               ),
@@ -2923,14 +2931,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                 child: _buildQuickActionButton(
                   icon: Icons.directions_rounded,
                   label: 'Chỉ đường',
-                  subLabel: widget.venue.district,
+                  subLabel: widget.venue.address,
                   color: AppColors.secondary,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              '🗺️ Mở bản đồ đến: ${widget.venue.address}...')),
-                    );
+                  onTap: () async {
+                    if (!await ExternalLinkService.openMap(widget.venue.address) &&
+                        mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Không mở được bản đồ.')),
+                      );
+                    }
                   },
                 ),
               ),
