@@ -343,18 +343,18 @@ export const PosCheckinView: React.FC = () => {
                           key={ticket.id}
                           className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
                         >
-                          <td className="py-3.5 px-4">
-                            <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap inline-block">
                               {ticket.id}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             <div className="font-bold text-slate-900 dark:text-white">
                               {ticket.customerName}
                             </div>
                             <div className="text-[11px] text-slate-400">{ticket.customerPhone}</div>
                           </td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             <div className="font-semibold text-slate-800 dark:text-slate-200">
                               {ticket.courtName}
                             </div>
@@ -363,9 +363,9 @@ export const PosCheckinView: React.FC = () => {
                               {ticket.timeSlot}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                              className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap ${
                                 checked
                                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                                   : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
@@ -379,7 +379,7 @@ export const PosCheckinView: React.FC = () => {
                               {checked ? 'Đã vào sân' : 'Chờ check-in'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             {checked ? (
                               <span className="text-xs font-bold text-slate-400 inline-flex items-center gap-1">
                                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -390,7 +390,7 @@ export const PosCheckinView: React.FC = () => {
                                 type="button"
                                 data-testid={`btn-checkin-${ticket.id}`}
                                 onClick={() => handleTableCheckIn(ticket.id)}
-                                className="glass-pill px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer inline-flex items-center gap-1"
+                                className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-sm hover:shadow-md transition-all cursor-pointer inline-flex items-center gap-1.5 border border-emerald-500/30"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 Check-in

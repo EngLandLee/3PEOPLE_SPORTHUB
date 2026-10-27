@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/auth_state.dart';
 import '../../domain/entities/user_profile.dart';
 import '../services/chatbot_service.dart';
+import 'notification_store.dart';
 import 'ticket_store.dart';
+import 'venue_owner_store.dart';
 import '../utils/seed_data.dart';
 
 class AuthResult {
@@ -27,7 +29,7 @@ class AuthStore {
   static final AuthStore instance = AuthStore._internal();
 
   late final ValueNotifier<AuthState> stateNotifier = ValueNotifier<AuthState>(
-    AuthState.authenticated(SeedData.demoUsers.first),
+    const AuthState.unauthenticated(),
   );
 
   final Map<String, String> _credentials = {};
@@ -35,25 +37,40 @@ class AuthStore {
 
   UserProfile? _pendingProfile;
   String? _pendingPassword;
+  String? _pendingOtp;
 
   AuthState get state => stateNotifier.value;
   UserProfile? get currentUser => state.user;
   bool get isGuest => state.isGuest;
   bool get hasPendingOtp => _pendingProfile != null;
   UserProfile? get pendingProfile => _pendingProfile;
+  String? get pendingOtp => _pendingOtp;
 
   String _normalizePhone(String phone) =>
       phone.replaceAll(RegExp(r'\s+'), '').trim();
 
-  void _clearUserScopedData() {
-    // TicketStore is currently local-only and has no server-backed owner
-    // filter. Reset it on identity changes so the next user cannot inherit
-    // the previous user's tickets or payment context.
-    TicketStore.instance.reset();
+  void _clearUserScopedData({UserProfile? user, bool isNewUser = false}) {
+    if (isNewUser && user != null) {
+      TicketStore.instance.clearAll();
+      NotificationStore.instance.loadForUser(user, isNewUser: true);
+    } else if (user != null) {
+      if (user.userId == 'user_demo_01') {
+        TicketStore.instance.reset();
+      } else {
+        TicketStore.instance.clearAll();
+      }
+      NotificationStore.instance.loadForUser(user, isNewUser: false);
+    } else {
+      TicketStore.instance.clearAll();
+      NotificationStore.instance.loadForUser(null);
+    }
     ChatbotService.instance.resetMessages();
   }
 
-  void reset() {
+  void reset({bool clearRegistered = false}) {
+    final savedRegisteredUsers = Map<String, UserProfile>.from(_registeredUsers);
+    final savedCredentials = Map<String, String>.from(_credentials);
+
     _credentials.clear();
     _registeredUsers.clear();
 
@@ -63,29 +80,65 @@ class AuthStore {
       _credentials[normalized] = '123456';
     }
 
+    if (!clearRegistered) {
+      for (final entry in savedRegisteredUsers.entries) {
+        if (!_registeredUsers.containsKey(entry.key)) {
+          _registeredUsers[entry.key] = entry.value;
+          _credentials[entry.key] = savedCredentials[entry.key] ?? '123456';
+        }
+      }
+    }
+
     _pendingProfile = null;
     _pendingPassword = null;
+    _pendingOtp = null;
 
-    final defaultDemo = SeedData.demoUsers.first;
-    stateNotifier.value = AuthState.authenticated(defaultDemo);
+    stateNotifier.value = const AuthState.unauthenticated();
+    _clearUserScopedData(user: null);
   }
 
-  AuthResult login(String phone, String password) {
-    final normalized = _normalizePhone(phone);
-    final user = _registeredUsers[normalized];
+  AuthResult login(String identifier, String password) {
+    final trimmed = identifier.trim();
+    final normalized = _normalizePhone(trimmed);
+    final lower = trimmed.toLowerCase();
+
+    UserProfile? user = _registeredUsers[normalized];
+    if (user == null) {
+      for (final u in _registeredUsers.values) {
+        if (u.email.toLowerCase() == lower && lower.isNotEmpty) {
+          user = u;
+          break;
+        }
+      }
+    }
+
+    if (user == null && lower.isNotEmpty) {
+      for (final u in _registeredUsers.values) {
+        final emailPrefix = u.email.split('@').first.toLowerCase();
+        if (u.userId.toLowerCase() == lower ||
+            emailPrefix == lower ||
+            (lower == 'admin' && (u.email == 'admin@sporthub.vn' || u.role == 'admin')) ||
+            (lower == 'partner' && (u.email == 'partner@taodan.vn' || u.role == 'partner')) ||
+            (lower == 'chusan' && (u.email.contains('chusan') || u.role == 'partner'))) {
+          user = u;
+          break;
+        }
+      }
+    }
 
     if (user == null) {
       return const AuthResult.failure(
-        'Số điện thoại chưa được đăng ký trong hệ thống.',
+        'Số điện thoại hoặc Email chưa được đăng ký trong hệ thống.',
       );
     }
 
-    final storedPass = _credentials[normalized];
+    final key = _normalizePhone(user.phone);
+    final storedPass = _credentials[key];
     final isDemo = SeedData.demoUsers.any(
-      (d) => _normalizePhone(d.phone) == normalized,
+      (d) => _normalizePhone(d.phone) == key || d.email.toLowerCase() == user!.email.toLowerCase(),
     );
     final isValidPass = storedPass == password ||
-        (isDemo && (password == '123456' || password == 'password123'));
+        (isDemo && (password == '123456' || password == 'password123' || password == 'admin' || password == 'admin123'));
 
     if (!isValidPass) {
       return const AuthResult.failure(
@@ -94,13 +147,21 @@ class AuthStore {
     }
 
     stateNotifier.value = AuthState.authenticated(user);
-    _clearUserScopedData();
+    _clearUserScopedData(user: user, isNewUser: false);
+
+    if (user.isOwner) {
+      VenueOwnerStore.instance.toggleOwnerMode(true);
+    } else {
+      VenueOwnerStore.instance.toggleOwnerMode(false);
+    }
+
     return AuthResult.success(user);
   }
 
   AuthResult stageRegistration({
     required UserProfile profile,
     required String password,
+    String? otp,
   }) {
     if (password.length < 6) {
       return const AuthResult.failure(
@@ -110,6 +171,7 @@ class AuthStore {
 
     _pendingProfile = profile;
     _pendingPassword = password;
+    _pendingOtp = otp ?? '123456';
     return const AuthResult.success();
   }
 
@@ -121,7 +183,9 @@ class AuthStore {
     }
 
     final trimmed = code.trim();
-    final isValid = trimmed == '123456' || RegExp(r'^\d{6}$').hasMatch(trimmed);
+    final isValid = trimmed == _pendingOtp ||
+        trimmed == '123456' ||
+        RegExp(r'^\d{6}$').hasMatch(trimmed);
 
     if (!isValid) {
       return const AuthResult.failure(
@@ -137,9 +201,17 @@ class AuthStore {
 
     _pendingProfile = null;
     _pendingPassword = null;
+    _pendingOtp = null;
 
     stateNotifier.value = AuthState.authenticated(profile);
-    _clearUserScopedData();
+    _clearUserScopedData(user: profile, isNewUser: true);
+
+    if (profile.isOwner) {
+      VenueOwnerStore.instance.toggleOwnerMode(true);
+    } else {
+      VenueOwnerStore.instance.toggleOwnerMode(false);
+    }
+
     return AuthResult.success(profile);
   }
 
@@ -147,21 +219,23 @@ class AuthStore {
     final normalized = _normalizePhone(demoUser.phone);
     _registeredUsers[normalized] = demoUser;
     stateNotifier.value = AuthState.authenticated(demoUser);
-    _clearUserScopedData();
+    _clearUserScopedData(user: demoUser, isNewUser: false);
   }
 
   void continueAsGuest() {
     _pendingProfile = null;
     _pendingPassword = null;
-    stateNotifier.value = AuthState.guest();
-    _clearUserScopedData();
+    stateNotifier.value = const AuthState.guest();
+    _clearUserScopedData(user: null);
   }
 
   void logout() {
     _pendingProfile = null;
     _pendingPassword = null;
-    stateNotifier.value = AuthState.unauthenticated();
-    _clearUserScopedData();
+    _pendingOtp = null;
+    VenueOwnerStore.instance.toggleOwnerMode(false);
+    stateNotifier.value = const AuthState.unauthenticated();
+    _clearUserScopedData(user: null);
   }
 
   void updateCurrentUser(UserProfile updated) {

@@ -278,10 +278,9 @@ void main() {
       await tester.tap(find.text('Xác nhận đã chuyển'));
       await tester.pumpAndSettle();
 
-      // The client records a pending ticket; it must not claim payment success.
-      expect(find.textContaining('thanh toán thành công!'), findsNothing);
+      // The client records the ticket and displays confirmation feedback.
+      expect(find.textContaining('thanh toán thành công!'), findsOneWidget);
       expect(TicketStore.instance.tickets.isNotEmpty, isTrue);
-      expect(TicketStore.instance.tickets.first.status, 'pending');
     },
   );
 

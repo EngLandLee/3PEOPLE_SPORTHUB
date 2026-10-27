@@ -343,6 +343,13 @@ void main() {
       expect(assistantMsg.actionCard?['time'], '18:00');
     });
 
+    test('enableOfflineFallback defaults to false and can be toggled', () {
+      expect(ChatbotService.instance.enableOfflineFallback, isFalse);
+      ChatbotService.instance.enableOfflineFallback = true;
+      expect(ChatbotService.instance.enableOfflineFallback, isTrue);
+      ChatbotService.instance.enableOfflineFallback = false;
+    });
+
     test('ChatbotService local fallback generates proactive card and quickSuggestions', () async {
       final reply = await service.sendMessage('tôi muốn đặt sân');
       expect(reply.hasActionCard, isTrue);

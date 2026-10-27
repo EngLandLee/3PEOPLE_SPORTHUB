@@ -12,11 +12,11 @@ void main() {
     authStore.reset();
   });
 
-  test('initial state is authenticated with default demo user for backward compatibility', () {
-    expect(authStore.state.isAuthenticated, isTrue);
-    expect(authStore.currentUser?.userId, equals('user_demo_01'));
+  test('initial state is unauthenticated requiring login screen on startup', () {
+    expect(authStore.state.isAuthenticated, isFalse);
+    expect(authStore.currentUser, isNull);
     expect(authStore.isGuest, isFalse);
-    expect(authStore.state.isLoggedIn, isTrue);
+    expect(authStore.state.isLoggedIn, isFalse);
   });
 
   test('logout sets state to unauthenticated', () {
@@ -141,5 +141,41 @@ void main() {
     authStore.logout();
     // In logout/guest mode, UserProfileStore provides default profile fallback
     expect(UserProfileStore.instance.profile.userId, equals('user_demo_01'));
+  });
+
+  test('admin@sporthub.vn logs in and enables owner mode', () {
+    authStore.logout();
+    final result = authStore.login('admin@sporthub.vn', '123456');
+    expect(result.success, isTrue);
+    expect(authStore.currentUser?.email, 'admin@sporthub.vn');
+    expect(authStore.currentUser?.isOwner, isTrue);
+  });
+
+  test('partner@taodan.vn logs in and enables owner mode', () {
+    authStore.logout();
+    final result = authStore.login('partner@taodan.vn', '123456');
+    expect(result.success, isTrue);
+    expect(authStore.currentUser?.email, 'partner@taodan.vn');
+    expect(authStore.currentUser?.isOwner, isTrue);
+  });
+
+  test('admin and partner short aliases log in successfully', () {
+    authStore.logout();
+    final adminResult = authStore.login('admin', '123456');
+    expect(adminResult.success, isTrue);
+    expect(authStore.currentUser?.email, 'admin@sporthub.vn');
+
+    authStore.logout();
+    final partnerResult = authStore.login('partner', '123456');
+    expect(partnerResult.success, isTrue);
+    expect(authStore.currentUser?.email, 'partner@taodan.vn');
+  });
+
+  test('nguyenvanan@gmail.com logs in and keeps player mode', () {
+    authStore.logout();
+    final result = authStore.login('nguyenvanan@gmail.com', '123456');
+    expect(result.success, isTrue);
+    expect(authStore.currentUser?.email, 'nguyenvanan@gmail.com');
+    expect(authStore.currentUser?.isPlayer, isTrue);
   });
 }

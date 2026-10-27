@@ -133,7 +133,7 @@ void main() {
     final ownerUser = SeedData.demoUsers.firstWhere(
       (u) => u.userId == 'user_owner_01',
     );
-    expect(ownerUser.fullName, equals('Trần Văn Chủ Sân'));
+    expect(ownerUser.fullName, equals('Chủ Sân Tao Đàn'));
     expect(ownerUser.phone, equals('0988 888 777'));
 
     final auth = AuthStore.instance;

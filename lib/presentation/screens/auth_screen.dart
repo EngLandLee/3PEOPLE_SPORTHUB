@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/state/auth_store.dart';
-import '../../core/state/venue_owner_store.dart';
-import '../../core/utils/seed_data.dart';
 import '../../domain/entities/user_profile.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -29,9 +27,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   // Register Controllers
   final TextEditingController _regNameController = TextEditingController();
+  final TextEditingController _regEmailController = TextEditingController();
   final TextEditingController _regPhoneController = TextEditingController();
   final TextEditingController _regPasswordController = TextEditingController();
   bool _obscureRegPassword = true;
+  String _selectedRole = 'player';
   String _selectedSport = 'pickleball';
   String? _registerError;
 
@@ -40,23 +40,24 @@ class _AuthScreenState extends State<AuthScreen> {
     _loginPhoneController.dispose();
     _loginPasswordController.dispose();
     _regNameController.dispose();
+    _regEmailController.dispose();
     _regPhoneController.dispose();
     _regPasswordController.dispose();
     super.dispose();
   }
 
   void _handleLogin() {
-    final phone = _loginPhoneController.text.trim();
+    final identifier = _loginPhoneController.text.trim();
     final password = _loginPasswordController.text;
 
-    if (phone.isEmpty || password.isEmpty) {
+    if (identifier.isEmpty || password.isEmpty) {
       setState(() {
-        _loginError = 'Vui lòng nhập đầy đủ số điện thoại và mật khẩu.';
+        _loginError = 'Vui lòng nhập số điện thoại/email và mật khẩu.';
       });
       return;
     }
 
-    final result = AuthStore.instance.login(phone, password);
+    final result = AuthStore.instance.login(identifier, password);
     if (!result.success) {
       setState(() {
         _loginError = result.errorMessage ?? 'Đăng nhập không thành công.';
@@ -71,12 +72,22 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _handleRegister() {
     final name = _regNameController.text.trim();
+    final email = _regEmailController.text.trim();
     final phone = _regPhoneController.text.trim();
     final password = _regPasswordController.text;
 
-    if (name.isEmpty || phone.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
       setState(() {
-        _registerError = 'Vui lòng điền đầy đủ các thông tin đăng ký.';
+        _registerError =
+            'Vui lòng điền đầy đủ họ tên, email, SĐT và mật khẩu.';
+      });
+      return;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() {
+        _registerError =
+            'Vui lòng nhập địa chỉ email hợp lệ (ví dụ: yourname@gmail.com).';
       });
       return;
     }
@@ -91,7 +102,9 @@ class _AuthScreenState extends State<AuthScreen> {
     final profile = UserProfile(
       userId: 'user_${DateTime.now().millisecondsSinceEpoch}',
       fullName: name,
+      email: email,
       phone: phone,
+      role: _selectedRole,
       preferredSport: _selectedSport,
       skillLevel: 'Beginner',
       district: 'Bình Thạnh',
@@ -104,6 +117,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final result = AuthStore.instance.stageRegistration(
       profile: profile,
       password: password,
+      otp: '123456',
     );
 
     if (!result.success) {
@@ -114,11 +128,11 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() {
         _registerError = null;
       });
-      _showOtpModal(context, phone);
+      _showOtpModal(context, email, phone);
     }
   }
 
-  void _showOtpModal(BuildContext context, String phone) {
+  void _showOtpModal(BuildContext context, String email, String phone) {
     final TextEditingController otpController = TextEditingController();
     String? otpError;
 
@@ -155,7 +169,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Xác thực mã OTP',
+                    'Xác thực mã OTP qua Gmail',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -165,7 +179,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Mã gửi tới $phone (Mã thử nghiệm: 123456)',
+                    'Mã OTP 6 số đã được gửi đến hộp thư Gmail:\n$email\n(Mã xác nhận thử nghiệm: 123456)',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -303,6 +317,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 _buildRegisterSection(),
               const SizedBox(height: 10),
               _buildGuestModeButton(),
+              if (_isLoginTab) _buildAccountHints(),
             ],
           ),
         ),
@@ -457,14 +472,14 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Phone input
+        // Phone / Email input
         _buildTextField(
           key: const Key('login_phone_input'),
           controller: _loginPhoneController,
-          label: 'Số điện thoại',
-          hintText: 'Nhập số điện thoại (ví dụ: 0909 123 456)',
-          icon: Icons.phone_android_rounded,
-          keyboardType: TextInputType.phone,
+          label: 'Số điện thoại hoặc Email',
+          hintText: 'admin@sporthub.vn, partner@taodan.vn hoặc SĐT',
+          icon: Icons.person_pin_rounded,
+          keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 10),
 
@@ -473,7 +488,7 @@ class _AuthScreenState extends State<AuthScreen> {
           key: const Key('login_password_input'),
           controller: _loginPasswordController,
           label: 'Mật khẩu',
-          hintText: 'Nhập mật khẩu',
+          hintText: 'Nhập mật khẩu (mặc định: 123456)',
           icon: Icons.lock_outline_rounded,
           obscureText: _obscureLoginPassword,
           suffixIcon: IconButton(
@@ -539,149 +554,133 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
-
-        // Quick demo login list
-        _buildDemoLoginSection(),
       ],
     );
   }
 
-  Widget _buildDemoLoginSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.flash_on_rounded, color: AppColors.warning, size: 16),
-            SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                'Đăng nhập nhanh (Tài khoản Demo):',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: SeedData.demoUsers.map((user) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _buildDemoUserCard(user),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildDemoUserCard(UserProfile user) {
-    final isOwner = user.userId == 'user_owner_01';
-    final sportEmoji = isOwner
-        ? '🏟️'
-        : user.preferredSport == 'pickleball'
-            ? '🏓'
-            : user.preferredSport == 'badminton'
-                ? '🏸'
-                : '⚽';
-
-    return InkWell(
-      key: Key('quick_login_${user.userId}'),
-      onTap: () {
-        AuthStore.instance.loginWithDemo(user);
-        if (isOwner) {
-          VenueOwnerStore.instance.toggleOwnerMode(true);
-        }
-        widget.onAuthSuccess?.call();
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isOwner
-                ? AppColors.warning.withValues(alpha: 0.5)
-                : AppColors.cardBorder,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: isOwner
-                  ? AppColors.warning.withValues(alpha: 0.2)
-                  : AppColors.primary.withValues(alpha: 0.2),
-              child: Text(
-                user.fullName.isNotEmpty
-                    ? user.fullName
-                        .split(' ')
-                        .last
-                        .substring(0, 1)
-                        .toUpperCase()
-                    : 'U',
-                style: TextStyle(
-                  color: isOwner ? AppColors.warning : AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isOwner ? 'Trần Văn (Chủ sân)' : user.fullName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Row(
-                  children: [
-                    Text(sportEmoji, style: const TextStyle(fontSize: 10)),
-                    const SizedBox(width: 3),
-                    Text(
-                      isOwner
-                          ? 'Chủ sân • ${user.district}'
-                          : '${user.skillLevel} • ${user.district}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isOwner
-                            ? AppColors.warning
-                            : AppColors.textSecondary,
-                        fontWeight:
-                            isOwner ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildRegisterSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Role Selector: Player vs Partner (Court Owner)
+        Text(
+          'Loại tài khoản đăng ký:',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                key: const Key('register_role_player'),
+                onTap: () {
+                  setState(() {
+                    _selectedRole = 'player';
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _selectedRole == 'player'
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _selectedRole == 'player'
+                          ? AppColors.primary
+                          : AppColors.cardBorder,
+                      width: _selectedRole == 'player' ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.person_rounded,
+                        size: 16,
+                        color: _selectedRole == 'player'
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Khách hàng',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: _selectedRole == 'player'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: _selectedRole == 'player'
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                key: const Key('register_role_partner'),
+                onTap: () {
+                  setState(() {
+                    _selectedRole = 'partner';
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _selectedRole == 'partner'
+                        ? AppColors.accent.withValues(alpha: 0.15)
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _selectedRole == 'partner'
+                          ? AppColors.accent
+                          : AppColors.cardBorder,
+                      width: _selectedRole == 'partner' ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.store_rounded,
+                        size: 16,
+                        color: _selectedRole == 'partner'
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Chủ cụm sân',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: _selectedRole == 'partner'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: _selectedRole == 'partner'
+                              ? AppColors.accent
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
         // Name
         _buildTextField(
           key: const Key('register_name_input'),
@@ -692,12 +691,23 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         const SizedBox(height: 8),
 
+        // Gmail Email
+        _buildTextField(
+          key: const Key('register_email_input'),
+          controller: _regEmailController,
+          label: 'Email Gmail nhận OTP',
+          hintText: 'vidu@gmail.com',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 8),
+
         // Phone
         _buildTextField(
           key: const Key('register_phone_input'),
           controller: _regPhoneController,
           label: 'Số điện thoại',
-          hintText: 'Nhập số điện thoại đăng ký',
+          hintText: 'Nhập số điện thoại liên hệ',
           icon: Icons.phone_android_rounded,
           keyboardType: TextInputType.phone,
         ),
@@ -728,29 +738,31 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         const SizedBox(height: 8),
 
-        // Sport selector chips
-        Text(
-          'Môn thể thao ưa thích:',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+        // Sport selector chips (for Player)
+        if (_selectedRole == 'player') ...[
+          Text(
+            'Môn thể thao ưa thích:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          key: const Key('register_sport_chips'),
-          child: Row(
-            children: [
-              _buildSportChip('pickleball', '🏓 Pickleball'),
-              const SizedBox(width: 6),
-              _buildSportChip('badminton', '🏸 Cầu lông'),
-              const SizedBox(width: 6),
-              _buildSportChip('football', '⚽ Bóng đá'),
-            ],
+          const SizedBox(height: 6),
+          Container(
+            key: const Key('register_sport_chips'),
+            child: Row(
+              children: [
+                _buildSportChip('pickleball', '🏓 Pickleball'),
+                const SizedBox(width: 6),
+                _buildSportChip('badminton', '🏸 Cầu lông'),
+                const SizedBox(width: 6),
+                _buildSportChip('football', '⚽ Bóng đá'),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
 
         // Register error text
         if (_registerError != null) ...[
@@ -790,7 +802,7 @@ class _AuthScreenState extends State<AuthScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           child: const Text(
-            'Tiếp tục xác thực OTP ➔',
+            'Nhận mã OTP qua Gmail ➔',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -908,6 +920,125 @@ class _AuthScreenState extends State<AuthScreen> {
             decoration: TextDecoration.underline,
             decorationColor: AppColors.textSecondary,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountHints() {
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Tài khoản hệ thống (Mật khẩu: 123456)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildAccountHintItem(
+            roleLabel: 'Super Admin',
+            identifier: 'admin@sporthub.vn',
+            color: AppColors.secondary,
+          ),
+          const SizedBox(height: 4),
+          _buildAccountHintItem(
+            roleLabel: 'Chủ sân',
+            identifier: 'partner@taodan.vn',
+            color: AppColors.accent,
+          ),
+          const SizedBox(height: 4),
+          _buildAccountHintItem(
+            roleLabel: 'Khách hàng',
+            identifier: 'nguyenvanan@gmail.com',
+            color: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountHintItem({
+    required String roleLabel,
+    required String identifier,
+    required Color color,
+  }) {
+    final keyStr = roleLabel == 'Chủ sân'
+        ? 'quick_login_chusan'
+        : roleLabel == 'Super Admin'
+            ? 'quick_login_admin'
+            : 'quick_login_customer';
+    return InkWell(
+      key: Key(keyStr),
+      onTap: () {
+        setState(() {
+          _loginPhoneController.text = identifier;
+          _loginPasswordController.text = '123456';
+          _loginError = null;
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                roleLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                identifier,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Điền nhanh',
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -517,15 +517,18 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
               const SizedBox(height: 12),
 
               // Filter status chips
-              Row(
-                children: [
-                  _buildFilterChip('all', 'Tất cả ($totalCount)'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('pending', 'Chưa check-in ($pendingCount)'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                      'checked_in', 'Đã nhận sân ($checkedInCount)'),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('all', 'Tất cả ($totalCount)'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('pending', 'Chưa check-in ($pendingCount)'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                        'checked_in', 'Đã nhận sân ($checkedInCount)'),
+                  ],
+                ),
               ),
               const SizedBox(height: 14),
 
@@ -654,23 +657,29 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.confirmation_number_rounded,
-                        size: 16, color: AppColors.textPrimary),
-                    const SizedBox(width: 6),
-                    Text(
-                      ticketId,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 1.1,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.confirmation_number_rounded,
+                          size: 16, color: AppColors.textPrimary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          ticketId,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 1.1,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -901,14 +910,17 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
                         Icon(Icons.verified_rounded,
                             size: 16, color: AppColors.primary),
                         const SizedBox(width: 6),
-                        Text(
-                          checkInTime != null
-                              ? 'Khách đã nhận sân lúc ${checkInTime.hour.toString().padLeft(2, '0')}:${checkInTime.minute.toString().padLeft(2, '0')}'
-                              : 'Khách đã nhận sân',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                        Flexible(
+                          child: Text(
+                            checkInTime != null
+                                ? 'Khách đã nhận sân lúc ${checkInTime.hour.toString().padLeft(2, '0')}:${checkInTime.minute.toString().padLeft(2, '0')}'
+                                : 'Khách đã nhận sân',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

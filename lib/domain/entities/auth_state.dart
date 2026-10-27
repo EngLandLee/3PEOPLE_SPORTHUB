@@ -13,10 +13,20 @@ class AuthState {
 
   bool get isLoggedIn => isAuthenticated && user != null;
 
-  factory AuthState.unauthenticated() => const AuthState(isAuthenticated: false);
-  factory AuthState.guest() => const AuthState(isAuthenticated: false, isGuest: true);
-  factory AuthState.authenticated(UserProfile user) =>
-      AuthState(isAuthenticated: true, user: user, isGuest: false);
+  const AuthState.unauthenticated()
+      : isAuthenticated = false,
+        user = null,
+        isGuest = false;
+
+  const AuthState.guest()
+      : isAuthenticated = false,
+        user = null,
+        isGuest = true;
+
+  const AuthState.authenticated(UserProfile user)
+      : isAuthenticated = true,
+        user = user,
+        isGuest = false;
 
   @override
   bool operator ==(Object other) =>

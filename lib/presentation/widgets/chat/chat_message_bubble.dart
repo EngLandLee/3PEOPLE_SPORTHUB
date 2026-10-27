@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/chatbot_service.dart';
+import 'action_proposal_card.dart';
 import 'chat_booking_card.dart';
 import 'chat_table_card.dart';
 
@@ -13,6 +14,8 @@ class ChatMessageBubble extends StatefulWidget {
   final VoidCallback? onBookNow;
   final void Function(Map<String, dynamic> actionCard)? onViewCourtMap;
   final bool? enableAnimation;
+  final void Function(Map<String, String> edits)? onApproveProposal;
+  final VoidCallback? onCancelProposal;
 
   const ChatMessageBubble({
     super.key,
@@ -20,6 +23,8 @@ class ChatMessageBubble extends StatefulWidget {
     this.onBookNow,
     this.onViewCourtMap,
     this.enableAnimation,
+    this.onApproveProposal,
+    this.onCancelProposal,
   });
 
   /// Cache of message IDs that have already finished their entrance / typing animation
@@ -330,7 +335,46 @@ class _ChatMessageBubbleState extends State<ChatMessageBubble>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   bubbleContent,
-                  if (hasBookingCard) ...[
+                  if (widget.message.hasProposal &&
+                      widget.message.proposal != null) ...[
+                    const SizedBox(height: 8),
+                    if (_isTypingComplete)
+                      FadeTransition(
+                        opacity: _cardController,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.08),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: _cardController,
+                            curve: Curves.easeOutCubic,
+                          )),
+                          child: ActionProposalCard(
+                            proposal: widget.message.proposal!,
+                            onApprove: widget.onApproveProposal ??
+                                (edits) async {
+                                  await ChatbotService.instance
+                                      .executeActionProposal(
+                                    proposalId: widget.message.proposal!.id,
+                                    approved: true,
+                                    edits: edits,
+                                  );
+                                },
+                            onCancel: widget.onCancelProposal ??
+                                () async {
+                                  await ChatbotService.instance
+                                      .executeActionProposal(
+                                    proposalId: widget.message.proposal!.id,
+                                    approved: false,
+                                  );
+                                },
+                          ),
+                        ),
+                      ),
+                  ],
+                  if (hasBookingCard &&
+                      (!widget.message.hasProposal ||
+                          widget.message.proposal!.isExecuted)) ...[
                     const SizedBox(height: 8),
                     if (_isTypingComplete)
                       FadeTransition(

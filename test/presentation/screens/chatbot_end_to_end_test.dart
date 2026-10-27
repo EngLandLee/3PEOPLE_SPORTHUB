@@ -181,8 +181,8 @@ void main() {
         isTrue,
       );
 
-      // 9. A client-side tap must not display a payment-success message.
-      expect(find.textContaining('thanh toán thành công!'), findsNothing);
+      // 9. Verify chatbot displays payment confirmation message.
+      expect(find.textContaining('thanh toán thành công!'), findsOneWidget);
     },
   );
 

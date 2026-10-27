@@ -370,43 +370,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   );
                 },
               ),
-              bottomNavigationBar: SafeArea(
-                child: Container(
-                  key: const Key('consumer_bottom_nav_bar'),
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: AppColors.cardBorder, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black
-                            .withValues(alpha: AppColors.isDark ? 0.35 : 0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: _buildNavItem(
-                              0, Icons.sports_tennis_rounded, 'Đặt sân')),
-                      Expanded(
-                          child: _buildNavItem(
-                              1, Icons.groups_rounded, 'Cộng đồng')),
-                      Expanded(
-                          child: _buildNavItem(2,
-                              Icons.confirmation_number_rounded, 'Vé của tôi')),
-                      Expanded(
-                          child:
-                              _buildNavItem(3, Icons.person_rounded, 'Hồ sơ')),
-                    ],
-                  ),
-                ),
+              bottomNavigationBar: ConsumerFloatingNavBar(
+                currentIndex: _currentIndex,
+                onTabSelected: (index) => setState(() => _currentIndex = index),
               ),
             );
           },
@@ -414,15 +380,68 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       },
     );
   }
+}
+
+class ConsumerFloatingNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTabSelected;
+  final Key? barKey;
+
+  const ConsumerFloatingNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTabSelected,
+    this.barKey = const Key('consumer_bottom_nav_bar'),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        key: barKey,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: AppColors.cardBorder, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black
+                  .withValues(alpha: AppColors.isDark ? 0.35 : 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildNavItem(0, Icons.sports_tennis_rounded, 'Đặt sân'),
+            ),
+            Expanded(
+              child: _buildNavItem(1, Icons.groups_rounded, 'Cộng đồng'),
+            ),
+            Expanded(
+              child: _buildNavItem(2, Icons.confirmation_number_rounded, 'Vé của tôi'),
+            ),
+            Expanded(
+              child: _buildNavItem(3, Icons.person_rounded, 'Hồ sơ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _currentIndex == index;
+    final isSelected = currentIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () => onTabSelected(index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.16)
@@ -442,15 +461,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               size: 20,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isSelected ? 4 : 0,
+              height: isSelected ? 4 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
               ),
             ),
           ],
@@ -2632,6 +2661,22 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               targetId: newBookingId,
             ),
           );
+
+          final courtSlotSummary = selectedSlots
+              .map((s) => 'Sân ${s.courtNumber} (${s.startTime} - ${s.endTime})')
+              .join(', ');
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_${DateTime.now().millisecondsSinceEpoch}',
+              title: '⚡ Đơn đặt sân mới qua App',
+              message:
+                  'Khách hàng $custName vừa đặt $courtSlotSummary tại ${widget.venue.name}. Mã vé: $newBookingId.',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
+              targetId: newBookingId,
+            ),
+          );
           context.read<BookingBloc>().add(ClearSelectedSlotsEvent());
           setState(() {
             _slots = _slots.map<TimeSlot>((s) {
@@ -3949,6 +3994,19 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               timestamp: DateTime.now(),
               type: NotificationType.booking,
               role: NotificationRole.player,
+              targetId: newBookingId,
+            ),
+          );
+
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_fixed_${DateTime.now().millisecondsSinceEpoch}',
+              title: '⚡ Đơn đặt lịch cố định mới qua App',
+              message:
+                  'Khách hàng $custName vừa đăng ký lịch cố định $fullDayNames ($_fixedTimeSlot) tại ${widget.venue.name}. Mã vé: $newBookingId.',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
               targetId: newBookingId,
             ),
           );
@@ -5795,6 +5853,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
         selectedDate: _selectedDate,
         onViewCourtMapAction: (actionCard) =>
             _focusCourtFromActionCard(actionCard),
+      ),
+      bottomNavigationBar: ConsumerFloatingNavBar(
+        currentIndex: 0,
+        barKey: const Key('venue_detail_bottom_nav_bar'),
+        onTabSelected: (index) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          if (index != 0) {
+            MainNavigationController.switchToTab?.call(index);
+          }
+        },
       ),
       appBar: AppBar(
         title: Text(widget.venue.name,
@@ -8672,139 +8742,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _openQuickSwitcher() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Đổi tài khoản nhanh',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Chọn tài khoản demo bên dưới để chuyển đổi ngay:',
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  ),
-                  const SizedBox(height: 16),
-                  ...SeedData.demoUsers.map((user) {
-                    final isCurrent =
-                        AuthStore.instance.currentUser?.userId == user.userId;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Material(
-                        color: isCurrent
-                            ? AppColors.primary.withValues(alpha: 0.12)
-                            : AppColors.background,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: isCurrent
-                                ? AppColors.primary
-                                : AppColors.cardBorder,
-                            width: isCurrent ? 1.5 : 1,
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 4),
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                AppColors.primary.withValues(alpha: 0.2),
-                            child: Text(
-                              _getInitials(user.fullName),
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            user.fullName,
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight:
-                                  isCurrent ? FontWeight.bold : FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '${user.phone} • ${user.preferredSport.toUpperCase()} (${user.skillLevel})',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: isCurrent
-                              ? Icon(Icons.check_circle_rounded,
-                                  color: AppColors.primary)
-                              : Icon(Icons.arrow_forward_ios_rounded,
-                                  color: AppColors.textSecondary, size: 14),
-                          onTap: () {
-                            AuthStore.instance.loginWithDemo(user);
-                            UserProfileStore.instance.profileNotifier.value =
-                                user;
-                            _nameController.text = user.fullName;
-                            _phoneController.text = user.phone;
-                            ChatbotService.instance.updateContext(
-                              ChatbotService.instance.currentContext?.copyWith(
-                                    userName: user.fullName,
-                                    preferredSport: user.preferredSport,
-                                  ) ??
-                                  ChatContext(
-                                    userName: user.fullName,
-                                    preferredSport: user.preferredSport,
-                                  ),
-                            );
-                            if (user.userId == 'user_owner_01') {
-                              VenueOwnerStore.instance.toggleOwnerMode(true);
-                            }
-                            Navigator.of(ctx).pop();
-                          },
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildGuestHeaderCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -8919,152 +8856,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton.icon(
-              key: const Key('profile_quick_switch_button'),
-              onPressed: _openQuickSwitcher,
-              icon: Icon(Icons.swap_horiz_rounded,
-                  color: AppColors.primary, size: 18),
-              label: Text(
-                '🔄 Chọn tài khoản Demo để thử nghiệm',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.primary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildAccountActions() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Material(
-            color: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: AppColors.cardBorder),
+    return Material(
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.cardBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeStore.instance.themeModeNotifier,
+        builder: (context, _, __) {
+          final isDark = ThemeStore.instance.isDarkMode;
+          return ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isDark
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: ValueListenableBuilder<ThemeMode>(
-              valueListenable: ThemeStore.instance.themeModeNotifier,
-              builder: (context, _, __) {
-                final isDark = ThemeStore.instance.isDarkMode;
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isDark
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    'Giao diện',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: Text(
-                    isDark ? 'Chế độ tối' : 'Chế độ sáng',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  trailing: Switch.adaptive(
-                    key: const Key('profile_theme_toggle'),
-                    value: isDark,
-                    onChanged: (_) => ThemeStore.instance.toggleTheme(),
-                    activeTrackColor: AppColors.primary,
-                  ),
-                  onTap: () => ThemeStore.instance.toggleTheme(),
-                );
-              },
+            title: Text(
+              'Giao diện',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
+            subtitle: Text(
+              isDark ? 'Chế độ tối' : 'Chế độ sáng',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            trailing: Switch.adaptive(
+              key: const Key('profile_theme_toggle'),
+              value: isDark,
+              onChanged: (_) => ThemeStore.instance.toggleTheme(),
+              activeTrackColor: AppColors.primary,
+            ),
+            onTap: () => ThemeStore.instance.toggleTheme(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLogoutSection() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        key: const Key('profile_logout_button'),
+        onPressed: _showLogoutDialog,
+        icon: const Icon(Icons.logout_rounded,
+            size: 20, color: AppColors.error),
+        label: const Text(
+          '🚪 Đăng xuất',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.error,
           ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  key: const Key('profile_quick_switch_button'),
-                  onPressed: _openQuickSwitcher,
-                  icon: Icon(Icons.swap_horiz_rounded,
-                      size: 18, color: AppColors.primary),
-                  label: Text(
-                    '🔄 Đổi tài khoản',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  key: const Key('profile_logout_button'),
-                  onPressed: _showLogoutDialog,
-                  icon: const Icon(Icons.logout_rounded,
-                      size: 18, color: AppColors.error),
-                  label: const Text(
-                    '🚪 Đăng xuất',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.error,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.error),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.error, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          backgroundColor: AppColors.error.withValues(alpha: 0.05),
         ),
-      ],
+      ),
     );
   }
 
@@ -9197,8 +9075,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   _buildGuestHeaderCard(),
-                  const SizedBox(height: 14),
-                  _buildPartnerOwnerBanner(),
                 ],
               ),
             );
@@ -9217,8 +9093,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildReputationStats(profile),
                     const SizedBox(height: 14),
                     _buildAccountActions(),
-                    const SizedBox(height: 14),
-                    _buildPartnerOwnerBanner(),
+                    if (AuthStore.instance.currentUser?.isOwner == true) ...[
+                      const SizedBox(height: 14),
+                      _buildPartnerOwnerBanner(),
+                    ],
                     const SizedBox(height: 20),
                     Text(
                       'Thông tin cá nhân & Thể thao',
@@ -9232,6 +9110,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildProfileForm(),
                     const SizedBox(height: 20),
                     _buildActivitySection(profile),
+                    const SizedBox(height: 24),
+                    _buildLogoutSection(),
+                    const SizedBox(height: 16),
                   ],
                 ),
               );

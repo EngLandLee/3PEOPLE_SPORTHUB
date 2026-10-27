@@ -22,7 +22,7 @@ void main() {
       expect(AppColors.cardBorder, AppColors.lightCardBorder);
       expect(AppColors.textPrimary, AppColors.lightTextPrimary);
       expect(AppColors.textSecondary, AppColors.lightTextSecondary);
-      expect(AppColors.primary, const Color(0xFF059669));
+      expect(AppColors.primary, const Color(0xFFEA580C));
 
       expect(AppColors.background, const Color(0xFFF8FAFC));
       expect(AppColors.surface, const Color(0xFFFFFFFF));
@@ -40,7 +40,7 @@ void main() {
       expect(AppColors.cardBorder, AppColors.darkCardBorder);
       expect(AppColors.textPrimary, AppColors.darkTextPrimary);
       expect(AppColors.textSecondary, AppColors.darkTextSecondary);
-      expect(AppColors.primary, const Color(0xFF10B981));
+      expect(AppColors.primary, const Color(0xFFF97316));
 
       expect(AppColors.background, const Color(0xFF0B0F19));
       expect(AppColors.surface, const Color(0xFF161F30));

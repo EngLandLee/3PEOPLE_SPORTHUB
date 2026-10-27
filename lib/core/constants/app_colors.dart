@@ -16,8 +16,11 @@ class AppColors {
   static const Color lightTextPrimary = Color(0xFF0F172A);
   static const Color lightTextSecondary = Color(0xFF64748B);
 
-  static const Color darkPrimary = Color(0xFF10B981);
-  static const Color lightPrimary = Color(0xFF059669);
+  // Sunset Athletic Orange Brand Palette (Strava & Playtomic Style)
+  static const Color darkPrimary = Color(0xFFF97316);  // Vibrant Athletic Orange
+  static const Color lightPrimary = Color(0xFFEA580C); // Deep Energy Orange
+  static const Color primaryLight = Color(0xFFFFF7ED); // Soft Orange Light Background
+  static const Color primaryHover = Color(0xFFC2410C); // Darker Orange Hover
 
   // Dynamic Getters driven by ThemeStore
   static bool get isDark => ThemeStore.instance.isDarkMode;

@@ -7,6 +7,7 @@ import '../../../core/state/notification_store.dart';
 import '../../../core/state/ticket_store.dart';
 import '../../../core/state/venue_owner_store.dart';
 import '../../../core/utils/seed_data.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/sport_image_catalog.dart';
 import '../../../data/models/ticket_model.dart';
 import '../../../domain/entities/app_notification.dart';
@@ -464,6 +465,78 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
     );
   }
 
+  Future<void> _handleApproveProposal(
+    ActionProposal proposal,
+    Map<String, String> edits,
+  ) async {
+    try {
+      final res = await ChatbotService.instance.executeActionProposal(
+        proposalId: proposal.id,
+        approved: true,
+        edits: edits,
+      );
+      if (mounted) {
+        if (res['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                res['message']?.toString() ??
+                    'Đặt sân thành công! Vé đã được thêm vào vé của bạn.',
+              ),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                res['message']?.toString() ??
+                    'Không thể thực hiện đề xuất đặt sân.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xử lý đề xuất: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleCancelProposal(ActionProposal proposal) async {
+    try {
+      final res = await ChatbotService.instance.executeActionProposal(
+        proposalId: proposal.id,
+        approved: false,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              res['message']?.toString() ?? 'Đã hủy đề xuất đặt sân.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi hủy đề xuất: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _handleBookNow(Map<String, dynamic> actionCard) {
     if (widget.onBookNowAction != null) {
       widget.onBookNowAction!(actionCard);
@@ -642,6 +715,49 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
               targetId: bookingId,
             ),
           );
+
+          NotificationStore.instance.addNotification(
+            AppNotification(
+              id: 'notif_owner_${DateTime.now().millisecondsSinceEpoch}',
+              title: '💰 Nhận yêu cầu thanh toán (+${CurrencyFormatter.format(totalPrice)})',
+              message:
+                  'Khách hàng $customerName vừa xác nhận chuyển khoản VietQR đơn $bookingId tại $venueName ($courtStr, $startTime - $endTime).',
+              timestamp: DateTime.now(),
+              type: NotificationType.partner,
+              role: NotificationRole.owner,
+              isRead: false,
+              targetId: bookingId,
+            ),
+          );
+
+          actionCard['isPaid'] = true;
+          actionCard['isBooked'] = true;
+          actionCard['bookingId'] = bookingId;
+
+          ChatbotService.instance.notifyBookingPaid(ticket);
+
+          if (mounted) {
+            setState(() {});
+            _onMessagesUpdated();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Đã xác nhận đặt sân $bookingId! Bấm "Xem vé của tôi" để xem vé.',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.primary,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         },
       ),
     );
@@ -935,6 +1051,19 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                 onViewCourtMap: msg.hasActionCard
                                     ? _handleViewCourtMap
                                     : null,
+                                onApproveProposal:
+                                    msg.hasProposal && msg.proposal != null
+                                        ? (edits) => _handleApproveProposal(
+                                              msg.proposal!,
+                                              edits,
+                                            )
+                                        : null,
+                                onCancelProposal:
+                                    msg.hasProposal && msg.proposal != null
+                                        ? () => _handleCancelProposal(
+                                              msg.proposal!,
+                                            )
+                                        : null,
                               );
                             }
                             return const ChatTypingIndicator(

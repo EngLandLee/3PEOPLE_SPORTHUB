@@ -39,9 +39,10 @@ class VenueOwnerStore {
   }) {
     final list = List<CourtSlotItem>.from(slotsNotifier.value);
     final targetRange = '$startTime - $endTime';
+    final padCourt = courtNumber.toString().padLeft(2, '0');
     final index = list.indexWhere(
       (s) =>
-          s.courtName.contains('$courtNumber') &&
+          (s.courtName.contains('$courtNumber') || s.courtName.contains(padCourt)) &&
           (s.timeRange == targetRange || s.timeRange.startsWith(startTime)),
     );
     if (index != -1) {
@@ -52,6 +53,24 @@ class VenueOwnerStore {
         customerPhone: customerPhone,
         price: price,
       );
+      slotsNotifier.value = list;
+    } else {
+      final courtNameStr = courtNumber <= 4
+          ? 'Sân Cầu Lông $padCourt'
+          : 'Sân Pickleball $padCourt';
+      final sport = courtNumber <= 4 ? 'badminton' : 'pickleball';
+      final newSlot = CourtSlotItem(
+        slotId: 'court_${padCourt}_$ticketId',
+        courtName: courtNameStr,
+        sportType: sport,
+        timeRange: targetRange,
+        status: CourtSlotStatus.bookedApp,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        ticketId: ticketId,
+        price: price,
+      );
+      list.insert(0, newSlot);
       slotsNotifier.value = list;
     }
   }

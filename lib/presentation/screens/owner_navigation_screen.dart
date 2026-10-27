@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/state/auth_store.dart';
 import '../../core/state/venue_owner_store.dart';
 import '../../core/theme/theme_store.dart';
 import 'owner_tabs/owner_checkin_tab.dart';
@@ -156,10 +157,11 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
                 },
               ),
               IconButton(
+                key: const Key('owner_logout_button'),
                 visualDensity: VisualDensity.compact,
-                tooltip: 'Quay lại chế độ người chơi',
-                icon: Icon(Icons.swap_horiz_rounded, color: AppColors.primary),
-                onPressed: () => VenueOwnerStore.instance.toggleOwnerMode(false),
+                tooltip: 'Đăng xuất tài khoản',
+                icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                onPressed: () => AuthStore.instance.logout(),
               ),
               const SizedBox(width: 4),
             ],
@@ -545,7 +547,7 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.warning.withValues(alpha: 0.18)
@@ -567,15 +569,25 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
               size: 20,
               color: isSelected ? AppColors.warning : AppColors.textSecondary,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? AppColors.warning : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isSelected ? 4 : 0,
+              height: isSelected ? 4 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.warning,
+                shape: BoxShape.circle,
               ),
             ),
           ],

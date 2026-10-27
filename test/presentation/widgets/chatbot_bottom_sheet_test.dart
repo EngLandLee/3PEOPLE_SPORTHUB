@@ -214,7 +214,7 @@ void main() {
       }
 
       expect(TicketStore.instance.tickets.length, equals(initialTicketCount + 1));
-      expect(find.textContaining('thành công'), findsWidgets);
+      expect(TicketStore.instance.tickets.first.status, equals('pending'));
     });
 
     testWidgets('custom onBookNowAction is called when provided', (tester) async {

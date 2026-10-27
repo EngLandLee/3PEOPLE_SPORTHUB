@@ -848,6 +848,10 @@ class ChatbotService {
   /// Injected HTTP client for network operations & unit testing
   http.Client? httpClient;
 
+  /// Whether the chatbot allows falling back to the local regex intent engine.
+  /// Set to false to disable offline fallback completely and require online AI backend.
+  bool enableOfflineFallback = false;
+
   /// Detects whether code is executing inside a Flutter test runner
   bool get isTestEnvironment {
     try {
@@ -1046,6 +1050,301 @@ class ChatbotService {
     } catch (_) {}
   }
 
+  /// Handles execution success by constructing a [TicketModel] from the returned
+  /// ticket dictionary and inserting it into [TicketStore.instance].
+  TicketModel handleExecutionSuccess(Map<String, dynamic> ticketData) {
+    final id = ticketData['id']?.toString() ??
+        'ticket_${DateTime.now().millisecondsSinceEpoch}';
+    final bookingId = ticketData['bookingId']?.toString() ??
+        ticketData['booking_id']?.toString() ??
+        'BK-${DateTime.now().millisecondsSinceEpoch}';
+    final venueName = ticketData['venueName']?.toString() ??
+        ticketData['venue_name']?.toString() ??
+        'CLB SportHub';
+    final courtName = ticketData['courtName']?.toString() ??
+        ticketData['court_name']?.toString() ??
+        'Sân 1';
+
+    int courtNumber = 1;
+    if (ticketData['courtNumber'] is int) {
+      courtNumber = ticketData['courtNumber'] as int;
+    } else if (ticketData['court_number'] != null) {
+      courtNumber = int.tryParse(ticketData['court_number'].toString()) ?? 1;
+    } else {
+      final match = RegExp(r'\d+').firstMatch(courtName);
+      if (match != null) {
+        courtNumber = int.tryParse(match.group(0)!) ?? 1;
+      }
+    }
+
+    String sportType = ticketData['sportType']?.toString() ??
+        ticketData['sport_type']?.toString() ??
+        '';
+    if (sportType.isEmpty) {
+      final combined = '$venueName $courtName'.toLowerCase();
+      if (combined.contains('cầu lông') || combined.contains('badminton')) {
+        sportType = 'badminton';
+      } else if (combined.contains('bóng đá') || combined.contains('football')) {
+        sportType = 'football';
+      } else if (combined.contains('pickleball')) {
+        sportType = 'pickleball';
+      } else if (combined.contains('tennis')) {
+        sportType = 'tennis';
+      } else {
+        sportType = 'badminton';
+      }
+    }
+
+    final matchDate = ticketData['matchDate']?.toString() ??
+        ticketData['match_date']?.toString() ??
+        ticketData['date']?.toString() ??
+        DateTime.now().toIso8601String().split('T').first;
+
+    String startTime = ticketData['startTime']?.toString() ??
+        ticketData['start_time']?.toString() ??
+        '';
+    String endTime = ticketData['endTime']?.toString() ??
+        ticketData['end_time']?.toString() ??
+        '';
+    if (startTime.isEmpty || endTime.isEmpty) {
+      final timeSlot = ticketData['timeSlot']?.toString() ??
+          ticketData['time_slot']?.toString() ??
+          '18:00 - 19:30';
+      if (timeSlot.contains('-')) {
+        final parts = timeSlot.split('-');
+        startTime = parts[0].trim();
+        endTime = parts[1].trim();
+      } else {
+        startTime = '18:00';
+        endTime = '19:30';
+      }
+    }
+
+    final rawPrice = ticketData['totalPrice'] ??
+        ticketData['total_price'] ??
+        ticketData['price'];
+    final double totalPrice = rawPrice is num
+        ? rawPrice.toDouble()
+        : (double.tryParse(rawPrice?.toString() ?? '') ?? 0.0);
+
+    final qrCodeData = ticketData['qrCodeData']?.toString() ??
+        ticketData['qr_code_data']?.toString() ??
+        'SPORTHUB|$bookingId|${totalPrice.toInt()}';
+    final status = ticketData['status']?.toString() ?? 'pending';
+    final createdAt = ticketData['createdAt']?.toString() ??
+        ticketData['created_at']?.toString() ??
+        DateTime.now().toIso8601String();
+    final district = ticketData['district']?.toString() ?? 'Bình Thạnh';
+
+    final ticket = TicketModel(
+      id: id,
+      bookingId: bookingId,
+      venueName: venueName,
+      sportType: sportType,
+      courtNumber: courtNumber,
+      matchDate: matchDate,
+      startTime: startTime,
+      endTime: endTime,
+      totalPrice: totalPrice,
+      qrCodeData: qrCodeData,
+      status: status,
+      createdAt: createdAt,
+      district: district,
+    );
+
+    if (TicketStore.instance.tickets.any((t) => t.id == id)) {
+      TicketStore.instance.removeTicket(id);
+    }
+    TicketStore.instance.addTicket(ticket);
+    return ticket;
+  }
+
+  /// Executes or cancels an [ActionProposal] via backend HITL endpoint.
+  /// If approved is true, calls POST /api/chatbot/action/execute.
+  /// If approved is false, calls POST /api/chatbot/action/cancel.
+  /// When server returns ticket data upon successful execution,
+  /// calls [handleExecutionSuccess] to register ticket into [TicketStore].
+  Future<Map<String, dynamic>> executeActionProposal({
+    required String proposalId,
+    required bool approved,
+    Map<String, String>? edits,
+  }) async {
+    final client = httpClient ?? http.Client();
+    final shouldClose = httpClient == null;
+
+    try {
+      final endpoint = approved
+          ? '/api/chatbot/action/execute'
+          : '/api/chatbot/action/cancel';
+      final payload = jsonEncode(approved
+          ? {
+              'proposalId': proposalId,
+              'approved': true,
+              if (edits != null) 'edits': edits,
+            }
+          : {
+              'proposalId': proposalId,
+            });
+
+      Map<String, dynamic> result = {};
+
+      if (httpClient != null) {
+        final uri = Uri.parse('$serverBaseUrl$endpoint');
+        final response = await client
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: payload,
+            )
+            .timeout(const Duration(seconds: 15));
+
+        if (response.statusCode == 200) {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            result = decoded;
+          } else if (decoded is Map) {
+            result = Map<String, dynamic>.from(decoded);
+          }
+        } else {
+          result = {
+            'success': false,
+            'message': 'Lỗi máy chủ (${response.statusCode})',
+          };
+        }
+      } else {
+        bool succeeded = false;
+        for (final baseUrl in candidateServerUrls) {
+          try {
+            final uri = Uri.parse('$baseUrl$endpoint');
+            final response = await client
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: payload,
+                )
+                .timeout(const Duration(seconds: 5));
+
+            if (response.statusCode == 200) {
+              serverBaseUrl = baseUrl;
+              final decoded = jsonDecode(response.body);
+              if (decoded is Map<String, dynamic>) {
+                result = decoded;
+              } else if (decoded is Map) {
+                result = Map<String, dynamic>.from(decoded);
+              }
+              succeeded = true;
+              break;
+            }
+          } catch (_) {}
+        }
+        if (!succeeded) {
+          result = {
+            'success': false,
+            'message': 'Không thể kết nối tới máy chủ.',
+          };
+        }
+      }
+
+      if (result['success'] == true) {
+        Map<String, dynamic>? ticketData;
+        if (result['ticket'] != null && result['ticket'] is Map) {
+          ticketData = Map<String, dynamic>.from(result['ticket'] as Map);
+          handleExecutionSuccess(ticketData);
+        }
+        _updateProposalStatus(
+          proposalId,
+          approved ? 'executed' : 'cancelled',
+          ticketData: ticketData,
+          edits: edits,
+        );
+      }
+
+      return result;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Lỗi xử lý đề xuất: $e',
+      };
+    } finally {
+      if (shouldClose) {
+        try {
+          client.close();
+        } catch (_) {}
+      }
+    }
+  }
+
+  void _updateProposalStatus(
+    String proposalId,
+    String newStatus, {
+    Map<String, dynamic>? ticketData,
+    Map<String, String>? edits,
+  }) {
+    final currentMessages = List<ChatMessage>.from(messagesNotifier.value);
+    bool modified = false;
+    final updatedMessages = currentMessages.map((msg) {
+      if (msg.proposal?.id == proposalId) {
+        modified = true;
+        msg.proposal!.status = newStatus;
+        final updatedProposal = msg.proposal!.copyWith(status: newStatus);
+
+        Map<String, dynamic>? updatedActionCard = msg.actionCard != null
+            ? Map<String, dynamic>.from(msg.actionCard!)
+            : null;
+
+        if (newStatus == 'executed') {
+          final target = msg.proposal?.target ?? {};
+          updatedActionCard ??= <String, dynamic>{'type': 'booking_card'};
+          updatedActionCard['type'] = 'booking_card';
+          if (target['venueName'] != null || ticketData?['venueName'] != null) {
+            updatedActionCard['venueName'] =
+                target['venueName'] ?? ticketData?['venueName'];
+          }
+          if (target['courtName'] != null || ticketData?['courtName'] != null) {
+            updatedActionCard['court'] =
+                target['courtName'] ?? ticketData?['courtName'];
+            updatedActionCard['courtName'] = updatedActionCard['court'];
+          }
+          if (target['venueId'] != null || ticketData?['venueId'] != null) {
+            updatedActionCard['venueId'] =
+                target['venueId'] ?? ticketData?['venueId'];
+          }
+          if (target['date'] != null || ticketData?['date'] != null) {
+            updatedActionCard['date'] = target['date'] ?? ticketData?['date'];
+          }
+          final finalTime = edits?['timeSlot'] ??
+              target['timeSlot'] ??
+              ticketData?['timeSlot'];
+          if (finalTime != null) {
+            updatedActionCard['time'] = finalTime;
+            final parts = finalTime.toString().split('-');
+            if (parts.length >= 2) {
+              updatedActionCard['startTime'] = parts[0].trim();
+              updatedActionCard['endTime'] = parts[1].trim();
+            }
+          }
+          final finalPrice = ticketData?['totalPrice'] ?? target['price'];
+          if (finalPrice != null) {
+            updatedActionCard['price'] = finalPrice;
+            updatedActionCard['basePrice'] = finalPrice;
+          }
+          if (ticketData?['id'] != null) {
+            updatedActionCard['ticketId'] = ticketData?['id'];
+          }
+        }
+
+        return msg.copyWith(
+          proposal: updatedProposal,
+          actionCard: updatedActionCard,
+        );
+      }
+      return msg;
+    }).toList();
+    if (modified) {
+      messagesNotifier.value = updatedMessages;
+    }
+  }
+
   /// Sends a message, evaluates via Server LLM proxy or Local Intent Engine,
   /// updates messagesNotifier, logs session asynchronously, and returns assistant message.
   Future<ChatMessage> sendMessage(
@@ -1144,6 +1443,11 @@ class ChatbotService {
                   pendingBooking = null;
                 }
 
+                final ActionProposal? proposal = data['proposal'] is Map
+                    ? ActionProposal.fromJson(
+                        Map<String, dynamic>.from(data['proposal'] as Map))
+                    : null;
+
                 assistantMessage = ChatMessage(
                   id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
                   text: sanitizedReply ?? cleanReply(data['reply'].toString()),
@@ -1151,6 +1455,7 @@ class ChatbotService {
                   timestamp: DateTime.now(),
                   actionCard: sanitizedCard,
                   quickSuggestions: quickSuggestions,
+                  proposal: proposal,
                 );
               }
             }
@@ -1195,6 +1500,11 @@ class ChatbotService {
                       pendingBooking = null;
                     }
 
+                    final ActionProposal? proposal = data['proposal'] is Map
+                        ? ActionProposal.fromJson(
+                            Map<String, dynamic>.from(data['proposal'] as Map))
+                        : null;
+
                     assistantMessage = ChatMessage(
                       id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
                       text: sanitizedReply ??
@@ -1203,6 +1513,7 @@ class ChatbotService {
                       timestamp: DateTime.now(),
                       actionCard: sanitizedCard,
                       quickSuggestions: quickSuggestions,
+                      proposal: proposal,
                     );
                     break;
                   }
@@ -1220,10 +1531,32 @@ class ChatbotService {
           // Fallback to local engine on error or timeout
         }
       }
-      // Keep the local intent engine as the offline fallback if the configured
-      // backend (Ollama through the Admin API) is unavailable.
-      assistantMessage ??=
-          _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+      if (assistantMessage == null &&
+          !isTestEnvironment &&
+          effectiveHttpClient == null &&
+          enableOfflineFallback) {
+        assistantMessage = await _callFptCloudDirectly(
+          text,
+          effectiveContext,
+          imageUrl: imageUrl,
+        );
+      }
+      // When offline fallback is disabled, do not generate artificial offline responses
+      // in live runtime if the backend server is unreachable.
+      if (assistantMessage == null) {
+        if (!enableOfflineFallback && !isTestEnvironment) {
+          assistantMessage = ChatMessage(
+            id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+            text:
+                'Dạ rất tiếc, trợ lý AI hiện không thể kết nối tới máy chủ (chế độ offline đã được tắt). Vui lòng kiểm tra lại kết nối mạng hoặc đảm bảo máy chủ AI backend đang hoạt động nhé ạ!',
+            sender: 'assistant',
+            timestamp: DateTime.now(),
+          );
+        } else {
+          assistantMessage =
+              _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+        }
+      }
       addMessage(assistantMessage);
 
       // Asynchronously sync conversation to server

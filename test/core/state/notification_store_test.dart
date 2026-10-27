@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/domain/entities/app_notification.dart';
+import 'package:sporthub/domain/entities/user_profile.dart';
 import 'package:sporthub/core/state/notification_store.dart';
 
 void main() {
@@ -158,5 +159,38 @@ void main() {
     expect(copied.message, equals('Orig Message'));
     expect(copied.isRead, isTrue);
     expect(copied.targetId, equals('target_1'));
+  });
+
+  test('loadForUser with isNewUser: true creates a single fresh welcome notification without old demo notifications', () {
+    final newUser = UserProfile(
+      userId: 'user_fresh_999',
+      fullName: 'Lê Quốc Anh',
+      phone: '0901 234 567',
+      email: 'quocanh@gmail.com',
+      role: 'player',
+      preferredSport: 'football',
+      skillLevel: 'Intermediate',
+      district: 'Quận 7',
+      playTimePreference: 'Tối',
+      matchesPlayed: 0,
+      reputationRating: 5.0,
+      onTimeRate: 100,
+    );
+
+    store.loadForUser(newUser, isNewUser: true);
+
+    expect(store.notifications.length, equals(1));
+    final notif = store.notifications.first;
+    expect(notif.title, contains('Chào mừng Lê Quốc Anh đến với SportHub! 🎉'));
+    expect(notif.timeAgoDisplay, equals('Vừa xong'));
+    // Ensure no old 2-hour or booking reminder notifications from demo users exist
+    expect(store.notifications.any((n) => n.id == 'notif_p_01'), isFalse);
+    expect(store.notifications.any((n) => n.id == 'notif_p_02'), isFalse);
+  });
+
+  test('loadForUser with null clears all notifications', () {
+    store.loadForUser(null);
+    expect(store.notifications, isEmpty);
+    expect(store.getUnreadCount(), equals(0));
   });
 }

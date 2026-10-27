@@ -7,6 +7,7 @@ import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/notification_store.dart';
 import 'package:sporthub/core/state/venue_owner_store.dart';
 import 'package:sporthub/core/theme/theme_store.dart';
+import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/domain/entities/app_notification.dart';
 import 'package:sporthub/main.dart';
 
@@ -78,6 +79,7 @@ void main() {
   setUp(() {
     ThemeStore.instance.setThemeMode(ThemeMode.light);
     AuthStore.instance.reset();
+    AuthStore.instance.loginWithDemo(SeedData.demoUsers.first);
     NotificationStore.instance.resetSeedData();
     VenueOwnerStore.instance.toggleOwnerMode(false);
   });
@@ -134,6 +136,8 @@ void main() {
 
   testWidgets('Partner Owner header displays notification bell and opens owner sheet', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 900));
+    final ownerUser = SeedData.demoUsers.firstWhere((u) => u.isOwner);
+    AuthStore.instance.loginWithDemo(ownerUser);
     VenueOwnerStore.instance.toggleOwnerMode(true);
 
     await tester.pumpWidget(const SportHubApp());

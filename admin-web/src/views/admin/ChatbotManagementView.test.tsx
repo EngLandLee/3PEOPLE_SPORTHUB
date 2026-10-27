@@ -2,9 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ChatbotManagementView from './ChatbotManagementView';
 import { useChatbotStore } from '../../store/chatbotStore';
+import { useAuthStore } from '../../store/authStore';
 
 vi.mock('../../store/chatbotStore', () => ({
   useChatbotStore: vi.fn(),
+}));
+
+vi.mock('../../store/authStore', () => ({
+  useAuthStore: vi.fn(),
 }));
 
 describe('ChatbotManagementView', () => {
@@ -15,6 +20,10 @@ describe('ChatbotManagementView', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    (useAuthStore as any).mockReturnValue({
+      role: 'superadmin',
+      activeVenueId: 'venue_01',
+    });
     (useChatbotStore as any).mockReturnValue({
       config: {
         provider: 'gemini',
@@ -128,5 +137,59 @@ describe('ChatbotManagementView', () => {
     // Close modal
     fireEvent.click(screen.getByText('Đóng'));
     expect(screen.queryByText('Đoạn chat với User A')).not.toBeInTheDocument();
+  });
+
+  it('allows Super Admin to assign FAQ to a specific venue', () => {
+    render(<ChatbotManagementView />);
+    
+    fireEvent.click(screen.getByText('Kiến thức & FAQ'));
+    fireEvent.click(screen.getByText('Thêm câu hỏi mới'));
+
+    const venueSelect = screen.getByTestId('faq-venue-select');
+    expect(venueSelect).toBeInTheDocument();
+    fireEvent.change(venueSelect, { target: { value: 'venue_bt_01' } });
+
+    const questionInput = screen.getByTestId('faq-question-input');
+    const answerInput = screen.getByTestId('faq-answer-textarea');
+    fireEvent.change(questionInput, { target: { value: 'Giá sân Bình Thạnh?' } });
+    fireEvent.change(answerInput, { target: { value: '150.000đ/giờ.' } });
+
+    fireEvent.click(screen.getByTestId('save-faq-btn'));
+
+    expect(mockAddFaq).toHaveBeenCalledWith(expect.objectContaining({
+      venueId: 'venue_bt_01',
+      question: 'Giá sân Bình Thạnh?',
+      answer: '150.000đ/giờ.'
+    }));
+  });
+
+  it('renders partner role banner and locks venueId to activeVenueId when user is partner', () => {
+    (useAuthStore as any).mockReturnValue({
+      role: 'partner',
+      activeVenueId: 'venue_01',
+    });
+
+    render(<ChatbotManagementView />);
+
+    expect(screen.getByText(/Chế độ phân quyền Đối tác \(Partner\)/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Kiến thức & FAQ'));
+    expect(screen.getByText('Cụm sân phụ trách:')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Thêm câu hỏi mới'));
+    expect(screen.getByText(/Sân của bạn/)).toBeInTheDocument();
+
+    const questionInput = screen.getByTestId('faq-question-input');
+    const answerInput = screen.getByTestId('faq-answer-textarea');
+    fireEvent.change(questionInput, { target: { value: 'FAQ riêng sân Tao Đàn' } });
+    fireEvent.change(answerInput, { target: { value: 'Mở cửa từ 6h sáng.' } });
+
+    fireEvent.click(screen.getByTestId('save-faq-btn'));
+
+    expect(mockAddFaq).toHaveBeenCalledWith(expect.objectContaining({
+      venueId: 'venue_01',
+      question: 'FAQ riêng sân Tao Đàn',
+      answer: 'Mở cửa từ 6h sáng.'
+    }));
   });
 });
