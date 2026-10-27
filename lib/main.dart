@@ -421,7 +421,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.16)
@@ -441,15 +441,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               size: 20,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isSelected ? 4 : 0,
+              height: isSelected ? 4 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
               ),
             ),
           ],

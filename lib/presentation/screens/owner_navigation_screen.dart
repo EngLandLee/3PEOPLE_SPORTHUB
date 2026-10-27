@@ -545,7 +545,7 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.warning.withValues(alpha: 0.18)
@@ -567,15 +567,25 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
               size: 20,
               color: isSelected ? AppColors.warning : AppColors.textSecondary,
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? AppColors.warning : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isSelected ? 4 : 0,
+              height: isSelected ? 4 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.warning,
+                shape: BoxShape.circle,
               ),
             ),
           ],
