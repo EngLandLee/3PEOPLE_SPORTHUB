@@ -372,7 +372,9 @@ class _ChatMessageBubbleState extends State<ChatMessageBubble>
                         ),
                       ),
                   ],
-                  if (hasBookingCard) ...[
+                  if (hasBookingCard &&
+                      (!widget.message.hasProposal ||
+                          widget.message.proposal!.isExecuted)) ...[
                     const SizedBox(height: 8),
                     if (_isTypingComplete)
                       FadeTransition(

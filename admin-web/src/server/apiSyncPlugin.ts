@@ -2358,8 +2358,9 @@ Quy tắc phản hồi:
                 normalizedMsg.includes('dat san') ||
                 normalizedMsg.includes('giu cho');
 
+              const hasBookingCard = actionCard && actionCard.type === 'booking_card';
               let proposal: ActionProposal | undefined = undefined;
-              if (hasBookingIntent) {
+              if (hasBookingIntent || hasBookingCard) {
                 const effectiveVenueId = actionCard?.venueId || venueId || 'venue_01';
                 const effectiveVenueName = actionCard?.venueName || venueName || 'CLB Cầu Lông Tao Đàn';
                 const effectiveCourtNum = courtNum > 0 ? courtNum : 1;

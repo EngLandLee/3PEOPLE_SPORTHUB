@@ -1246,12 +1246,17 @@ class ChatbotService {
       }
 
       if (result['success'] == true) {
+        Map<String, dynamic>? ticketData;
         if (result['ticket'] != null && result['ticket'] is Map) {
-          handleExecutionSuccess(
-            Map<String, dynamic>.from(result['ticket'] as Map),
-          );
+          ticketData = Map<String, dynamic>.from(result['ticket'] as Map);
+          handleExecutionSuccess(ticketData);
         }
-        _updateProposalStatus(proposalId, approved ? 'executed' : 'cancelled');
+        _updateProposalStatus(
+          proposalId,
+          approved ? 'executed' : 'cancelled',
+          ticketData: ticketData,
+          edits: edits,
+        );
       }
 
       return result;
@@ -1269,15 +1274,68 @@ class ChatbotService {
     }
   }
 
-  void _updateProposalStatus(String proposalId, String newStatus) {
+  void _updateProposalStatus(
+    String proposalId,
+    String newStatus, {
+    Map<String, dynamic>? ticketData,
+    Map<String, String>? edits,
+  }) {
     final currentMessages = List<ChatMessage>.from(messagesNotifier.value);
     bool modified = false;
     final updatedMessages = currentMessages.map((msg) {
       if (msg.proposal?.id == proposalId) {
         modified = true;
         msg.proposal!.status = newStatus;
+        final updatedProposal = msg.proposal!.copyWith(status: newStatus);
+
+        Map<String, dynamic>? updatedActionCard = msg.actionCard != null
+            ? Map<String, dynamic>.from(msg.actionCard!)
+            : null;
+
+        if (newStatus == 'executed') {
+          final target = msg.proposal?.target ?? {};
+          updatedActionCard ??= <String, dynamic>{'type': 'booking_card'};
+          updatedActionCard['type'] = 'booking_card';
+          if (target['venueName'] != null || ticketData?['venueName'] != null) {
+            updatedActionCard['venueName'] =
+                target['venueName'] ?? ticketData?['venueName'];
+          }
+          if (target['courtName'] != null || ticketData?['courtName'] != null) {
+            updatedActionCard['court'] =
+                target['courtName'] ?? ticketData?['courtName'];
+            updatedActionCard['courtName'] = updatedActionCard['court'];
+          }
+          if (target['venueId'] != null || ticketData?['venueId'] != null) {
+            updatedActionCard['venueId'] =
+                target['venueId'] ?? ticketData?['venueId'];
+          }
+          if (target['date'] != null || ticketData?['date'] != null) {
+            updatedActionCard['date'] = target['date'] ?? ticketData?['date'];
+          }
+          final finalTime = edits?['timeSlot'] ??
+              target['timeSlot'] ??
+              ticketData?['timeSlot'];
+          if (finalTime != null) {
+            updatedActionCard['time'] = finalTime;
+            final parts = finalTime.toString().split('-');
+            if (parts.length >= 2) {
+              updatedActionCard['startTime'] = parts[0].trim();
+              updatedActionCard['endTime'] = parts[1].trim();
+            }
+          }
+          final finalPrice = ticketData?['totalPrice'] ?? target['price'];
+          if (finalPrice != null) {
+            updatedActionCard['price'] = finalPrice;
+            updatedActionCard['basePrice'] = finalPrice;
+          }
+          if (ticketData?['id'] != null) {
+            updatedActionCard['ticketId'] = ticketData?['id'];
+          }
+        }
+
         return msg.copyWith(
-          proposal: msg.proposal!.copyWith(status: newStatus),
+          proposal: updatedProposal,
+          actionCard: updatedActionCard,
         );
       }
       return msg;
