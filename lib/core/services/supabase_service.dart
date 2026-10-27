@@ -17,11 +17,12 @@ class SupabaseService {
   /// Default configuration from environment variables or overrides
   static const String envUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: '',
+    defaultValue: 'https://avlizwimxvgnzqdmxily.supabase.co',
   );
   static const String envAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: '',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2bGl6d2lteHZnbnpxZG14aWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTQ5NjAsImV4cCI6MjEwODY5MDk2MH0.JtNJ3joPBjnGYNKLQkJ9gHQqxOA5udAImiHkSklOrRg',
   );
 
   /// Returns true only if Supabase has been properly configured with a live project URL and Key.

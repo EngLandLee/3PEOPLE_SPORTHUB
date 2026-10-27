@@ -1,8 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { BookingTicket } from '../types';
 
-const envUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) || '';
-const envAnonKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) || '';
+const envUrl =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
+  'https://avlizwimxvgnzqdmxily.supabase.co';
+const envAnonKey =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2bGl6d2lteHZnbnpxZG14aWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTQ5NjAsImV4cCI6MjEwODY5MDk2MH0.JtNJ3joPBjnGYNKLQkJ9gHQqxOA5udAImiHkSklOrRg';
 
 /**
  * Returns true if Supabase URL and Anon Key are configured and not placeholders.

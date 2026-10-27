@@ -48,6 +48,7 @@ admin-web/.env
 admin-web/.env.local
 
 # Temporary local artifacts
+.playwright-cli/
 flutter_after_login.png
 flutter_web_initial.png
 sporthub_slides.html
