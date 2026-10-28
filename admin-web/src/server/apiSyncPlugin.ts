@@ -184,6 +184,7 @@ interface ChatRequestContext {
   sport?: string;
   preferredSport?: string;
   pendingBooking?: Record<string, unknown>;
+  pendingCard?: Record<string, unknown>;
 }
 
 
@@ -912,6 +913,13 @@ export function apiSyncPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url || '';
+        if (url === '/api-docs' || url === '/api-docs/') {
+          res.statusCode = 302;
+          res.setHeader('Location', '/api-docs/index.html');
+          res.end();
+          return;
+        }
+
         if (!url.startsWith('/api/')) {
           return next();
         }

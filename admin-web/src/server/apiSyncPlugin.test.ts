@@ -202,4 +202,17 @@ describe('apiSyncPlugin - Chatbot Endpoints', () => {
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(getResponse())).toBe(true);
   });
+
+  it('GET /api-docs and /api-docs/ redirect to /api-docs/index.html with status 302', async () => {
+    for (const url of ['/api-docs', '/api-docs/']) {
+      const { req, res } = createMockReqRes('GET', url);
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(302);
+      expect(res.headers['Location']).toBe('/api-docs/index.html');
+    }
+  });
 });
