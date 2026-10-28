@@ -10,6 +10,7 @@ import {
   BarChart3,
   LogOut,
   Bot,
+  FileCode2,
 } from 'lucide-react';
 import { useAuthStore, authStore } from '../../store/authStore';
 
@@ -19,6 +20,7 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
   badge?: string;
   exact?: boolean;
+  isExternal?: boolean;
 }
 
 export function Sidebar() {
@@ -46,6 +48,12 @@ export function Sidebar() {
       name: 'Trợ lý AI',
       path: '/admin/chatbot',
       icon: Bot,
+    },
+    {
+      name: 'Tài liệu API (Swagger)',
+      path: '/api-docs/index.html',
+      icon: FileCode2,
+      isExternal: true,
     },
   ];
 
@@ -82,6 +90,12 @@ export function Sidebar() {
       path: '/partner/chatbot',
       icon: Bot,
     },
+    {
+      name: 'Tài liệu API (Swagger)',
+      path: '/api-docs/index.html',
+      icon: FileCode2,
+      isExternal: true,
+    },
   ];
 
   const currentNavItems = role === 'superadmin' ? superAdminNavItems : partnerNavItems;
@@ -114,6 +128,30 @@ export function Sidebar() {
         <nav className="p-3 space-y-1.5" aria-label="Main Navigation">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
+            if (item.isExternal) {
+              return (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all group text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60"
+                >
+                  <div className="flex items-center gap-3 truncate">
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center transition-all bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 group-hover:scale-105">
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                    </div>
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="ml-auto px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                      {item.badge}
+                    </span>
+                  )}
+                </a>
+              );
+            }
+
             return (
               <NavLink
                 key={item.path}

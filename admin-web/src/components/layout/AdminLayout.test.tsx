@@ -30,6 +30,21 @@ describe('AdminLayout', () => {
     expect(screen.getByText('Tài khoản Chủ Sân')).toBeInTheDocument();
   });
 
+  it('renders Swagger API documentation link with external target in sidebar', () => {
+    authStore.setRole('superadmin');
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <AdminLayout />
+      </MemoryRouter>
+    );
+
+    const swaggerLink = screen.getByRole('link', { name: /Tài liệu API \(Swagger\)/i });
+    expect(swaggerLink).toBeInTheDocument();
+    expect(swaggerLink).toHaveAttribute('href', '/api-docs/index.html');
+    expect(swaggerLink).toHaveAttribute('target', '_blank');
+    expect(swaggerLink).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
   it('renders Venue Partner navigation items when role is partner', () => {
     authStore.setRole('partner');
     render(
