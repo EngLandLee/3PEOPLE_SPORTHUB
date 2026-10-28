@@ -204,7 +204,7 @@ describe('apiSyncPlugin - Chatbot Endpoints', () => {
   });
 
   it('GET /api-docs and /api-docs/ redirect to /api-docs/index.html with status 302', async () => {
-    for (const url of ['/api-docs', '/api-docs/', '/api-docs?test=1']) {
+    for (const url of ['/api-docs', '/api-docs/']) {
       const { req, res } = createMockReqRes('GET', url);
       const next = vi.fn();
 
@@ -214,5 +214,13 @@ describe('apiSyncPlugin - Chatbot Endpoints', () => {
       expect(res.statusCode).toBe(302);
       expect(res.headers['Location']).toBe('/api-docs/index.html');
     }
+
+    // Query params are preserved
+    const { req: qReq, res: qRes } = createMockReqRes('GET', '/api-docs?test=1');
+    const qNext = vi.fn();
+    await middleware(qReq, qRes, qNext);
+    expect(qNext).not.toHaveBeenCalled();
+    expect(qRes.statusCode).toBe(302);
+    expect(qRes.headers['Location']).toBe('/api-docs/index.html?test=1');
   });
 });

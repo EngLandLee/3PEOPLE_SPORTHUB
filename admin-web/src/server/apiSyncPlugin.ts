@@ -915,8 +915,9 @@ export function apiSyncPlugin(): Plugin {
         const url = req.url || '';
         const pathname = url.split('?')[0];
         if (pathname === '/api-docs' || pathname === '/api-docs/') {
+          const query = url.includes('?') ? url.slice(url.indexOf('?')) : '';
           res.statusCode = 302;
-          res.setHeader('Location', '/api-docs/index.html');
+          res.setHeader('Location', `/api-docs/index.html${query}`);
           res.end();
           return;
         }
