@@ -204,7 +204,7 @@ describe('apiSyncPlugin - Chatbot Endpoints', () => {
   });
 
   it('GET /api-docs and /api-docs/ redirect to /api-docs/index.html with status 302', async () => {
-    for (const url of ['/api-docs', '/api-docs/']) {
+    for (const url of ['/api-docs', '/api-docs/', '/api-docs?test=1']) {
       const { req, res } = createMockReqRes('GET', url);
       const next = vi.fn();
 

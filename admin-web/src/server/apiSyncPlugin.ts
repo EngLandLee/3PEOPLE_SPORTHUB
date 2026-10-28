@@ -913,7 +913,8 @@ export function apiSyncPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url || '';
-        if (url === '/api-docs' || url === '/api-docs/') {
+        const pathname = url.split('?')[0];
+        if (pathname === '/api-docs' || pathname === '/api-docs/') {
           res.statusCode = 302;
           res.setHeader('Location', '/api-docs/index.html');
           res.end();

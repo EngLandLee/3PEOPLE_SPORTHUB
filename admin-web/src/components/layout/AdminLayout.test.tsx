@@ -58,6 +58,10 @@ describe('AdminLayout', () => {
     expect(screen.getByText('Lịch Sân Master')).toBeInTheDocument();
     expect(screen.getByText('Quầy Lễ Tân & Soát Vé')).toBeInTheDocument();
     expect(screen.getByText('Báo cáo Doanh thu')).toBeInTheDocument();
+
+    const swaggerLink = screen.getByRole('link', { name: /Tài liệu API \(Swagger\)/i });
+    expect(swaggerLink).toBeInTheDocument();
+    expect(swaggerLink).toHaveAttribute('href', '/api-docs/index.html');
   });
 
   it('allows switching roles from the topbar switcher', () => {
