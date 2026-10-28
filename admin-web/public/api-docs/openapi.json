@@ -1,0 +1,1458 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SportHub REST API & AI Gateway Documentation",
+    "version": "1.0.0",
+    "description": "Toàn bộ đặc tả kỹ thuật RESTful API và AI Agentic Gateway cho nền tảng quản trị thể thao SportHub. Hỗ trợ đồng bộ đa thiết bị, quản lý cụm sân (Venues), sân con (Courts), đặt chỗ & quầy POS Check-in, và hệ thống AI Chatbot với cơ chế Human-In-The-Loop (HITL).",
+    "contact": {
+      "name": "SportHub Engineering Team",
+      "email": "support@sporthub.vn",
+      "url": "https://sporthub.vn"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5173",
+      "description": "Local Development Gateway"
+    },
+    {
+      "url": "/",
+      "description": "Current Origin"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sync & Storage",
+      "description": "Đồng bộ dữ liệu trạng thái sân, thiết lập và khôi phục hệ thống"
+    },
+    {
+      "name": "Venues",
+      "description": "Quản lý thông tin cụm sân thể thao, địa chỉ, giờ hoạt động và bảng giá cơ bản"
+    },
+    {
+      "name": "Courts",
+      "description": "Quản lý tình trạng bật/tắt hoạt động và thông tin từng sân đấu cụ thể"
+    },
+    {
+      "name": "Bookings & POS",
+      "description": "Đặt chỗ sân đấu, kiểm tra xung đột khung giờ và xác thực check-in vé tại quầy"
+    },
+    {
+      "name": "AI Chatbot & Agentic Gateway",
+      "description": "Cổng giao tiếp trợ lý ảo AI, tư vấn sân thể thao, Guardrails và phê duyệt tác vụ HITL"
+    }
+  ],
+  "paths": {
+    "/api/sync": {
+      "get": {
+        "tags": ["Sync & Storage"],
+        "summary": "Lấy toàn bộ dữ liệu đồng bộ",
+        "description": "Truy xuất toàn bộ danh mục sân, cụm sân, đơn đặt sân, cấu hình chatbot và sân đang bảo trì.",
+        "responses": {
+          "200": {
+            "description": "Dữ liệu đồng bộ hoàn chỉnh",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStoreData"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/reset": {
+      "post": {
+        "tags": ["Sync & Storage"],
+        "summary": "Khôi phục trạng thái hoạt động của toàn bộ sân",
+        "description": "Đặt lại isActive = true cho tất cả sân con trong hệ thống và làm trống danh sách sân bảo trì.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Khôi phục thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "courts": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SyncedCourt" }
+                    }
+                  },
+                  "required": ["success", "courts"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courts": {
+      "get": {
+        "tags": ["Courts"],
+        "summary": "Lấy danh sách tất cả các sân đấu",
+        "description": "Truy xuất danh sách chi tiết các sân con thuộc tất cả các môn thể thao và cụm sân.",
+        "responses": {
+          "200": {
+            "description": "Danh sách các sân con",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncedCourt"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courts/{courtId}": {
+      "patch": {
+        "tags": ["Courts"],
+        "summary": "Cập nhật thông tin hoặc trạng thái sân con",
+        "description": "Cho phép thay đổi trạng thái kích hoạt (isActive), loại mặt sân hoặc giá của một sân đấu.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "courtId",
+            "in": "path",
+            "required": true,
+            "description": "Mã định danh duy nhất của sân con",
+            "schema": { "type": "string", "example": "court_td_01" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isActive": { "type": "boolean" },
+                  "name": { "type": "string" },
+                  "regularPrice": { "type": "number" },
+                  "peakPrice": { "type": "number" },
+                  "price": { "type": "number" },
+                  "surfaceType": { "type": "string" },
+                  "facilityType": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật sân đấu thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "court": { "$ref": "#/components/schemas/SyncedCourt" },
+                    "inactiveCourtsByVenue": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": { "type": "integer" }
+                      }
+                    }
+                  },
+                  "required": ["success", "court"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Không có quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy sân đấu",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Courts"],
+        "summary": "Cập nhật sân con (bí danh phương thức POST)",
+        "description": "Hỗ trợ các môi trường client hạn chế gửi HTTP PATCH.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "courtId",
+            "in": "path",
+            "required": true,
+            "description": "Mã định danh của sân",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "court": { "$ref": "#/components/schemas/SyncedCourt" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy sân đấu",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/venues": {
+      "get": {
+        "tags": ["Venues"],
+        "summary": "Lấy danh sách các cụm sân thể thao",
+        "description": "Truy xuất toàn bộ danh mục các cơ sở thể thao đang vận hành.",
+        "responses": {
+          "200": {
+            "description": "Danh sách cụm sân",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncedVenue"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Venues"],
+        "summary": "Tạo mới hoặc ghi đè thông tin cụm sân",
+        "description": "Thêm một cụm sân mới vào danh mục hệ thống.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncedVenue"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tạo cụm sân thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "venue": { "$ref": "#/components/schemas/SyncedVenue" }
+                  },
+                  "required": ["success", "venue"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu JSON không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/venues/{id}": {
+      "patch": {
+        "tags": ["Venues"],
+        "summary": "Cập nhật thông tin cụm sân",
+        "description": "Thay đổi địa chỉ, môn thể thao, giá theo giờ hoặc mô tả của cụm sân.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mã ID của cụm sân",
+            "schema": { "type": "string", "example": "venue_01" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "address": { "type": "string" },
+                  "district": { "type": "string" },
+                  "hotline": { "type": "string" },
+                  "sports": { "type": "array", "items": { "type": "string" } },
+                  "openTime": { "type": "string" },
+                  "closeTime": { "type": "string" },
+                  "baseHourlyRate": { "type": "number" },
+                  "imageUrl": { "type": "string" },
+                  "isActive": { "type": "boolean" },
+                  "totalCourts": { "type": "integer" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật cụm sân thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "venue": { "$ref": "#/components/schemas/SyncedVenue" }
+                  },
+                  "required": ["success", "venue"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy cụm sân",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Venues"],
+        "summary": "Xóa cụm sân thể thao",
+        "description": "Loại bỏ một cơ sở thể thao khỏi hệ sinh thái.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mã ID cụm sân cần xóa",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Xóa thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  },
+                  "required": ["success"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "tags": ["Bookings & POS"],
+        "summary": "Lấy danh sách tất cả các đơn đặt sân",
+        "description": "Yêu cầu quyền Admin để quản lý danh sách vé đặt và trạng thái thanh toán.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách đơn đặt sân",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SyncedBooking"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Không có quyền truy cập",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Bookings & POS"],
+        "summary": "Tạo đơn đặt sân mới",
+        "description": "Kiểm tra tự động xung đột trùng khung giờ trên cùng sân. Trạng thái thanh toán khởi tạo luôn là 'pending' được kiểm soát từ server.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncedBooking"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đơn đặt sân đã tồn tại trước đó (Idempotent retry)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "booking": { "$ref": "#/components/schemas/SyncedBooking" }
+                  },
+                  "required": ["success", "booking"]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Đặt sân thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "booking": { "$ref": "#/components/schemas/SyncedBooking" }
+                  },
+                  "required": ["success", "booking"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu thông tin sân, ngày hoặc khung giờ bắt buộc",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột lịch đặt: sân đã có người giữ chỗ trong khung giờ yêu cầu",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}": {
+      "patch": {
+        "tags": ["Bookings & POS"],
+        "summary": "Cập nhật thông tin đơn đặt sân",
+        "description": "Cho phép cập nhật ghi chú hoặc thông tin không nhạy cảm. Các trường bảo vệ như giá tiền, trạng thái thanh toán và khung giờ chơi sẽ bị từ chối với mã 403.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mã đơn đặt sân",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Các trường cho phép cập nhật (ngoại trừ protected fields)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cập nhật đơn thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "booking": { "$ref": "#/components/schemas/SyncedBooking" }
+                  },
+                  "required": ["success", "booking"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Từ chối cập nhật các trường được bảo vệ (protected fields)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy đơn đặt sân",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checkin": {
+      "post": {
+        "tags": ["Bookings & POS"],
+        "summary": "Quét mã xác thực Check-in vé đặt sân tại quầy POS",
+        "description": "Đánh dấu trạng thái checkedIn = true và lưu thời điểm check-in (checkedInAt).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": { "type": "string", "example": "BK-1700000000000" },
+                  "id": { "type": "string" },
+                  "bookingId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Check-in thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "booking": { "$ref": "#/components/schemas/SyncedBooking" }
+                  },
+                  "required": ["success", "booking"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Thiếu mã vé hoặc bookingId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy mã vé trong hệ thống",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/config": {
+      "get": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Lấy cấu hình hiện tại của Chatbot AI",
+        "description": "Trả về nhà cung cấp LLM, model name, prompt hệ thống, nhiệt độ; API key được che giấu an toàn (masked).",
+        "responses": {
+          "200": {
+            "description": "Cấu hình Chatbot hiện hành",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatbotConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Cập nhật cấu hình mô hình LLM và Prompt",
+        "description": "Điều chỉnh nhà cung cấp AI (FPT Cloud, Ollama, Gemini...), API Key và System Prompt.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": { "type": "string", "enum": ["fpt", "ollama", "gemini", "openai", "anthropic"] },
+                  "apiKey": { "type": "string" },
+                  "model": { "type": "string" },
+                  "systemPrompt": { "type": "string" },
+                  "temperature": { "type": "number" },
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lưu cấu hình thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "config": { "$ref": "#/components/schemas/ChatbotConfig" }
+                  },
+                  "required": ["success", "config"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/faqs": {
+      "get": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Lấy danh sách các câu hỏi thường gặp (FAQs)",
+        "description": "Cung cấp kho tri thức ngữ cảnh cho Chatbot phục vụ giải đáp người dùng.",
+        "responses": {
+          "200": {
+            "description": "Danh sách FAQs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatbotFaq"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Tạo hoặc cập nhật câu hỏi FAQ",
+        "description": "Thêm dữ liệu tri thức hỗ trợ trả lời tự động cho trợ lý SportHub.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatbotFaq"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tạo FAQ thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "faq": { "$ref": "#/components/schemas/ChatbotFaq" }
+                  },
+                  "required": ["success", "faq"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/faqs/{id}": {
+      "delete": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Xóa một câu hỏi FAQ",
+        "description": "Xóa FAQ khỏi cơ sở dữ liệu dựa trên id.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Mã ID của câu hỏi FAQ",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Xóa FAQ thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  },
+                  "required": ["success"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/conversations": {
+      "get": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Lấy lịch sử các phiên hội thoại của người dùng",
+        "description": "Dành cho Quản trị viên theo dõi chất lượng tư vấn và giải đáp của chatbot.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách các cuộc hội thoại",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatbotConversation"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Lưu hoặc cập nhật một phiên hội thoại",
+        "description": "Ghi nhận tiến trình trao đổi giữa người dùng và chatbot.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatbotConversation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lưu hội thoại thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "conversation": { "$ref": "#/components/schemas/ChatbotConversation" }
+                  },
+                  "required": ["success", "conversation"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/message": {
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Gửi tin nhắn trò chuyện đến AI Chatbot Gateway",
+        "description": "Tích hợp bộ lọc Guardrails an toàn, suy luận ngôn ngữ tự nhiên từ LLM (FPT Cloud / Ollama), đề xuất sân thể thao và phát sinh đề xuất hành động HITL (Action Proposal).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string", "example": "Tìm giúp mình sân cầu lông Quận 1 tối nay lúc 19h" },
+                  "context": {
+                    "type": "object",
+                    "properties": {
+                      "userId": { "type": "string" },
+                      "userName": { "type": "string" },
+                      "userRole": { "type": "string" },
+                      "currentRoute": { "type": "string" },
+                      "venueId": { "type": "string" },
+                      "sport": { "type": "string" },
+                      "preferredSport": { "type": "string" },
+                      "pendingBooking": { "type": "object" }
+                    }
+                  },
+                  "conversationHistory": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": { "type": "string", "enum": ["user", "assistant", "system"] },
+                        "content": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phản hồi từ AI Chatbot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply": { "type": "string" },
+                    "violation": { "type": "boolean" },
+                    "actionCard": { "type": "object", "nullable": true },
+                    "proposal": { "$ref": "#/components/schemas/ActionProposal", "nullable": true },
+                    "quickSuggestions": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["reply"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Yêu cầu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/action/execute": {
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Thực thi hoặc từ chối đề xuất hành động (HITL Action Execute)",
+        "description": "Cơ chế Human-In-The-Loop: Người dùng xác nhận duyệt (approved: true) hoặc chỉnh sửa form đặt sân trước khi lưu vé.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "proposalId": { "type": "string", "example": "prop_1700000000_abcde" },
+                  "approved": { "type": "boolean", "example": true },
+                  "edits": {
+                    "type": "object",
+                    "properties": {
+                      "timeSlot": { "type": "string", "example": "19:00 - 20:00" },
+                      "note": { "type": "string", "example": "Cần chuẩn bị sẵn 2 vợt cho thuê" }
+                    }
+                  }
+                },
+                "required": ["proposalId", "approved"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kết quả thực thi đề xuất",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "ticket": { "type": "object" },
+                    "error": { "type": "string" }
+                  },
+                  "required": ["success", "message"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu JSON không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/action/cancel": {
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Hủy bỏ đề xuất hành động (HITL Action Cancel)",
+        "description": "Hủy bỏ đề xuất đặt sân đang ở trạng thái pending mà không tạo đơn.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "proposalId": { "type": "string", "example": "prop_1700000000_abcde" }
+                },
+                "required": ["proposalId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hủy đề xuất thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đã hủy đề xuất đặt sân." }
+                  },
+                  "required": ["success", "message"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatbot/test-connection": {
+      "post": {
+        "tags": ["AI Chatbot & Agentic Gateway"],
+        "summary": "Kiểm tra kết nối và độ trễ tới LLM Provider",
+        "description": "Gửi request test trực tiếp đến FPT Cloud AI hoặc Ollama để kiểm tra tính hợp lệ của API Key và tình trạng hoạt động của model.",
+        "security": [
+          {
+            "AdminBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": { "type": "string", "enum": ["fpt", "ollama", "gemini", "openai", "anthropic"], "default": "fpt" },
+                  "model": { "type": "string", "example": "gemma-4-26B-A4B-it" },
+                  "apiKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kết nối thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "provider": { "type": "string" },
+                    "model": { "type": "string" },
+                    "message": { "type": "string" }
+                  },
+                  "required": ["success"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Kiểm tra kết nối thất bại hoặc API Key rỗng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string" }
+                  },
+                  "required": ["success", "message"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Yêu cầu quyền quản trị viên",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "AdminBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token xác thực vai trò quản trị viên (Admin / Owner) trong header Authorization: Bearer <token>"
+      }
+    },
+    "schemas": {
+      "SyncedCourt": {
+        "type": "object",
+        "description": "Dữ liệu một sân con trong cụm sân thể thao",
+        "properties": {
+          "id": { "type": "string", "example": "court_td_01" },
+          "venueId": { "type": "string", "example": "venue_01" },
+          "name": { "type": "string", "example": "Sân Cầu Lông 1" },
+          "sport": { "type": "string", "example": "badminton" },
+          "courtNumber": { "type": "integer", "example": 1 },
+          "surfaceType": { "type": "string", "example": "Thảm PVC chuẩn thi đấu" },
+          "facilityType": { "type": "string", "example": "indoor" },
+          "regularPrice": { "type": "number", "example": 90000 },
+          "peakPrice": { "type": "number", "example": 140000 },
+          "price": { "type": "number", "example": 90000 },
+          "isActive": { "type": "boolean", "example": true }
+        },
+        "required": ["id", "venueId", "name", "sport", "courtNumber", "isActive"]
+      },
+      "SyncedVenue": {
+        "type": "object",
+        "description": "Dữ liệu cụm sân thể thao (Venue)",
+        "properties": {
+          "id": { "type": "string", "example": "venue_01" },
+          "name": { "type": "string", "example": "CLB Thể Thao Tao Đàn" },
+          "address": { "type": "string", "example": "1 Huyền Trân Công Chúa, Phường Bến Thành" },
+          "district": { "type": "string", "example": "Quận 1, TP. Hồ Chí Minh" },
+          "hotline": { "type": "string", "example": "028 3822 4558" },
+          "sports": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["badminton", "pickleball", "football"]
+          },
+          "openTime": { "type": "string", "example": "05:00" },
+          "closeTime": { "type": "string", "example": "23:00" },
+          "baseHourlyRate": { "type": "number", "example": 90000 },
+          "imageUrl": { "type": "string", "example": "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800" },
+          "isActive": { "type": "boolean", "example": true },
+          "totalCourts": { "type": "integer", "example": 8 },
+          "description": { "type": "string", "example": "Cụm sân trung tâm Quận 1 với cơ sở vật chất đạt tiêu chuẩn." }
+        },
+        "required": ["id", "name", "address", "district", "sports", "baseHourlyRate", "imageUrl", "isActive"]
+      },
+      "BookingAddOn": {
+        "type": "object",
+        "description": "Dịch vụ phụ trợ đính kèm theo đơn đặt sân (nước uống, thuê vợt, cầu thi đấu)",
+        "properties": {
+          "id": { "type": "string", "example": "addon_water" },
+          "name": { "type": "string", "example": "Nước khoáng Revive" },
+          "quantity": { "type": "integer", "example": 2 },
+          "unitPrice": { "type": "number", "example": 15000 },
+          "total": { "type": "number", "example": 30000 }
+        },
+        "required": ["name", "quantity", "unitPrice"]
+      },
+      "SyncedBooking": {
+        "type": "object",
+        "description": "Đơn đặt sân và thông tin vé check-in",
+        "properties": {
+          "id": { "type": "string", "example": "BK-1718000000000" },
+          "bookingId": { "type": "string", "example": "BK-1718000000000" },
+          "ownerId": { "type": "string", "example": "user_owner_01" },
+          "slotId": { "type": "string" },
+          "courtId": { "type": "string", "example": "court_td_01" },
+          "courtNumber": { "type": "integer", "example": 1 },
+          "courtName": { "type": "string", "example": "Sân 1" },
+          "venueId": { "type": "string", "example": "venue_01" },
+          "venueName": { "type": "string", "example": "CLB Thể Thao Tao Đàn" },
+          "sport": { "type": "string", "example": "badminton" },
+          "date": { "type": "string", "format": "date", "example": "2026-10-28" },
+          "timeSlot": { "type": "string", "example": "19:00 - 20:00" },
+          "startTime": { "type": "string", "example": "19:00" },
+          "endTime": { "type": "string", "example": "20:00" },
+          "customerName": { "type": "string", "example": "Nguyễn Văn A" },
+          "customerPhone": { "type": "string", "example": "0901234567" },
+          "price": { "type": "number", "example": 120000 },
+          "paymentStatus": {
+            "type": "string",
+            "enum": ["paid", "pending", "cancelled"],
+            "example": "paid"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": ["vietqr", "momo", "zalopay", "vnpay", "cash"],
+            "example": "vietqr"
+          },
+          "checkedIn": { "type": "boolean", "example": false },
+          "checkedInAt": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-10-28T08:00:00.000Z" },
+          "addOns": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BookingAddOn" }
+          }
+        },
+        "required": [
+          "id",
+          "courtNumber",
+          "venueId",
+          "date",
+          "timeSlot",
+          "customerName",
+          "customerPhone",
+          "price",
+          "paymentStatus",
+          "checkedIn",
+          "createdAt"
+        ]
+      },
+      "ChatbotConfig": {
+        "type": "object",
+        "description": "Cấu hình AI Chatbot Gateway",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["fpt", "ollama", "gemini", "openai", "anthropic"],
+            "example": "fpt"
+          },
+          "apiKey": { "type": "string" },
+          "model": { "type": "string", "example": "gemma-4-26B-A4B-it" },
+          "systemPrompt": { "type": "string" },
+          "temperature": { "type": "number", "example": 0.4 },
+          "isActive": { "type": "boolean", "example": true },
+          "hasApiKey": { "type": "boolean", "example": true },
+          "apiKeyMasked": { "type": "string", "example": "fpt_sec••••••••99ab" }
+        },
+        "required": ["provider", "model", "systemPrompt", "temperature", "isActive"]
+      },
+      "ChatbotFaq": {
+        "type": "object",
+        "description": "Câu hỏi thường gặp trong kho tri thức của chatbot",
+        "properties": {
+          "id": { "type": "string", "example": "faq_01" },
+          "venueId": { "type": "string" },
+          "sport": { "type": "string", "example": "badminton" },
+          "question": { "type": "string", "example": "Chính sách hủy sân thế nào?" },
+          "answer": { "type": "string", "example": "Khách hàng được hoàn 100% tiền nếu hủy trước giờ bắt đầu ít nhất 4 tiếng." },
+          "category": { "type": "string", "example": "policy" },
+          "isActive": { "type": "boolean", "example": true }
+        },
+        "required": ["id", "question", "answer", "category", "isActive"]
+      },
+      "ChatbotMessageItem": {
+        "type": "object",
+        "properties": {
+          "sender": { "type": "string", "enum": ["user", "assistant"] },
+          "text": { "type": "string" },
+          "timestamp": { "type": "string" }
+        },
+        "required": ["sender", "text", "timestamp"]
+      },
+      "ChatbotConversation": {
+        "type": "object",
+        "description": "Phiên hội thoại giữa khách hàng và trợ lý ảo SportHub",
+        "properties": {
+          "id": { "type": "string", "example": "conv_1718000000000" },
+          "userId": { "type": "string", "example": "user_customer_01" },
+          "userName": { "type": "string", "example": "Quốc Anh" },
+          "currentScreen": { "type": "string", "example": "/venues/venue_01" },
+          "venueId": { "type": "string", "example": "venue_01" },
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ChatbotMessageItem" }
+          },
+          "bookingCreated": { "type": "boolean", "example": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "messages", "createdAt"]
+      },
+      "FormFieldSpec": {
+        "type": "object",
+        "description": "Định nghĩa trường biểu mẫu trong đề xuất hành động HITL",
+        "properties": {
+          "key": { "type": "string", "example": "timeSlot" },
+          "label": { "type": "string", "example": "Khung giờ chơi" },
+          "type": { "type": "string", "enum": ["text", "textarea", "number"] },
+          "required": { "type": "boolean" },
+          "maxLength": { "type": "integer" },
+          "currentValue": { "type": "string" }
+        },
+        "required": ["key", "label", "type", "currentValue"]
+      },
+      "ActionTarget": {
+        "type": "object",
+        "description": "Mục tiêu đối tượng của hành động đặt sân",
+        "properties": {
+          "venueId": { "type": "string" },
+          "venueName": { "type": "string" },
+          "courtId": { "type": "string" },
+          "courtName": { "type": "string" },
+          "date": { "type": "string" },
+          "timeSlot": { "type": "string" },
+          "price": { "type": "number" }
+        },
+        "required": ["venueId", "venueName", "courtId", "courtName", "date", "timeSlot", "price"]
+      },
+      "ActionProposal": {
+        "type": "object",
+        "description": "Đề xuất hành động Human-In-The-Loop chờ phê duyệt",
+        "properties": {
+          "id": { "type": "string", "example": "prop_1718000000_abcde" },
+          "tool": { "type": "string", "example": "create_court_booking" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected", "cancelled", "executed"],
+            "example": "pending"
+          },
+          "target": { "$ref": "#/components/schemas/ActionTarget" },
+          "form": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FormFieldSpec" }
+          },
+          "createdAt": { "type": "integer", "example": 1718000000000 },
+          "expiresAt": { "type": "integer", "example": 1718000900000 }
+        },
+        "required": ["id", "tool", "status", "target", "form", "createdAt", "expiresAt"]
+      },
+      "SyncStoreData": {
+        "type": "object",
+        "description": "Cấu trúc toàn bộ dữ liệu lưu trữ đồng bộ",
+        "properties": {
+          "timestamp": { "type": "integer", "example": 1718000000000 },
+          "inactiveCourtsByVenue": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "integer" }
+            }
+          },
+          "courts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SyncedCourt" }
+          },
+          "venues": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SyncedVenue" }
+          },
+          "bookings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SyncedBooking" }
+          },
+          "chatbotConfig": { "$ref": "#/components/schemas/ChatbotConfig" },
+          "chatbotFaqs": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ChatbotFaq" }
+          },
+          "chatbotConversations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ChatbotConversation" }
+          }
+        },
+        "required": ["timestamp", "inactiveCourtsByVenue", "courts"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "Resource not found or unauthorized" }
+        },
+        "required": ["error"]
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string" }
+        },
+        "required": ["success"]
+      }
+    }
+  }
+}
