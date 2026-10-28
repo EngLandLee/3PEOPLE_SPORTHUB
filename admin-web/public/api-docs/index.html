@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportHub API Documentation</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏟️</text></svg>">
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui.css">
+  <style>
+    :root {
+      --sporthub-navy: #0f172a;
+      --sporthub-navy-dark: #020617;
+      --sporthub-blue: #2563eb;
+      --sporthub-teal: #0d9488;
+      --sporthub-text: #f8fafc;
+      --sporthub-text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #334155;
+    }
+
+    /* Branded Header */
+    .sporthub-header {
+      background: linear-gradient(135deg, var(--sporthub-navy-dark) 0%, var(--sporthub-navy) 100%);
+      color: var(--sporthub-text);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 2px solid #1e293b;
+    }
+
+    .sporthub-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .sporthub-logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    }
+
+    .sporthub-titles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sporthub-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sporthub-subtitle {
+      font-size: 12px;
+      color: var(--sporthub-text-muted);
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .sporthub-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sporthub-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge-version {
+      background: rgba(37, 99, 235, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+    }
+
+    .badge-env {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .sporthub-btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.18s ease;
+    }
+
+    .sporthub-btn-back:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Hide default Swagger topbar since we have custom branded header */
+    .swagger-ui .topbar {
+      display: none !important;
+    }
+
+    /* Polish Swagger UI styling */
+    .swagger-ui .info {
+      margin: 24px 0 20px 0;
+    }
+
+    .swagger-ui .scheme-container {
+      background: #ffffff;
+      padding: 16px 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .swagger-ui .btn.authorize {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .swagger-ui .btn.authorize svg {
+      fill: #2563eb;
+    }
+
+    .swagger-ui .opblock.opblock-post {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .swagger-ui .opblock.opblock-get {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .swagger-ui .opblock.opblock-put {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .swagger-ui .opblock.opblock-delete {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .swagger-ui .opblock.opblock-patch {
+      border-color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- SportHub Brand Top Header -->
+  <header class="sporthub-header">
+    <a href="/" class="sporthub-brand" title="Quay về SportHub Admin Portal">
+      <div class="sporthub-logo-badge">🏟️</div>
+      <div class="sporthub-titles">
+        <h1 class="sporthub-title">SportHub API Documentation</h1>
+        <p class="sporthub-subtitle">Hệ thống Đặt Sân & Quản Lý Thể Thao Tích Hợp AI</p>
+      </div>
+    </a>
+    <div class="sporthub-badges">
+      <span class="sporthub-badge badge-version">OpenAPI 3.0.3</span>
+      <span class="sporthub-badge badge-env">API v1.0.0</span>
+      <a href="/" class="sporthub-btn-back">
+        <span>←</span>
+        <span>Admin Portal</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Swagger UI Mount Container -->
+  <div id="swagger-ui"></div>
+
+  <!-- Swagger UI Scripts -->
+  <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-bundle.js" charset="UTF-8"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+  <script>
+    window.onload = function() {
+      // Initialize SportHub Swagger UI
+      const ui = SwaggerUIBundle({
+        url: './openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        defaultModelsExpandDepth: 1,
+        defaultModelExpandDepth: 1,
+        docExpansion: 'list',
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        displayRequestDuration: true,
+        tryItOutEnabled: true,
+        persistAuthorization: true
+      });
+
+      window.ui = ui;
+    };
+  </script>
+</body>
+</html>
