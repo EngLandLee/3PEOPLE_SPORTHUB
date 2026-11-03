@@ -1,0 +1,159 @@
+================================================================================
+BÁO CÁO CÁC CHỨC NĂNG ĐÃ HOÀN THÀNH - ĐỒ ÁN LẬP TRÌNH TRÊN THIẾT BỊ DI ĐỘNG
+================================================================================
+
+TÊN ĐỀ TÀI: SPORTHUB - NỀN TẢNG ĐẶT SÂN THỂ THAO THÔNG MINH & GHÉP KÈO AI
+HỌC PHẦN: LẬP TRÌNH TRÊN THIẾT BỊ DI ĐỘNG
+GIẢNG VIÊN HƯỚNG DẪN: THS. NGUYỄN MẠNH HÙNG
+NHÓM THỰC HIỆN: NHÓM 3 NGƯỜI (GỒM 4 THÀNH VIÊN)
+
+--------------------------------------------------------------------------------
+1. DANH SÁCH THÀNH VIÊN & PHÂN CÔNG ĐÓNG GÓP
+--------------------------------------------------------------------------------
+1. Lê Quốc Anh (Trưởng nhóm) - MSSV: 2380600052 - GitHub: EngLandLee
+   - Vai trò: Full-stack & Backend / Database Architecture.
+   - Nhiệm vụ chính:
+     + Thiết kế kiến trúc tổng thể Monorepo, tích hợp CSDL tập trung Supabase PostgreSQL & Realtime.
+     + Xây dựng Stored Procedure 'fn_book_court_slot' với row-level lock chống double-booking.
+     + Lưu trữ vé và trạng thái sân cục bộ SQLite (sporthub_local.db), giữ nguyên dữ liệu khi logout.
+     + Phát triển phân hệ POS Check-in thực tế và kiểm thử tự động toàn diện.
+
+2. Đỗ Minh Nhật - MSSV: 2380614792 - GitHub: matnhinhod-pixel
+   - Vai trò: AI Chatbot Core & Xác thực Người dùng (Auth).
+   - Nhiệm vụ chính:
+     + Xây dựng hệ thống xác thực tài khoản qua mã OTP gửi Email thực tế (EmailOtpService).
+     + Xây dựng bảo mật đăng nhập/đăng xuất, mã hóa thông tin xác thực và khôi phục mật khẩu.
+     + Tích hợp Trợ lý ảo AI Chatbot (Agentic 6 tầng), bóc tách khẩu ngữ tiếng Việt tự nhiên.
+     + Quản lý người dùng phía Web Admin Portal (UserManagementView).
+
+3. Tưởng Hoàn Thiện - MSSV: 2380602117 - GitHub: HoangThien1304
+   - Vai trò: Nhắn tin trực tiếp (Chat 2 chiều) & Web Admin Portal.
+   - Nhiệm vụ chính:
+     + Xây dựng API và giao diện Nhắn tin trực tiếp giữa Khách hàng và Chủ sân (VenueChatStore).
+     + Hệ thống thông báo Notification thời gian thực trên cả Web Admin và Mobile App.
+     + Phát triển Web Admin Portal (React 19 + TypeScript + Tailwind CSS).
+     + Quản lý doanh thu, ca trực, ma trận lịch sân (ScheduleMatrixView) và danh sách cơ sở.
+
+4. Nguyễn Phan Ngọc Trưởng - MSSV: 2380602415 - GitHub: aoi0701
+   - Vai trò: Flutter Mobile UI/UX & AI Matchmaking (Ghép kèo).
+   - Nhiệm vụ chính:
+     + Thiết kế toàn bộ giao diện Mobile App theo chuẩn Material 3 (Theme Sáng/Tối WCAG AAA).
+     + Xây dựng thuật toán ghép kèo thể thao (MatchmakingService) tương thích model Qwen local.
+     + Tích hợp thẻ giao lưu 'RecruitmentCard' trên Bảng tin Cộng đồng và thẻ đặt sân 'ChatBookingCard'.
+     + Xây dựng luồng thanh toán VietQR 1 chạm (qr_flutter) và chọn dịch vụ phụ (Add-ons).
+
+--------------------------------------------------------------------------------
+2. ĐƯỜNG DẪN MÃ NGUỒN (GITHUB REPOSITORY)
+--------------------------------------------------------------------------------
+- Link GitHub Repository chính (Monorepo):
+  https://github.com/EngLandLee/3PEOPLE_SPORTHUB
+- Thư mục Frontend (Ứng dụng di động Flutter):
+  https://github.com/EngLandLee/3PEOPLE_SPORTHUB/tree/main/lib
+- Thư mục Backend & API Gateway / Admin Portal:
+  https://github.com/EngLandLee/3PEOPLE_SPORTHUB/tree/main/admin-web
+- Tài liệu kỹ thuật Swagger UI & OpenAPI 3.0.3:
+  https://github.com/EngLandLee/3PEOPLE_SPORTHUB/tree/main/admin-web/public/api-docs
+
+--------------------------------------------------------------------------------
+3. TÀI KHOẢN TRẢI NGHIỆM HỆ THỐNG (MẬT KHẨU MẶC ĐỊNH: 123456)
+--------------------------------------------------------------------------------
+- Tài khoản Super Admin: admin@sporthub.vn
+- Tài khoản Chủ cụm sân (Tao Đàn): partner@taodan.vn
+- Tài khoản Khách hàng (User): nguyenvanan@gmail.com hoặc d.mnhat05@gmail.com
+- Chế độ Khách vãng lai: Nhấn 'Bỏ qua, khám phá với tư cách Khách' tại màn hình đăng nhập.
+
+--------------------------------------------------------------------------------
+4. DANH SÁCH CHI TIẾT CÁC CHỨC NĂNG ĐÃ LÀM ĐƯỢC (100% HOÀN THÀNH)
+--------------------------------------------------------------------------------
+
+A. PHÂN HỆ KHÁCH HÀNG (FLUTTER MOBILE APP)
+[x] 1. Xác thực & Quản lý phiên làm việc:
+    - Đăng ký tài khoản mới kèm gửi mã xác thực OTP 6 số qua Email thực tế (EmailOtpService).
+    - Đăng nhập an toàn bằng Email / Số điện thoại và Mật khẩu.
+    - Chức năng Quên mật khẩu & Đặt lại mật khẩu bằng mã xác thực Email OTP.
+    - Chế độ Khách vãng lai (Guest Mode) không cần đăng nhập vẫn xem được thông tin sân.
+    - Lưu phiên đăng nhập an toàn, không bị mất dữ liệu đặt sân khi đăng xuất/đăng nhập lại.
+[x] 2. Khám phá & Tìm kiếm sân bãi thông minh:
+    - Tìm kiếm sân theo tên, khu vực quận/huyện TP.HCM (Quận 1, Bình Thạnh, Thủ Đức, Tân Bình...).
+    - Bộ lọc đa môn thể thao: Cầu lông, Pickleball, Bóng đá mini.
+    - Lọc nâng cao theo khoảng giá, đánh giá sao (Rating), tiện ích (Máy lạnh, WiFi, Giữ xe).
+[x] 3. Chi tiết cụm sân & Chọn ca chơi trực quan:
+    - Xem thông tin liên hệ, hotline, địa chỉ, hình ảnh thực tế và danh sách tiện ích.
+    - Ma trận ca giờ trực quan: Hiển thị trạng thái sân theo thời gian thực (Trống, Đã đặt, Bảo trì).
+    - Tự động áp dụng biểu giá bậc thang theo ca chơi (ca thường, ca cao điểm 17h-21h).
+[x] 4. Dịch vụ gia tăng (Add-ons) & Đặt sân:
+    - Chọn thêm dịch vụ phụ đi kèm: nước uống điện giải Pocari, thuê vợt carbon, ống cầu lông...
+    - Tự động cộng tổng chi phí minh bạch trước khi thanh toán.
+[x] 5. Thanh toán VietQR 1 chạm & Khóa sân tức thời:
+    - Sinh mã VietQR động trực tiếp theo tiêu chuẩn Napas247 với cú pháp chuyển khoản chính xác.
+    - Cơ chế xác nhận chuyển khoản: Khách bấm xác nhận -> Sân lập tức được khóa và xuất vé ngay.
+[x] 6. Quản lý Vé (My Tickets) & Check-in Offline:
+    - Hiển thị danh sách vé đã đặt kèm mã QR Code định danh duy nhất (SPORTHUB|BK-XXX|Giá).
+    - Lưu trữ vé bền vững trong CSDL SQLite nội bộ thiết bị (sporthub_local.db).
+    - Đổi trạng thái vé theo thời gian thực: 'Chờ thanh toán' -> 'Đã thanh toán' -> 'Đã nhận sân'.
+[x] 7. Cá nhân hóa & Trải nghiệm người dùng:
+    - Hỗ trợ đổi giao diện Sáng / Tối (Light & Dark Theme) chuẩn tương phản WCAG AAA.
+    - Trung tâm thông báo (Notification Center) gửi chuông thông báo khi đặt sân thành công.
+
+B. PHÂN HỆ TRỢ LÝ AI CHATBOT & GHÉP KÈO (AI CHATBOT & MATCHMAKING)
+[x] 1. Trợ lý ảo AI thông minh đa chế độ (Dual-Mode Architecture):
+    - Chế độ Cloud: Tích hợp mô hình ngôn ngữ lớn FPT Cloud Gemma 26B với độ trễ phản hồi cực thấp.
+    - Chế độ Local: Bộ máy Intent Engine chạy bằng Dart cục bộ trên máy, đảm bảo hoạt động cả khi offline.
+    - Khả năng hiểu ngôn ngữ tự nhiên tiếng Việt có dấu/không dấu, xử lý giờ khẩu ngữ ('5 rưỡi chiều', '7h kém 15').
+[x] 2. Đặt sân hội thoại (Conversational Booking):
+    - Đặt sân trực tiếp ngay trong khung trò chuyện bằng cách chat tự nhiên ('đặt sân Tao Đàn 19h tối nay').
+    - Chatbot tự động trả về thẻ đặt sân tương tác (ChatBookingCard) có tích hợp mã VietQR.
+[x] 3. Thuật toán Ghép kèo AI (Matchmaking Algorithm):
+    - Gợi ý đối thủ cân trình dựa trên trình độ kỹ năng (Elo/Rank), khoảng cách vị trí và môn đấu.
+    - Tích hợp chuẩn hóa prompt cho mô hình cục bộ Qwen (Local Model AI Matchmaking).
+[x] 4. Bảng tin Cộng đồng & Tìm bạn chơi:
+    - Đăng bài tìm người giao lưu (RecruitmentCard) kèm số lượng cần tìm, trình độ và chi phí chia sẻ.
+    - Tương tác bình luận, tham gia kèo đấu trực tiếp trên feed cộng đồng.
+[x] 5. Nhắn tin trực tiếp giữa Khách hàng và Chủ sân (Direct Chat 2 chiều):
+    - Màn hình chat riêng giữa khách và quản lý cụm sân, đồng bộ tức thời với Web Admin.
+    - Thông báo âm thanh và badge khi có tin nhắn mới.
+
+C. PHÂN HỆ CHỦ SÂN (MOBILE POS & QUẢN LÝ SÂN)
+[x] 1. Chuyển đổi chế độ Chủ sân nhanh (Owner Mode Switcher):
+    - Cho phép tài khoản đối tác chuyển đổi ngay lập tức giữa vai trò Khách và Chủ sân.
+[x] 2. Quản lý Lịch sân theo thời gian thực (Schedule Matrix):
+    - Xem tình trạng sử dụng từng sân con theo từng khung giờ từ 06:00 đến 22:00.
+    - Khóa bảo trì sân khi hư hỏng hoặc mở lại khi bảo dưỡng xong.
+[x] 3. Đặt giữ chỗ thủ công (Manual Booking):
+    - Cho phép chủ sân thêm các lượt đặt qua điện thoại hoặc khách quen tại quầy POS.
+[x] 4. Check-in vé thực tế không dùng dữ liệu giả lập:
+    - Bỏ hoàn toàn 3 vé mẫu gán cứng, đồng bộ 100% lượt đặt sân thực tế của khách hàng.
+    - Quét mã QR vé của khách bằng camera hoặc nhập mã vé để đối soát và xác nhận nhận sân.
+[x] 5. Báo cáo Doanh thu & Tỷ lệ lấp đầy sân (Revenue & Occupancy Analytics):
+    - Thống kê doanh thu theo ngày, tuần, tháng và tỷ lệ lấp đầy sân theo ca chơi.
+
+D. PHÂN HỆ WEB ADMIN & PARTNER PORTAL (REACT 19 + TYPESCRIPT)
+[x] 1. Cổng quản trị phân quyền đa cấp:
+    - Super Admin: Quản lý toàn bộ danh sách sân, tài khoản đối tác, phân quyền hệ thống.
+    - Partner Admin: Quản lý riêng cụm sân thuộc quyền sở hữu (Tao Đàn, Bình Thạnh, Thảo Điền...).
+[x] 2. Ma trận lịch sân & POS Thu ngân Web:
+    - Theo dõi trực quan lịch sân và hỗ trợ thu ngân đặt chỗ tại quầy.
+[x] 3. Quản lý Tin nhắn Khách hàng (Customer Chat View):
+    - Giao diện hộp thư chat chuyên nghiệp để nhân viên trả lời tin nhắn từ ứng dụng di động.
+[x] 4. Cổng điều phối API Gateway (apiSyncPlugin):
+    - Middleware cung cấp hệ thống REST API đồng bộ dữ liệu Realtime 2 chiều giữa Web và App.
+[x] 5. Tài liệu kỹ thuật Swagger UI & OpenAPI 3.0.3:
+    - Tích hợp tài liệu API chuẩn quốc tế tại đường dẫn /api-docs phục vụ bảo trì và tích hợp bên thứ ba.
+
+E. PHÂN HỆ CƠ SỞ DỮ LIỆU TẬP TRUNG (SUPABASE POSTGRESQL)
+[x] 1. CSDL quan hệ chuẩn hóa trên Supabase Cloud:
+    - Bảng dữ liệu: users, venues, courts, court_slots, bookings, venue_addons, chat_messages.
+[x] 2. Cơ chế khóa chống trùng lịch (Anti-double-booking Concurrency Lock):
+    - Stored Procedure 'fn_book_court_slot' kết hợp row-level lock ('SELECT ... FOR UPDATE') ngăn chặn hai khách đặt cùng 1 sân trong 1 giây.
+[x] 3. Đồng bộ Realtime WebSockets:
+    - Trạng thái sân vừa được đặt sẽ lập tức cập nhật trên cả Web Admin và điện thoại khác.
+
+--------------------------------------------------------------------------------
+5. KẾT QUẢ KIỂM THỬ TỰ ĐỘNG (AUTOMATED TEST VERIFICATION)
+--------------------------------------------------------------------------------
+- Toàn bộ các phân hệ đã được viết Unit Test, Widget Test và Integration Test kiểm thử nghiêm ngặt:
+  + Mobile App (Flutter SDK): 396/396 bài kiểm thử ĐẠT 100% (0 lỗi tồn đọng).
+    * Lệnh kiểm tra: flutter test
+  + Web Admin & API Backend (Vitest): 115/115 bài kiểm thử ĐẠT 100% trên 19 test suites.
+    * Lệnh kiểm tra: cd admin-web && npm test -- --run
+================================================================================
