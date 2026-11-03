@@ -95,6 +95,10 @@ void main() {
     expect(result, isTrue);
     expect(store.isCheckedIn('SH-8291'), isTrue);
     expect(store.getCheckInTime('SH-8291'), isNotNull);
+
+    // Scanning the same ticket a second time must be rejected
+    final secondResult = store.checkInTicket('SH-8291');
+    expect(secondResult, isFalse);
   });
 
   test('checkInTicket returns false for non-existent ticket', () {

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/state/venue_owner_store.dart';
 import 'package:sporthub/core/utils/seed_data.dart';
+import 'package:sporthub/presentation/screens/auth_screen.dart';
 import 'package:sporthub/main.dart';
 
 void main() {
@@ -69,5 +70,29 @@ void main() {
     expect(AuthStore.instance.currentUser?.userId, equals('user_owner_01'));
     expect(VenueOwnerStore.instance.isOwnerMode, isTrue);
     expect(find.byKey(const Key('owner_tab_schedule')), findsOneWidget);
+  });
+
+  testWidgets('Owner can logout directly from Owner Settings tab', (tester) async {
+    final owner = SeedData.demoUsers.firstWhere((u) => u.isOwner);
+    AuthStore.instance.login(owner.phone, '123456');
+    VenueOwnerStore.instance.toggleOwnerMode(true);
+
+    await tester.pumpWidget(const SportHubApp());
+    await tester.pumpAndSettle();
+
+    // Switch to Settings tab in Owner mode
+    await tester.tap(find.byKey(const Key('owner_tab_settings')));
+    await tester.pumpAndSettle();
+
+    // Find and tap logout button
+    final logoutBtn = find.byKey(const Key('owner_settings_logout_button'));
+    await tester.ensureVisible(logoutBtn);
+    await tester.tap(logoutBtn);
+    await tester.pumpAndSettle();
+
+    // Verify completely unauthenticated and owner mode is false, back to AuthScreen
+    expect(AuthStore.instance.state.isAuthenticated, isFalse);
+    expect(VenueOwnerStore.instance.isOwnerMode, isFalse);
+    expect(find.byType(AuthScreen), findsOneWidget);
   });
 }

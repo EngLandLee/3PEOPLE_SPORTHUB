@@ -1264,10 +1264,10 @@ class _SlotActionBottomSheetState extends State<_SlotActionBottomSheet> {
               ),
               const SizedBox(height: 10),
               _buildDetailItem(Icons.person_rounded, 'Khách hàng',
-                  slot.customerName ?? 'Nguyễn Văn An'),
+                  slot.customerName ?? 'Khách đặt qua App'),
               const SizedBox(height: 6),
               _buildDetailItem(Icons.phone_rounded, 'Số điện thoại',
-                  slot.customerPhone ?? '0909 123 456'),
+                  slot.customerPhone ?? 'Chưa cập nhật'),
               const SizedBox(height: 6),
               _buildDetailItem(
                 Icons.check_circle_rounded,

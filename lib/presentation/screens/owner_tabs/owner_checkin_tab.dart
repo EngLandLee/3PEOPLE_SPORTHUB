@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/venue_sync_service.dart';
 import '../../../core/state/venue_owner_store.dart';
@@ -24,10 +25,20 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
         _searchQuery = _searchController.text.trim().toLowerCase();
       });
     });
+    VenueOwnerStore.instance.syncWithAppBookings();
+    VenueSyncService.instance.bookingsNotifier.addListener(_onBookingsChanged);
+  }
+
+  void _onBookingsChanged() {
+    if (mounted) {
+      VenueOwnerStore.instance.syncWithAppBookings();
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    VenueSyncService.instance.bookingsNotifier.removeListener(_onBookingsChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -170,53 +181,92 @@ class _OwnerCheckinTabState extends State<OwnerCheckinTab> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Simulated Camera Viewport
-                    Container(
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: AppColors.secondary.withValues(alpha: 0.4),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Scanning grid effect
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: AppColors.secondary,
-                                    width: 2.5,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.qr_code_2_rounded,
-                                    size: 56,
-                                    color: AppColors.secondary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Hướng camera về phía mã QR của khách',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+                    // Real Camera Scanner with MobileScanner Viewport
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppColors.secondary.withValues(alpha: 0.6),
+                            width: 1.5,
                           ),
-                        ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            MobileScanner(
+                              onDetect: (capture) {
+                                final barcodes = capture.barcodes;
+                                for (final barcode in barcodes) {
+                                  final raw = barcode.rawValue;
+                                  if (raw != null && raw.trim().isNotEmpty) {
+                                    String cleanCode = raw.trim();
+                                    if (cleanCode.contains('TICKET:')) {
+                                      cleanCode = cleanCode
+                                          .split('TICKET:')
+                                          .last
+                                          .split(':')
+                                          .first;
+                                    }
+                                    qrInputController.text = cleanCode;
+                                  }
+                                }
+                              },
+                              errorBuilder: (_, error) {
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.qr_code_2_rounded,
+                                        size: 48,
+                                        color: AppColors.secondary,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Camera sẵn sàng trên thiết bị',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: AppColors.secondary,
+                                  width: 2.5,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 10,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Hướng camera về phía mã QR vé',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.white70),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 18),

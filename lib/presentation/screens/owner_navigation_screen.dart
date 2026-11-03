@@ -6,6 +6,7 @@ import '../../core/theme/theme_store.dart';
 import 'owner_tabs/owner_checkin_tab.dart';
 import 'owner_tabs/owner_revenue_tab.dart';
 import 'owner_tabs/owner_schedule_tab.dart';
+import 'owner_tabs/owner_chat_tab.dart';
 import '../../core/state/notification_store.dart';
 import '../../domain/entities/app_notification.dart';
 import '../widgets/notification_center_sheet.dart';
@@ -223,8 +224,16 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
                   ),
                   Expanded(
                     child: _buildNavItem(
-                      key: const Key('owner_tab_settings'),
+                      key: const Key('owner_tab_chat'),
                       index: 3,
+                      icon: Icons.chat_bubble_outline_rounded,
+                      label: 'Tin nhắn',
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildNavItem(
+                      key: const Key('owner_tab_settings'),
+                      index: 4,
                       icon: Icons.settings_rounded,
                       label: 'Cài đặt',
                     ),
@@ -247,6 +256,8 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
       case 2:
         return _buildRevenueTab();
       case 3:
+        return const OwnerChatTab();
+      case 4:
       default:
         return _buildSettingsTab();
     }
@@ -470,22 +481,23 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Exit Owner Mode Button
+          // Primary: Logout Button for Owner
           ElevatedButton.icon(
-            key: const Key('exit_owner_mode_button'),
-            onPressed: () => VenueOwnerStore.instance.toggleOwnerMode(false),
-            icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+            key: const Key('owner_settings_logout_button'),
+            onPressed: () => AuthStore.instance.logout(),
+            icon: const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
             label: const Text(
-              '🔄 Quay lại Chế độ Người Chơi',
+              '🚪 Đăng xuất Tài khoản Chủ Sân',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
+                color: AppColors.error,
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary, width: 1.5),
+              backgroundColor: AppColors.error.withValues(alpha: 0.1),
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error, width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -493,13 +505,36 @@ class _OwnerNavigationScreenState extends State<OwnerNavigationScreen> {
               elevation: 0,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            'Chuyển về giao diện người chơi để tìm sân và tham gia cộng đồng',
+            'Đăng xuất hoàn toàn phiên làm việc và trở về màn hình Đăng nhập',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Secondary: Switch to Player Mode (for previewing player experience)
+          OutlinedButton.icon(
+            key: const Key('exit_owner_mode_button'),
+            onPressed: () => VenueOwnerStore.instance.toggleOwnerMode(false),
+            icon: Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.textSecondary),
+            label: Text(
+              '🔄 Xem giao diện Người Chơi',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppColors.cardBorder),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],

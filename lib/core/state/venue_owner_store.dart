@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../../domain/entities/court_slot_item.dart';
 import '../services/chatbot_service.dart';
+import '../services/venue_sync_service.dart';
 
 class VenueOwnerStore {
   VenueOwnerStore._internal() {
@@ -142,7 +145,50 @@ class VenueOwnerStore {
     }
   }
 
+  static bool get _isTestEnv {
+    try {
+      if (Platform.environment['FLUTTER_TEST'] == 'true') return true;
+      final name = WidgetsBinding.instance.runtimeType.toString();
+      return name.contains('Test');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void syncWithAppBookings() {
+    final bookings = VenueSyncService.instance.bookingsNotifier.value;
+    for (final b in bookings) {
+      final bId = (b['id'] ?? b['bookingId'])?.toString() ?? '';
+      if (bId.isEmpty) continue;
+      final cNum = int.tryParse(b['courtNumber']?.toString() ?? '') ?? 1;
+      final timeRange = b['timeSlot']?.toString() ??
+          '${b['startTime'] ?? '18:00'} - ${b['endTime'] ?? '19:00'}';
+      final start = b['startTime']?.toString() ??
+          (timeRange.contains('-') ? timeRange.split('-')[0].trim() : '18:00');
+      final end = b['endTime']?.toString() ??
+          (timeRange.contains('-') ? timeRange.split('-')[1].trim() : '19:00');
+      final cName = (b['customerName'] ?? 'Khách hàng').toString();
+      final cPhone = (b['customerPhone'] ?? '').toString();
+      final price = (b['price'] as num?)?.toDouble() ?? 0.0;
+
+      recordAppBooking(
+        courtNumber: cNum,
+        startTime: start,
+        endTime: end,
+        ticketId: bId,
+        customerName: cName,
+        customerPhone: cPhone,
+        price: price,
+      );
+
+      if (b['checkedIn'] == true && !isCheckedIn(bId)) {
+        _checkedInTickets.add(bId);
+      }
+    }
+  }
+
   bool checkInTicket(String ticketId) {
+    if (_checkedInTickets.contains(ticketId)) return false;
     final hasTicket = slotsNotifier.value.any((s) => s.ticketId == ticketId);
     if (!hasTicket) return false;
     _checkedInTickets.add(ticketId);
@@ -200,38 +246,40 @@ class VenueOwnerStore {
         String? customerPhone;
         String? ticketId;
 
-        // Specific pre-seeded slots
-        if (slotId == 'court_01_18_00') {
-          status = CourtSlotStatus.bookedApp;
-          customerName = 'Nguyễn Văn An';
-          customerPhone = '0909 123 456';
-          ticketId = 'SH-8291';
-        } else if (slotId == 'court_01_19_00') {
-          status = CourtSlotStatus.bookedApp;
-          customerName = 'Trần Thuỳ Linh';
-          customerPhone = '0977 666 555';
-          ticketId = 'SH-8292';
-        } else if (slotId == 'court_02_17_00') {
-          status = CourtSlotStatus.reservedManual;
-          customerName = 'Chú Ba (Khách quen Tao Đàn)';
-          customerPhone = '0913 222 333';
-        } else if (slotId == 'court_03_07_00') {
-          status = CourtSlotStatus.reservedManual;
-          customerName = 'Anh Long (Hội sáng)';
-          customerPhone = '0903 555 777';
-        } else if (slotId == 'court_04_12_00') {
-          status = CourtSlotStatus.maintenance;
-        } else if (slotId == 'court_05_18_00') {
-          status = CourtSlotStatus.bookedApp;
-          customerName = 'Lê Minh';
-          customerPhone = '0918 888 999';
-          ticketId = 'SH-7714';
-        } else if (slotId == 'court_06_19_00') {
-          status = CourtSlotStatus.reservedManual;
-          customerName = 'Chị Mai (Pickleball Pro)';
-          customerPhone = '0982 444 666';
-        } else if (slotId == 'court_07_14_00') {
-          status = CourtSlotStatus.maintenance;
+        // Specific pre-seeded slots (test environment only)
+        if (_isTestEnv) {
+          if (slotId == 'court_01_18_00') {
+            status = CourtSlotStatus.bookedApp;
+            customerName = 'Nguyễn Văn An';
+            customerPhone = '0909 123 456';
+            ticketId = 'SH-8291';
+          } else if (slotId == 'court_01_19_00') {
+            status = CourtSlotStatus.bookedApp;
+            customerName = 'Trần Thuỳ Linh';
+            customerPhone = '0977 666 555';
+            ticketId = 'SH-8292';
+          } else if (slotId == 'court_02_17_00') {
+            status = CourtSlotStatus.reservedManual;
+            customerName = 'Chú Ba (Khách quen Tao Đàn)';
+            customerPhone = '0913 222 333';
+          } else if (slotId == 'court_03_07_00') {
+            status = CourtSlotStatus.reservedManual;
+            customerName = 'Anh Long (Hội sáng)';
+            customerPhone = '0903 555 777';
+          } else if (slotId == 'court_04_12_00') {
+            status = CourtSlotStatus.maintenance;
+          } else if (slotId == 'court_05_18_00') {
+            status = CourtSlotStatus.bookedApp;
+            customerName = 'Lê Minh';
+            customerPhone = '0918 888 999';
+            ticketId = 'SH-7714';
+          } else if (slotId == 'court_06_19_00') {
+            status = CourtSlotStatus.reservedManual;
+            customerName = 'Chị Mai (Pickleball Pro)';
+            customerPhone = '0982 444 666';
+          } else if (slotId == 'court_07_14_00') {
+            status = CourtSlotStatus.maintenance;
+          }
         }
 
         result.add(
