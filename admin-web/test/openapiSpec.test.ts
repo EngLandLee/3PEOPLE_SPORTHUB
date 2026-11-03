@@ -20,6 +20,13 @@ describe('OpenAPI Specification Test', () => {
     const spec = JSON.parse(content);
     const paths = Object.keys(spec.paths);
 
+    expect(paths).toContain('/api/auth/login');
+    expect(paths).toContain('/api/auth/register');
+    expect(paths).toContain('/api/auth/verify-otp');
+    expect(paths).toContain('/api/auth/resend-otp');
+    expect(paths).toContain('/api/auth/forgot-password');
+    expect(paths).toContain('/api/auth/reset-password');
+    expect(paths).toContain('/api/auth/logout');
     expect(paths).toContain('/api/sync');
     expect(paths).toContain('/api/sync/reset');
     expect(paths).toContain('/api/courts');

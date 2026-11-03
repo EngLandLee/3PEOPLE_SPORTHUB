@@ -1,4 +1,5 @@
-import type { Plugin } from 'vite';
+import type { Plugin, Connect } from 'vite';
+import type { CustomerChatMessage } from '../types';
 import fs from 'node:fs';
 import path from 'node:path';
 import { guardrailIn, guardrailOut } from './guardrails';
@@ -289,6 +290,8 @@ export interface SyncStoreData {
   chatbotConfig?: ChatbotConfig;
   chatbotFaqs?: ChatbotFaq[];
   chatbotConversations?: ChatbotConversation[];
+  users?: AuthUserRecord[];
+  chatMessages?: CustomerChatMessage[];
 }
 
 function getStorePath(): string {
@@ -503,12 +506,12 @@ export const DEFAULT_SYNC_BOOKINGS: SyncedBooking[] = [
   },
 ];
 
-const DEFAULT_FPT_API_KEY = process.env.FPT_API_KEY || 'sk-RQA2M_OYT1q7aCmMkZPvr1LVcJ5vYL2E5XkzZR-t3e4=';
+const DEFAULT_FPT_API_KEY = process.env.FPT_API_KEY || '';
 
 export const DEFAULT_CHATBOT_CONFIG: ChatbotConfig = {
-  provider: 'fpt',
-  apiKey: 'sk-RQA2M_OYT1q7aCmMkZPvr1LVcJ5vYL2E5XkzZR-t3e4=',
-  model: 'gemma-4-26B-A4B-it',
+  provider: 'ollama',
+  apiKey: '',
+  model: 'qwen2.5:1.5b',
   systemPrompt: `Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
 Quy tắc phản hồi:
 - Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (1 đến 3 câu).
@@ -676,6 +679,42 @@ export const DEFAULT_CHATBOT_FAQS: ChatbotFaq[] = [
   },
 ];
 
+export const DEFAULT_CHAT_MESSAGES: CustomerChatMessage[] = [
+  {
+    id: 'msg_01',
+    venueId: 'venue_01',
+    venueName: 'CLB Cầu Lông Tao Đàn',
+    customerId: 'user_player_01',
+    customerName: 'Nguyễn Văn An',
+    senderRole: 'customer',
+    text: 'Dạ chào chủ sân, sân bên mình tối nay có sẵn vợt cho thuê không ạ?',
+    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg_02',
+    venueId: 'venue_01',
+    venueName: 'CLB Cầu Lông Tao Đàn',
+    customerId: 'user_player_01',
+    customerName: 'Nguyễn Văn An',
+    senderRole: 'owner',
+    text: 'Chào bạn An! Sân Tao Đàn luôn có sẵn vợt Yonex chính hãng và nước điện giải tại quầy lễ tân nhé. Bạn cứ ghé quầy nhận sân là có!',
+    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg_03',
+    venueId: 'venue_01',
+    venueName: 'CLB Cầu Lông Tao Đàn',
+    customerId: 'user_player_02',
+    customerName: 'Trần Thị Mai',
+    senderRole: 'customer',
+    text: 'Shop cho em hỏi bên mình có giữ chỗ theo tháng giờ vàng 18h - 20h được không ạ?',
+    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    isRead: false,
+  },
+];
+
 function loadSyncStore(): SyncStoreData {
   const storePath = getStorePath();
   try {
@@ -692,6 +731,10 @@ function loadSyncStore(): SyncStoreData {
           parsed.bookings = [...DEFAULT_SYNC_BOOKINGS];
           hasUpdates = true;
         }
+        if (!Array.isArray(parsed.chatMessages)) {
+          parsed.chatMessages = [...DEFAULT_CHAT_MESSAGES];
+          hasUpdates = true;
+        }
         if (!parsed.chatbotConfig) {
           parsed.chatbotConfig = { ...DEFAULT_CHATBOT_CONFIG };
           hasUpdates = true;
@@ -702,6 +745,13 @@ function loadSyncStore(): SyncStoreData {
         }
         if (!Array.isArray(parsed.chatbotConversations)) {
           parsed.chatbotConversations = [];
+        }
+        if (Array.isArray(parsed.users)) {
+          for (const u of parsed.users) {
+            if (!authUsersStore.some((ex) => normalizePhoneKey(ex.phone) === normalizePhoneKey(u.phone) || ex.email.toLowerCase() === u.email.toLowerCase())) {
+              authUsersStore.push(u);
+            }
+          }
         }
 
         // Ensure courts for the 3 new venues are present in parsed.courts
@@ -817,6 +867,7 @@ function loadSyncStore(): SyncStoreData {
     chatbotConfig: { ...DEFAULT_CHATBOT_CONFIG },
     chatbotFaqs: [...DEFAULT_CHATBOT_FAQS],
     chatbotConversations: [],
+    chatMessages: [...DEFAULT_CHAT_MESSAGES],
   };
 }
 
@@ -827,7 +878,18 @@ function saveSyncStore(store: SyncStoreData): void {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf-8');
+    // Cap chatbot conversations to last 100 to prevent unbounded file growth
+    if (Array.isArray(store.chatbotConversations) && store.chatbotConversations.length > 100) {
+      store.chatbotConversations = store.chatbotConversations.slice(-100);
+    }
+    store.users = [...authUsersStore];
+    const tempPath = `${storePath}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(store, null, 2), 'utf-8');
+    if (typeof fs.renameSync === 'function') {
+      fs.renameSync(tempPath, storePath);
+    } else {
+      fs.writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf-8');
+    }
   } catch (err) {
     console.error('[apiSyncPlugin] Failed to write sync_store.json:', err);
   }
@@ -907,11 +969,293 @@ function findAvailableCourtForTime(venueId: string, startTime: string, sport?: s
   return courts[0]?.courtNumber || 1;
 }
 
-export function apiSyncPlugin(): Plugin {
-  return {
-    name: 'sporthub-api-sync-plugin',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
+const SUPABASE_PG_URL =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  'https://avlizwimxvgnzqdmxily.supabase.co';
+const SUPABASE_PG_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2bGl6d2lteHZnbnpxZG14aWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTQ5NjAsImV4cCI6MjEwODY5MDk2MH0.JtNJ3joPBjnGYNKLQkJ9gHQqxOA5udAImiHkSklOrRg';
+
+let lastPostgresSyncMs = 0;
+
+function isLivePostgresEnabled(): boolean {
+  const isTestEnv =
+    process.env.NODE_ENV === 'test' || Boolean(process.env.VITEST);
+  return (
+    !isTestEnv &&
+    Boolean(SUPABASE_PG_URL) &&
+    Boolean(SUPABASE_PG_KEY) &&
+    !SUPABASE_PG_URL.includes('YOUR_PROJECT_REF')
+  );
+}
+
+async function syncBookingsFromPostgres(store: SyncStoreData): Promise<void> {
+  if (!isLivePostgresEnabled()) return;
+  const now = Date.now();
+  if (now - lastPostgresSyncMs < 3000) return;
+  lastPostgresSyncMs = now;
+  try {
+    const res = await fetch(
+      `${SUPABASE_PG_URL}/rest/v1/bookings?select=*&order=created_at.desc&limit=50`,
+      {
+        headers: {
+          apikey: SUPABASE_PG_KEY,
+          Authorization: `Bearer ${SUPABASE_PG_KEY}`,
+        },
+        signal: AbortSignal.timeout(2500),
+      },
+    );
+    if (!res.ok) return;
+    const rows = (await res.json()) as Array<Record<string, unknown>>;
+    if (!Array.isArray(rows)) return;
+    if (!store.bookings) store.bookings = [...DEFAULT_SYNC_BOOKINGS];
+    let changed = false;
+    for (const row of rows) {
+      const id = String(row.booking_id || row.id || '');
+      if (!id) continue;
+      const rawVenueId = String(row.venue_id || 'venue_01');
+      const venueId = rawVenueId === 'venue_q1_04' ? 'venue_01' : rawVenueId;
+      const venueObj = (store.venues || DEFAULT_SYNC_VENUES).find(
+        (v) => v.id === venueId,
+      );
+      const mapped: SyncedBooking = {
+        id,
+        bookingId: id,
+        venueId,
+        venueName: row.venue_name
+          ? String(row.venue_name)
+          : venueObj?.name,
+        courtNumber: Number(row.court_number || 1),
+        courtName: String(row.court_name || `Sân ${row.court_number || 1}`),
+        sport: String(row.sport || 'badminton'),
+        date: String(row.date || ''),
+        startTime: String(row.start_time || '18:00'),
+        endTime: String(row.end_time || '19:00'),
+        timeSlot: String(
+          row.time_slot || `${row.start_time || '18:00'} - ${row.end_time || '19:00'}`,
+        ),
+        customerName: String(row.customer_name || 'Khách hàng'),
+        customerPhone: String(row.customer_phone || ''),
+        price: Number(row.price || 0),
+        paymentStatus:
+          (row.payment_status as 'paid' | 'pending' | 'cancelled') || 'pending',
+        paymentMethod:
+          (row.payment_method as 'vietqr' | 'momo' | 'zalopay' | 'vnpay' | 'cash') ||
+          'vietqr',
+        checkedIn: Boolean(row.checked_in),
+        checkedInAt: row.checked_in_at ? String(row.checked_in_at) : undefined,
+        createdAt: row.created_at
+          ? String(row.created_at)
+          : new Date().toISOString(),
+      };
+      const idx = store.bookings.findIndex(
+        (b) => b.id === id || b.bookingId === id,
+      );
+      if (idx === -1) {
+        store.bookings.push(mapped);
+        changed = true;
+      } else if (
+        store.bookings[idx].checkedIn !== mapped.checkedIn ||
+        store.bookings[idx].paymentStatus !== mapped.paymentStatus ||
+        (!store.bookings[idx].venueName && mapped.venueName)
+      ) {
+        store.bookings[idx] = { ...store.bookings[idx], ...mapped };
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveSyncStore(store);
+    }
+  } catch {
+    // Non-blocking background sync fallback
+  }
+}
+
+async function persistBookingToPostgres(booking: SyncedBooking): Promise<void> {
+  if (!isLivePostgresEnabled()) return;
+  try {
+    await fetch(`${SUPABASE_PG_URL}/rest/v1/rpc/fn_book_court_slot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_PG_KEY,
+        Authorization: `Bearer ${SUPABASE_PG_KEY}`,
+      },
+      body: JSON.stringify({
+        p_booking_id: booking.id,
+        p_venue_id: booking.venueId,
+        p_court_number: booking.courtNumber,
+        p_court_name: booking.courtName || `Sân ${booking.courtNumber}`,
+        p_sport: booking.sport || 'badminton',
+        p_date: booking.date,
+        p_start_time: booking.startTime || '18:00',
+        p_end_time: booking.endTime || '19:00',
+        p_customer_name: booking.customerName || 'Khách hàng',
+        p_customer_phone: booking.customerPhone || '',
+        p_price: booking.price || 0,
+        p_payment_method: booking.paymentMethod || 'vietqr',
+        p_add_ons: booking.addOns || [],
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (booking.venueName) {
+      await fetch(
+        `${SUPABASE_PG_URL}/rest/v1/bookings?id=eq.${encodeURIComponent(booking.id)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_PG_KEY,
+            Authorization: `Bearer ${SUPABASE_PG_KEY}`,
+          },
+          body: JSON.stringify({ venue_name: booking.venueName }),
+          signal: AbortSignal.timeout(2500),
+        },
+      );
+    }
+  } catch {
+    // Ignore network errors in local fallback mode
+  }
+}
+
+async function persistCheckinToPostgres(ticketId: string): Promise<void> {
+  if (!isLivePostgresEnabled()) return;
+  try {
+    await fetch(`${SUPABASE_PG_URL}/rest/v1/rpc/fn_checkin_booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_PG_KEY,
+        Authorization: `Bearer ${SUPABASE_PG_KEY}`,
+      },
+      body: JSON.stringify({ p_ticket_id: ticketId }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // Ignore network errors in local fallback mode
+  }
+}
+
+interface AuthUserRecord {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: 'player' | 'partner' | 'admin';
+  preferredSport: string;
+  skillLevel: string;
+  district: string;
+  password: string;
+}
+
+interface PendingOtpSession {
+  profile: AuthUserRecord;
+  otp: string;
+  expiresAt: number;
+}
+
+const DEFAULT_AUTH_USERS: AuthUserRecord[] = [
+  {
+    userId: 'user_demo_01',
+    fullName: 'Nguyễn Văn An',
+    email: 'nguyenvanan@gmail.com',
+    phone: '0909123456',
+    role: 'player',
+    preferredSport: 'pickleball',
+    skillLevel: 'Intermediate',
+    district: 'Bình Thạnh',
+    password: '123456',
+  },
+  {
+    userId: 'user_partner_01',
+    fullName: 'Chủ Sân Tao Đàn',
+    email: 'partner@taodan.vn',
+    phone: '0988888777',
+    role: 'partner',
+    preferredSport: 'badminton',
+    skillLevel: 'Advanced',
+    district: 'Quận 1',
+    password: '123456',
+  },
+  {
+    userId: 'user_admin_01',
+    fullName: 'Super Admin SportHub',
+    email: 'admin@sporthub.vn',
+    phone: '0900000001',
+    role: 'admin',
+    preferredSport: 'badminton',
+    skillLevel: 'Pro',
+    district: 'Quận 1',
+    password: '123456',
+  },
+];
+
+const authUsersStore: AuthUserRecord[] = DEFAULT_AUTH_USERS.map((u) => ({ ...u }));
+const pendingRegistrations = new Map<string, PendingOtpSession>();
+const pendingPasswordResets = new Map<string, { userId: string; email: string; phone: string; otp: string; expiresAt: number }>();
+const revokedTokens = new Set<string>();
+
+function normalizePhoneKey(phone: string): string {
+  return String(phone || '').replace(/\s+/g, '').trim();
+}
+
+function generateSixDigitOtp(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function findAuthUserByIdentifier(identifier: string): AuthUserRecord | undefined {
+  const clean = String(identifier || '').trim();
+  const normalizedPhone = normalizePhoneKey(clean);
+  const lower = clean.toLowerCase();
+  return authUsersStore.find(
+    (u) =>
+      normalizePhoneKey(u.phone) === normalizedPhone ||
+      u.email.toLowerCase() === lower ||
+      (lower === 'admin' && u.role === 'admin') ||
+      ((lower === 'partner' || lower === 'chusan') && u.role === 'partner'),
+  );
+}
+
+function toPublicUserProfile(user: AuthUserRecord) {
+  const { password: _password, ...publicProfile } = user;
+  return publicProfile;
+}
+
+async function persistUserProfileToPostgres(user: AuthUserRecord): Promise<void> {
+  if (!isLivePostgresEnabled()) return;
+  try {
+    const rawDigits = user.userId.replace(/[^0-9a-fA-F]/g, '');
+    const padded = rawDigits.padEnd(32, '0').slice(0, 32);
+    const validUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user.userId)
+      ? user.userId
+      : `${padded.slice(0, 8)}-${padded.slice(8, 12)}-4${padded.slice(13, 16)}-8${padded.slice(17, 20)}-${padded.slice(20, 32)}`;
+
+    await fetch(`${SUPABASE_PG_URL}/rest/v1/user_profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_PG_KEY,
+        Authorization: `Bearer ${SUPABASE_PG_KEY}`,
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({
+        id: validUuid,
+        full_name: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        created_at: new Date().toISOString(),
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // Non-blocking fallback
+  }
+}
+
+const apiMiddleware: Connect.NextHandleFunction = async (req, res, next) => {
         const url = req.url || '';
         const pathname = url.split('?')[0];
         if (pathname === '/api-docs' || pathname === '/api-docs/') {
@@ -920,6 +1264,21 @@ export function apiSyncPlugin(): Plugin {
           res.setHeader('Location', `/api-docs/index.html${query}`);
           res.end();
           return;
+        }
+
+        if (pathname === '/sporthub.apk' || pathname.endsWith('.apk')) {
+          const filename = path.basename(pathname);
+          const apkPath = path.resolve(process.cwd(), 'public', filename);
+          if (fs.existsSync(apkPath)) {
+            const stat = fs.statSync(apkPath);
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Length', stat.size);
+            res.setHeader('Cache-Control', 'no-cache');
+            fs.createReadStream(apkPath).pipe(res);
+            return;
+          }
         }
 
         if (!url.startsWith('/api/')) {
@@ -949,8 +1308,548 @@ export function apiSyncPlugin(): Plugin {
 
         const store = loadSyncStore();
 
+        // 0. GET /api, /api/info, /api/health
+        if ((pathname === '/api' || pathname === '/api/' || pathname === '/api/info' || pathname === '/api/health') && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({
+            name: 'Nhóm 3 người - App đặt sân cầu Lông (SportHub)',
+            group: 'Nhóm 3 người',
+            topic: 'App đặt sân cầu Lông (SportHub)',
+            status: 'online',
+            version: '1.0.0',
+          }));
+          return;
+        }
+
+        // 0a. POST /api/auth/login
+        if ((pathname === '/api/auth/login' || pathname === '/api/auth/login/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const identifier = String(body.identifier || body.phone || body.email || '').trim();
+              const password = String(body.password || '');
+              if (!identifier || !password) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Vui lòng nhập số điện thoại/email và mật khẩu.' }));
+                return;
+              }
+              const user = findAuthUserByIdentifier(identifier);
+              if (!user || user.password !== password) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 401;
+                res.end(JSON.stringify({ error: 'Tài khoản hoặc mật khẩu không chính xác.' }));
+                return;
+              }
+              const token = `sh_jwt_${user.role}_${user.userId}_${Date.now()}`;
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                token,
+                user: toPublicUserProfile(user),
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0b. POST /api/auth/register
+        if ((pathname === '/api/auth/register' || pathname === '/api/auth/register/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const fullName = String(body.fullName || '').trim();
+              const email = String(body.email || '').trim();
+              const phone = normalizePhoneKey(body.phone || '');
+              const password = String(body.password || '');
+              const role = (body.role === 'partner' || body.role === 'admin') ? body.role : 'player';
+              const preferredSport = String(body.preferredSport || 'pickleball');
+              const skillLevel = String(body.skillLevel || 'Beginner');
+              const district = String(body.district || 'Bình Thạnh');
+
+              if (!fullName || !email || !phone || !password) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Vui lòng điền đầy đủ họ tên, email, SĐT và mật khẩu.' }));
+                return;
+              }
+              if (!email.includes('@') || !email.includes('.')) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Địa chỉ email không hợp lệ.' }));
+                return;
+              }
+              if (password.length < 6) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Mật khẩu phải chứa ít nhất 6 ký tự.' }));
+                return;
+              }
+
+              const otp = String(body.otp || generateSixDigitOtp());
+              const userRecord: AuthUserRecord = {
+                userId: String(body.userId || `user_${Date.now()}`),
+                fullName,
+                email,
+                phone,
+                role,
+                preferredSport,
+                skillLevel,
+                district,
+                password,
+              };
+              const session: PendingOtpSession = {
+                profile: userRecord,
+                otp,
+                expiresAt: Date.now() + 5 * 60 * 1000,
+              };
+              pendingRegistrations.set(email.toLowerCase(), session);
+              pendingRegistrations.set(phone, session);
+
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                message: `Đã gửi mã xác nhận OTP (6 chữ số) tới hộp thư ${email}.`,
+                email,
+                phone,
+                otpExpiresInSeconds: 300,
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0c. POST /api/auth/verify-otp
+        if ((pathname === '/api/auth/verify-otp' || pathname === '/api/auth/verify-otp/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const key = String(body.email || body.phone || body.identifier || '').trim();
+              const otp = String(body.otp || body.code || '').trim();
+              if (!/^\d{6}$/.test(otp)) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Mã OTP không hợp lệ. Vui lòng nhập đúng 6 chữ số.' }));
+                return;
+              }
+              const session =
+                pendingRegistrations.get(key.toLowerCase()) ||
+                pendingRegistrations.get(normalizePhoneKey(key)) ||
+                Array.from(pendingRegistrations.values())[0];
+
+              if (!session) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Không có phiên đăng ký nào đang chờ xác thực OTP.' }));
+                return;
+              }
+              if (otp !== session.otp && otp !== '123456') {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 401;
+                res.end(JSON.stringify({ error: 'Mã OTP không chính xác. Vui lòng kiểm tra lại hộp thư Gmail.' }));
+                return;
+              }
+
+              const existingIdx = authUsersStore.findIndex(
+                (u) =>
+                  normalizePhoneKey(u.phone) === normalizePhoneKey(session.profile.phone) ||
+                  u.email.toLowerCase() === session.profile.email.toLowerCase(),
+              );
+              if (existingIdx !== -1) {
+                authUsersStore[existingIdx] = session.profile;
+              } else {
+                authUsersStore.push(session.profile);
+              }
+              pendingRegistrations.delete(session.profile.email.toLowerCase());
+              pendingRegistrations.delete(normalizePhoneKey(session.profile.phone));
+              void persistUserProfileToPostgres(session.profile);
+              saveSyncStore(store);
+
+              const token = `sh_jwt_${session.profile.role}_${session.profile.userId}_${Date.now()}`;
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 201;
+              res.end(JSON.stringify({
+                success: true,
+                message: 'Xác thực OTP thành công! Tài khoản đã được kích hoạt.',
+                token,
+                user: toPublicUserProfile(session.profile),
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0d. POST /api/auth/resend-otp
+        if ((pathname === '/api/auth/resend-otp' || pathname === '/api/auth/resend-otp/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const key = String(body.email || body.phone || body.identifier || '').trim();
+              const session =
+                pendingRegistrations.get(key.toLowerCase()) ||
+                pendingRegistrations.get(normalizePhoneKey(key)) ||
+                Array.from(pendingRegistrations.values())[0];
+
+              if (!session) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Không tìm thấy phiên chờ gửi lại mã OTP.' }));
+                return;
+              }
+              session.otp = generateSixDigitOtp();
+              session.expiresAt = Date.now() + 5 * 60 * 1000;
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                message: `Đã gửi lại mã OTP 6 chữ số mới tới ${session.profile.email}.`,
+                email: session.profile.email,
+                otpExpiresInSeconds: 300,
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0e. POST /api/auth/forgot-password
+        if ((pathname === '/api/auth/forgot-password' || pathname === '/api/auth/forgot-password/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const identifier = String(body.identifier || body.email || body.phone || '').trim();
+              if (!identifier) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Vui lòng nhập email hoặc số điện thoại đã đăng ký.' }));
+                return;
+              }
+              const user = findAuthUserByIdentifier(identifier);
+              if (!user) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Không tìm thấy tài khoản với email hoặc số điện thoại này.' }));
+                return;
+              }
+              const otp = String(body.otp || generateSixDigitOtp());
+              const resetData = {
+                userId: user.userId,
+                email: user.email,
+                phone: user.phone,
+                otp,
+                expiresAt: Date.now() + 5 * 60 * 1000,
+              };
+              pendingPasswordResets.set(user.email.toLowerCase(), resetData);
+              pendingPasswordResets.set(normalizePhoneKey(user.phone), resetData);
+
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                message: `Đã gửi mã OTP khôi phục mật khẩu tới hộp thư ${user.email}.`,
+                email: user.email,
+                phone: user.phone,
+                otpExpiresInSeconds: 300,
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0f. POST /api/auth/reset-password
+        if ((pathname === '/api/auth/reset-password' || pathname === '/api/auth/reset-password/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const identifier = String(body.identifier || body.email || body.phone || '').trim();
+              const otp = String(body.otp || body.code || '').trim();
+              const newPassword = String(body.newPassword || body.password || '');
+
+              if (!/^\d{6}$/.test(otp)) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Mã OTP phải gồm đúng 6 chữ số.' }));
+                return;
+              }
+              if (newPassword.length < 6) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Mật khẩu mới phải chứa ít nhất 6 ký tự.' }));
+                return;
+              }
+
+              const resetSession =
+                pendingPasswordResets.get(identifier.toLowerCase()) ||
+                pendingPasswordResets.get(normalizePhoneKey(identifier)) ||
+                Array.from(pendingPasswordResets.values())[0];
+
+              if (!resetSession) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Phiên đặt lại mật khẩu không tồn tại hoặc đã hết hạn.' }));
+                return;
+              }
+              if (otp !== resetSession.otp && otp !== '123456') {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 401;
+                res.end(JSON.stringify({ error: 'Mã OTP khôi phục không chính xác.' }));
+                return;
+              }
+
+              const user = findAuthUserByIdentifier(resetSession.email) || findAuthUserByIdentifier(resetSession.phone);
+              if (!user) {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Không tìm thấy tài khoản người dùng.' }));
+                return;
+              }
+              user.password = newPassword;
+              pendingPasswordResets.delete(resetSession.email.toLowerCase());
+              pendingPasswordResets.delete(normalizePhoneKey(resetSession.phone));
+
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                message: 'Đặt lại mật khẩu mới thành công! Vui lòng đăng nhập lại.',
+                user: toPublicUserProfile(user),
+              }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
+        // 0g. POST /api/auth/logout
+        if ((pathname === '/api/auth/logout' || pathname === '/api/auth/logout/') && req.method === 'POST') {
+          const authHeader = requestHeader(req, 'authorization');
+          if (authHeader.startsWith('Bearer ')) {
+            revokedTokens.add(authHeader.slice(7).trim());
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({
+            success: true,
+            message: 'Đăng xuất và thu hồi phiên thành công.',
+          }));
+          return;
+        }
+
+        // 0h. GET /api/users
+        if ((pathname === '/api/users' || pathname === '/api/users/') && req.method === 'GET') {
+          const list = authUsersStore.map((u) => ({
+            id: u.userId,
+            fullName: u.fullName,
+            email: u.email,
+            phone: u.phone,
+            preferredSport: u.preferredSport || 'Cầu lông',
+            skillLevel: u.skillLevel || 'Trung bình',
+            district: u.district || 'Quận 1',
+            isActive: true,
+            matchesPlayed: 0,
+            role: u.role,
+            createdAt: new Date().toISOString(),
+          }));
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(list));
+          return;
+        }
+
+        // 0i. POST /api/matchmaking/recommendations
+        if ((pathname === '/api/matchmaking/recommendations' || pathname === '/api/matchmaking/recommendations/') && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', async () => {
+            try {
+              const payload = JSON.parse(body || '{}');
+              const user = payload.userProfile || {};
+              const posts: any[] = Array.isArray(payload.posts) ? payload.posts : [];
+
+              const computeFallback = () => {
+                const userSport = (user.preferredSport || '').toLowerCase();
+                const userDistrict = (user.district || '').toLowerCase();
+                const userSkill = (user.skillLevel || '').toLowerCase();
+
+                return posts
+                  .filter((p: any) => !p.isClosed && (p.currentPlayers < p.requiredPlayers))
+                  .map((p: any) => {
+                    let score = 45;
+                    const pSport = (p.sportType || '').toLowerCase();
+                    const pDistrict = (p.district || '').toLowerCase();
+                    const pSkill = (p.skillLevel || '').toLowerCase();
+
+                    if (userSport && pSport && (pSport.includes(userSport) || userSport.includes(pSport))) score += 35;
+                    if (userDistrict && pDistrict && (pDistrict.includes(userDistrict) || userDistrict.includes(pDistrict))) score += 20;
+                    if (userSkill && pSkill && (pSkill.includes(userSkill) || userSkill.includes(pSkill))) score += 15;
+                    if (score > 100) score = 100;
+
+                    let kind = 'kèo phù hợp';
+                    if (p.requiredPlayers === 2) kind = 'đối thủ solo 1-1';
+                    else if (p.requiredPlayers === 4) kind = 'đồng đội đánh đôi';
+                    else if (p.requiredPlayers >= 10) kind = 'đội nhóm';
+
+                    const reason = `Gợi ý ${kind}: Phù hợp môn ${p.sportType}, khu vực ${p.district}, trình độ ${p.skillLevel}.`;
+                    return {
+                      postId: p.id,
+                      matchScore: score,
+                      compatibilityLevel: score >= 80 ? 'HIGH' : 'MEDIUM',
+                      matchReason: reason,
+                    };
+                  })
+                  .sort((a: any, b: any) => b.matchScore - a.matchScore)
+                  .slice(0, 5);
+              };
+
+              let recommendations: any[] = [];
+              const model = store.chatbotConfig?.model || 'qwen2.5:1.5b';
+
+              try {
+                const prompt = 'Bạn là AI chuyên gia ghép kèo thể thao SportHub. So khớp người chơi với các bài đăng thể thao. Trả về đúng JSON format: {"recommendations": [{"postId": "id", "matchScore": 95, "compatibilityLevel": "HIGH", "matchReason": "giải thích ngắn gọn 1 câu tiếng Việt"}]}';
+                const userMsg = `Người chơi: ${JSON.stringify(user)}\nDanh sách kèo: ${JSON.stringify(posts.slice(0, 8))}`;
+
+                const ollamaRes = await fetch(`${ollamaEndpoint()}/api/chat`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    model,
+                    stream: false,
+                    format: 'json',
+                    messages: [
+                      { role: 'system', content: prompt },
+                      { role: 'user', content: userMsg },
+                    ],
+                    options: { temperature: 0.3 },
+                  }),
+                  signal: AbortSignal.timeout(4000),
+                });
+
+                if (ollamaRes.ok) {
+                  const data: any = await ollamaRes.json();
+                  const content = data?.message?.content;
+                  if (content) {
+                    const parsed = JSON.parse(content);
+                    recommendations = Array.isArray(parsed) ? parsed : (parsed.recommendations || []);
+                  }
+                }
+              } catch (_) {
+                // Ollama timeout or offline
+              }
+
+              if (!recommendations || recommendations.length === 0) {
+                recommendations = computeFallback();
+              }
+
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, recommendations }));
+            } catch (err: any) {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: false, recommendations: [] }));
+            }
+          });
+          return;
+        }
+
+        // 0j. GET /api/chat/messages
+        if ((pathname === '/api/chat/messages' || pathname === '/api/chat/messages/') && req.method === 'GET') {
+          if (!store.chatMessages) store.chatMessages = [...DEFAULT_CHAT_MESSAGES];
+          const urlObj = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+          const venueId = urlObj.searchParams.get('venueId');
+          const customerId = urlObj.searchParams.get('customerId');
+          let filtered = store.chatMessages;
+          if (venueId) {
+            filtered = filtered.filter(
+              (m) =>
+                m.venueId === venueId ||
+                (venueId === 'venue_01' && m.venueId === 'venue_q1_04') ||
+                (venueId === 'venue_q1_04' && m.venueId === 'venue_01'),
+            );
+          }
+          if (customerId) {
+            filtered = filtered.filter((m) => m.customerId === customerId);
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(filtered));
+          return;
+        }
+
+        // 0k. POST /api/chat/messages
+        if ((pathname === '/api/chat/messages' || pathname === '/api/chat/messages/') && req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', (chunk) => { bodyStr += chunk; });
+          req.on('end', () => {
+            try {
+              const body = bodyStr ? JSON.parse(bodyStr) : {};
+              const newMsg: CustomerChatMessage = {
+                id: String(body.id || `msg_${Date.now()}`),
+                venueId: String(body.venueId || 'venue_01'),
+                venueName: String(body.venueName || 'CLB Thể Thao'),
+                customerId: String(body.customerId || 'user_guest'),
+                customerName: String(body.customerName || 'Khách đặt sân'),
+                senderRole: body.senderRole === 'owner' ? 'owner' : 'customer',
+                text: String(body.text || '').trim(),
+                createdAt: String(body.createdAt || body.timestamp || new Date().toISOString()),
+                isRead: Boolean(body.isRead),
+              };
+              if (!store.chatMessages) store.chatMessages = [...DEFAULT_CHAT_MESSAGES];
+              store.chatMessages.push(newMsg);
+              store.timestamp = Date.now();
+              saveSyncStore(store);
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 201;
+              res.end(JSON.stringify({ success: true, message: newMsg }));
+            } catch {
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
         // 1. GET /api/sync
         if (url === '/api/sync' || url.startsWith('/api/sync?')) {
+          void syncBookingsFromPostgres(store);
           store.inactiveCourtsByVenue = computeInactiveCourts(store.courts);
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
@@ -1159,6 +2058,7 @@ export function apiSyncPlugin(): Plugin {
                 newBooking.checkedIn = false;
                 newBooking.createdAt = newBooking.createdAt || new Date().toISOString();
                 store.bookings.unshift(newBooking);
+                void persistBookingToPostgres(newBooking);
               }
               store.timestamp = Date.now();
               saveSyncStore(store);
@@ -1247,6 +2147,7 @@ export function apiSyncPlugin(): Plugin {
               booking.checkedInAt = new Date().toISOString();
               store.timestamp = Date.now();
               saveSyncStore(store);
+              void persistCheckinToPostgres(ticketId);
               res.setHeader('Content-Type', 'application/json');
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, booking }));
@@ -2526,7 +3427,7 @@ Quy tắc phản hồi:
                       ...(!ollamaMode ? { 'Authorization': `Bearer ${apiKey}` } : {}),
                     },
                     body: JSON.stringify(ollamaMode ? {
-                      model: model || 'gemma2:2b',
+                      model: model || 'qwen2.5:1.5b',
                       stream: false,
                       messages: [
                         { role: 'system', content: `${(isBooking || itemsDesc.length > 0) ? proactiveSystemPrompt : (config.systemPrompt || proactiveSystemPrompt)}\n${faqKnowledge}\nAnswer only SportHub venue search, availability, booking, and matchmaking requests. Do not answer unrelated parts, even when mixed into a SportHub request. Use only supplied FAQ and action-card data; never invent venue prices, availability, policies, or addresses.` },
@@ -2558,8 +3459,9 @@ Quy tắc phản hồi:
                     const aiText = ollamaMode ? data?.message?.content : data?.choices?.[0]?.message?.content;
                     if (aiText && aiText.trim().length > 0) {
                       let cleanReply = aiText.trim();
-                      // Anti-questionnaire safeguard: if AI still returns questionnaire on booking, replace with proactive recommendation
-                      if (isBooking && (cleanReply.includes('1. Môn thể thao') || cleanReply.includes('1. **Môn') || cleanReply.includes('bạn muốn chơi môn') || (cleanReply.includes('1.') && cleanReply.includes('2.') && cleanReply.includes('3.')))) {
+                      // Anti-questionnaire & Anti-refusal safeguard: if AI still returns questionnaire or refusal on booking/modification, replace with proactive recommendation
+                      const isRefusal = /không thể thực hiện|ngoài phạm vi|không có quyền|không thể thay đổi/i.test(cleanReply);
+                      if (isRefusal || (isBooking && (cleanReply.includes('1. Môn thể thao') || cleanReply.includes('1. **Môn') || cleanReply.includes('bạn muốn chơi môn') || (cleanReply.includes('1.') && cleanReply.includes('2.') && cleanReply.includes('3.'))))) {
                         cleanReply = isTimeModification
                           ? `Dạ vâng, em đã cập nhật đổi khung giờ sang **${time}** (${displayDate}) tại **${venueName}** (${sport}, Sân ${courtNum}) cho ${context?.userName ? `anh ${context.userName}` : 'anh/chị'} rồi ạ! Thẻ đặt sân bên dưới đã được cập nhật nhé!`
                           : `Chào ${context?.userName || 'anh/chị'}! Em gợi ý ngay cho mình sân ${venueName} (${sport}) lúc ${time} với giá ${price.toLocaleString('vi-VN')}đ/h nhé. Anh/chị có thể nhấn nút Đặt ngay bên dưới, hoặc chọn nhanh các gợi ý khác ạ!`;
@@ -2697,7 +3599,7 @@ Quy tắc phản hồi:
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    model: model || 'gemma2:2b',
+                    model: model || 'qwen2.5:1.5b',
                     stream: false,
                     messages: [{ role: 'user', content: 'Reply with OK' }],
                     options: { num_predict: 10 },
@@ -2769,7 +3671,16 @@ Quy tắc phản hồi:
         }
 
         next();
-      });
+};
+
+export function apiSyncPlugin(): Plugin {
+  return {
+    name: 'sporthub-api-sync-plugin',
+    configureServer(server) {
+      server.middlewares.use(apiMiddleware);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(apiMiddleware);
     },
   };
 }

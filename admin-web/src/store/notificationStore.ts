@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { useAuthStore } from './authStore';
 
 export type NotificationType = 'booking' | 'checkin' | 'maintenance' | 'revenue';
 
@@ -151,6 +152,37 @@ class NotificationStoreEngine {
     return newNotif;
   };
 
+  public repairBookingNotification = (
+    bookingId: string,
+    venueId: string,
+    venueName: string
+  ): void => {
+    let changed = false;
+    for (const item of this.notifications) {
+      if (bookingId && item.message.includes(bookingId)) {
+        if (item.venueId !== venueId) {
+          item.venueId = venueId;
+          changed = true;
+        }
+        if (
+          venueName &&
+          item.message.includes('CLB Cầu Lông & Pickleball Tao Đàn') &&
+          !venueName.includes('Tao Đàn')
+        ) {
+          item.message = item.message.replace(
+            'CLB Cầu Lông & Pickleball Tao Đàn',
+            venueName
+          );
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      this.save();
+      this.notify();
+    }
+  };
+
   public reset = (): void => {
     this.notifications = JSON.parse(JSON.stringify(INITIAL_NOTIFICATIONS));
     this.save();
@@ -161,11 +193,17 @@ class NotificationStoreEngine {
 export const notificationStore = new NotificationStoreEngine();
 
 export function useNotificationStore() {
-  const notifications = useSyncExternalStore(
+  const allNotifications = useSyncExternalStore(
     notificationStore.subscribe,
     notificationStore.getSnapshot,
     notificationStore.getSnapshot
   );
+  const { role, activeVenueId } = useAuthStore();
+
+  const notifications =
+    role === 'partner' && activeVenueId
+      ? allNotifications.filter((n) => !n.venueId || n.venueId === activeVenueId)
+      : allNotifications;
 
   return {
     notifications,
@@ -173,6 +211,7 @@ export function useNotificationStore() {
     markAsRead: notificationStore.markAsRead,
     markAllAsRead: notificationStore.markAllAsRead,
     addNotification: notificationStore.addNotification,
+    repairBookingNotification: notificationStore.repairBookingNotification,
     reset: notificationStore.reset,
   };
 }

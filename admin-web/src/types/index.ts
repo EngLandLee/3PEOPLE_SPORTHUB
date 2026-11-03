@@ -60,6 +60,8 @@ export interface BookingTicket {
   sport: string;
   date: string;
   timeSlot: string; // "08:00 - 09:00"
+  startTime?: string;
+  endTime?: string;
   customerName: string;
   customerPhone: string;
   price: number;
@@ -78,6 +80,19 @@ export interface AddOnItem {
   category: 'beverage' | 'rental' | 'equipment';
   price: number;
   unit: string;
+}
+
+export interface CustomerAccount {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  preferredSport: string;
+  skillLevel: string;
+  district: string;
+  isActive: boolean;
+  createdAt: string;
+  matchesPlayed?: number;
 }
 
 export interface PartnerAccount {
@@ -102,4 +117,16 @@ export interface TransactionRecord {
   customerName: string;
   createdAt: string;
   status: 'completed' | 'refunded';
+}
+
+export interface CustomerChatMessage {
+  id: string;
+  venueId: string;
+  venueName: string;
+  customerId: string;
+  customerName: string;
+  senderRole: 'customer' | 'owner' | 'admin';
+  text: string;
+  createdAt: string;
+  isRead: boolean;
 }

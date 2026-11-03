@@ -8,6 +8,7 @@ vi.mock('node:fs', () => ({
     existsSync: vi.fn().mockReturnValue(true),
     readFileSync: vi.fn().mockReturnValue(JSON.stringify({ courts: [], venues: [], bookings: [] })),
     writeFileSync: vi.fn(),
+    renameSync: vi.fn(),
     mkdirSync: vi.fn()
   }
 }));
@@ -222,5 +223,20 @@ describe('apiSyncPlugin - Chatbot Endpoints', () => {
     expect(qNext).not.toHaveBeenCalled();
     expect(qRes.statusCode).toBe(302);
     expect(qRes.headers['Location']).toBe('/api-docs/index.html?test=1');
+  });
+
+  it('GET /api/users returns list of registered users for admin portal', async () => {
+    const { req, res, getResponse } = createMockReqRes('GET', '/api/users');
+    const next = vi.fn();
+
+    await middleware(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    const users = getResponse();
+    expect(Array.isArray(users)).toBe(true);
+    expect(users.length).toBeGreaterThanOrEqual(1);
+    expect(users[0]).toHaveProperty('email');
+    expect(users[0]).toHaveProperty('fullName');
   });
 });

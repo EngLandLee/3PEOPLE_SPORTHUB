@@ -1,11 +1,11 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "SportHub REST API & AI Gateway Documentation",
+    "title": "Nhóm 3 người - App đặt sân cầu Lông (SportHub) REST API & AI Gateway",
     "version": "1.0.0",
-    "description": "Toàn bộ đặc tả kỹ thuật RESTful API và AI Agentic Gateway cho nền tảng quản trị thể thao SportHub. Hỗ trợ đồng bộ đa thiết bị, quản lý cụm sân (Venues), sân con (Courts), đặt chỗ & quầy POS Check-in, và hệ thống AI Chatbot với cơ chế Human-In-The-Loop (HITL).",
+    "description": "Toàn bộ đặc tả kỹ thuật RESTful API và AI Agentic Gateway cho đồ án Nhóm 3 người - App đặt sân cầu Lông (SportHub). Hỗ trợ đồng bộ đa thiết bị, quản lý cụm sân (Venues), sân con (Courts), đặt chỗ & quầy POS Check-in, và hệ thống AI Chatbot với cơ chế Human-In-The-Loop (HITL).",
     "contact": {
-      "name": "SportHub Engineering Team",
+      "name": "Nhóm 3 người - App đặt sân cầu Lông (SportHub)",
       "email": "support@sporthub.vn",
       "url": "https://sporthub.vn"
     }
@@ -21,6 +21,10 @@
     }
   ],
   "tags": [
+    {
+      "name": "Auth & Identity (RBAC & OTP)",
+      "description": "Đăng nhập phân quyền (Player / Partner / Admin), Đăng ký tài khoản mới, Xác thực mã OTP 6 chữ số qua Gmail SMTP, Quên mật khẩu & Đặt lại mật khẩu, Đăng xuất"
+    },
     {
       "name": "Sync & Storage",
       "description": "Đồng bộ dữ liệu trạng thái sân, thiết lập và khôi phục hệ thống"
@@ -43,6 +47,291 @@
     }
   ],
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Đăng nhập & Phân quyền người dùng (Player / Partner / Admin)",
+        "description": "Xác thực bằng Số điện thoại hoặc Email và mật khẩu. Trả về JWT Session Token và hồ sơ phân quyền RBAC.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "example": "0909123456",
+                    "description": "Số điện thoại hoặc Email (Gợi ý demo: 0909123456 [Player], partner@taodan.vn [Chủ sân], admin@sporthub.vn [Admin])"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "123456"
+                  }
+                },
+                "required": ["identifier", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sai tài khoản hoặc mật khẩu",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Đăng ký tài khoản mới & Gửi mã OTP 6 chữ số qua Gmail",
+        "description": "Khởi tạo phiên đăng ký tài khoản (Player hoặc Partner) và gửi mã xác thực OTP 6 số tới hộp thư Gmail của người dùng.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": { "type": "string", "example": "Lê Quốc Anh" },
+                  "email": { "type": "string", "example": "lequocanh125@gmail.com" },
+                  "phone": { "type": "string", "example": "0912345678" },
+                  "password": { "type": "string", "example": "123456" },
+                  "role": { "type": "string", "enum": ["player", "partner", "admin"], "example": "player" },
+                  "preferredSport": { "type": "string", "example": "pickleball" },
+                  "district": { "type": "string", "example": "Bình Thạnh" }
+                },
+                "required": ["fullName", "email", "phone", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã tạo phiên chờ xác thực và gửi mã OTP qua email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đã gửi mã xác nhận OTP (6 chữ số) tới hộp thư lequocanh125@gmail.com." },
+                    "email": { "type": "string", "example": "lequocanh125@gmail.com" },
+                    "phone": { "type": "string", "example": "0912345678" },
+                    "otpExpiresInSeconds": { "type": "integer", "example": 300 }
+                  },
+                  "required": ["success", "message"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu đăng ký không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Xác thực mã OTP 6 chữ số & Kích hoạt tài khoản",
+        "description": "Kiểm tra mã OTP 6 chữ số. Nếu hợp lệ, lưu hồ sơ vào PostgreSQL (user_profiles) và cấp JWT Session Token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "lequocanh125@gmail.com" },
+                  "otp": { "type": "string", "example": "123456" }
+                },
+                "required": ["otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Kích hoạt tài khoản thành công",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã OTP không chính xác",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Gửi lại mã xác thực OTP mới qua Gmail",
+        "description": "Sinh mã OTP 6 chữ số mới và gửi lại tới hộp thư của người dùng đang chờ xác thực.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "lequocanh125@gmail.com" }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gửi lại mã OTP thành công",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Quên mật khẩu — Yêu cầu gửi mã OTP khôi phục",
+        "description": "Kiểm tra Email hoặc Số điện thoại đã đăng ký và gửi mã OTP 6 chữ số để khôi phục mật khẩu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "example": "nguyenvanan@gmail.com",
+                    "description": "Email hoặc Số điện thoại của tài khoản cần khôi phục mật khẩu"
+                  }
+                },
+                "required": ["identifier"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã gửi mã OTP khôi phục mật khẩu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Đã gửi mã OTP khôi phục mật khẩu tới hộp thư nguyenvanan@gmail.com." },
+                    "email": { "type": "string", "example": "nguyenvanan@gmail.com" },
+                    "otpExpiresInSeconds": { "type": "integer", "example": 300 }
+                  },
+                  "required": ["success", "message"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài khoản",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Đặt lại mật khẩu mới bằng mã OTP",
+        "description": "Xác thực mã OTP 6 chữ số từ luồng Quên mật khẩu và cập nhật mật khẩu mới cho tài khoản.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": { "type": "string", "example": "nguyenvanan@gmail.com" },
+                  "otp": { "type": "string", "example": "123456" },
+                  "newPassword": { "type": "string", "example": "newpass123" }
+                },
+                "required": ["identifier", "otp", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đặt lại mật khẩu thành công",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Mã OTP không chính xác",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth & Identity (RBAC & OTP)"],
+        "summary": "Đăng xuất & Thu hồi phiên đăng nhập",
+        "description": "Thu hồi JWT Session Token hiện tại và kết thúc phiên làm việc của người dùng.",
+        "responses": {
+          "200": {
+            "description": "Đăng xuất thành công",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sync": {
       "get": {
         "tags": ["Sync & Storage"],
@@ -1452,6 +1741,30 @@
           "message": { "type": "string" }
         },
         "required": ["success"]
+      },
+      "AuthUserProfile": {
+        "type": "object",
+        "description": "Hồ sơ người dùng & phân quyền RBAC trên SportHub",
+        "properties": {
+          "userId": { "type": "string", "example": "user_demo_01" },
+          "fullName": { "type": "string", "example": "Nguyễn Văn An" },
+          "email": { "type": "string", "example": "nguyenvanan@gmail.com" },
+          "phone": { "type": "string", "example": "0909123456" },
+          "role": { "type": "string", "enum": ["player", "partner", "admin"], "example": "player" },
+          "preferredSport": { "type": "string", "example": "pickleball" },
+          "skillLevel": { "type": "string", "example": "Intermediate" },
+          "district": { "type": "string", "example": "Bình Thạnh" }
+        },
+        "required": ["userId", "fullName", "email", "phone", "role"]
+      },
+      "AuthSessionResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "token": { "type": "string", "example": "sh_jwt_player_user_demo_01_1730000000000" },
+          "user": { "$ref": "#/components/schemas/AuthUserProfile" }
+        },
+        "required": ["success", "token", "user"]
       }
     }
   }
