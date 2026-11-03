@@ -13,10 +13,10 @@ class MatchRecommendation {
 
   factory MatchRecommendation.fromJson(Map<String, dynamic> json) {
     return MatchRecommendation(
-      postId: json['postId'] as String,
-      matchScore: (json['matchScore'] as num).toInt(),
-      compatibilityLevel: json['compatibilityLevel'] as String,
-      matchReason: json['matchReason'] as String,
+      postId: (json['postId'] ?? json['id'] ?? '').toString(),
+      matchScore: (json['matchScore'] as num?)?.toInt() ?? 80,
+      compatibilityLevel: (json['compatibilityLevel'] ?? 'HIGH').toString(),
+      matchReason: (json['matchReason'] ?? '').toString(),
     );
   }
 
