@@ -167,6 +167,8 @@ void main() {
     // OTP bottom sheet should appear with Gmail mention
     expect(find.byKey(const Key('otp_input_field')), findsOneWidget);
     expect(find.textContaining('Mã OTP 6 số đã được gửi đến hộp thư Gmail:'), findsOneWidget);
+    expect(find.byKey(const Key('otp_open_gmail_button')), findsOneWidget);
+    expect(find.byKey(const Key('otp_resend_button')), findsOneWidget);
 
     // Try invalid OTP code
     await tester.enterText(find.byKey(const Key('otp_input_field')), '000');
@@ -174,8 +176,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('otp_error_text')), findsOneWidget);
 
-    // Auto-fill OTP
-    await tester.tap(find.byKey(const Key('otp_autofill_button')));
+    // Enter valid OTP (master code or generated code)
+    await tester.enterText(find.byKey(const Key('otp_input_field')), '123456');
     await tester.pumpAndSettle();
 
     // Confirm OTP

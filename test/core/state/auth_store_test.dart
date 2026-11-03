@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sporthub/core/services/email_otp_service.dart';
 import 'package:sporthub/core/state/auth_store.dart';
 import 'package:sporthub/core/utils/seed_data.dart';
 import 'package:sporthub/domain/entities/user_profile.dart';
@@ -10,6 +11,7 @@ void main() {
   setUp(() {
     authStore = AuthStore.instance;
     authStore.reset();
+    EmailOtpService.instance.disableNetworkDispatch = true;
   });
 
   test('initial state is unauthenticated requiring login screen on startup', () {
@@ -80,11 +82,12 @@ void main() {
     expect(authStore.state.isAuthenticated, isFalse);
   });
 
-  test('register stages pending profile and verifyOtp completes registration', () {
+  test('register stages pending profile and verifyOtp completes registration', () async {
     authStore.logout();
     const newProfile = UserProfile(
       userId: 'user_new_01',
       fullName: 'Phạm Hoàng',
+      email: 'phamhoang@gmail.com',
       phone: '0933 111 222',
       preferredSport: 'football',
       skillLevel: 'Cơ bản',
@@ -92,7 +95,7 @@ void main() {
       playTimePreference: 'Tối',
     );
 
-    final regResult = authStore.stageRegistration(profile: newProfile, password: 'password123');
+    final regResult = await authStore.stageRegistration(profile: newProfile, password: 'password123');
     expect(regResult.success, isTrue);
     expect(authStore.hasPendingOtp, isTrue);
 
@@ -106,23 +109,51 @@ void main() {
     expect(authStore.hasPendingOtp, isFalse);
   });
 
-  test('verifyOtp with invalid OTP fails', () {
+  test('verifyOtp with invalid OTP fails', () async {
     authStore.logout();
     const newProfile = UserProfile(
       userId: 'user_new_02',
       fullName: 'Hoàng Long',
+      email: 'hoanglong@gmail.com',
       phone: '0944 333 222',
       preferredSport: 'badminton',
       skillLevel: 'Trung bình',
       district: 'Bình Thạnh',
       playTimePreference: 'Sáng',
     );
-    authStore.stageRegistration(profile: newProfile, password: 'password123');
+    await authStore.stageRegistration(profile: newProfile, password: 'password123');
 
     final otpResult = authStore.verifyOtp('123'); // not 6 digits
     expect(otpResult.success, isFalse);
     expect(otpResult.errorMessage, isNotNull);
     expect(authStore.state.isAuthenticated, isFalse);
+
+    // Wrong 6-digit OTP
+    final wrongOtpResult = authStore.verifyOtp('999999');
+    expect(wrongOtpResult.success, isFalse);
+    expect(wrongOtpResult.errorMessage, contains('Mã OTP không chính xác'));
+  });
+
+  test('resendOtp updates pending OTP and enforces cooldown', () async {
+    authStore.logout();
+    const newProfile = UserProfile(
+      userId: 'user_resend_01',
+      fullName: 'Vũ Nam',
+      email: 'vunam@gmail.com',
+      phone: '0977 888 999',
+      preferredSport: 'tennis',
+      skillLevel: 'Cơ bản',
+      district: 'Thảo Điền',
+      playTimePreference: 'Tối',
+    );
+    await authStore.stageRegistration(profile: newProfile, password: 'password123');
+    final initialOtp = authStore.pendingOtp;
+    expect(initialOtp, isNotNull);
+
+    // Resend immediately hits cooldown
+    final cooldownResend = await authStore.resendOtp();
+    expect(cooldownResend.success, isFalse);
+    expect(cooldownResend.errorMessage, contains('giây'));
   });
 
   test('verifyOtp without pending registration fails', () {

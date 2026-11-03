@@ -69,4 +69,40 @@ class UserProfile {
       venueId: venueId ?? this.venueId,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'role': role,
+      'preferredSport': preferredSport,
+      'skillLevel': skillLevel,
+      'district': district,
+      'playTimePreference': playTimePreference,
+      'matchesPlayed': matchesPlayed,
+      'reputationRating': reputationRating,
+      'onTimeRate': onTimeRate,
+      'venueId': venueId,
+    };
+  }
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      userId: json['userId']?.toString() ?? json['id']?.toString() ?? '',
+      fullName: json['fullName']?.toString() ?? json['full_name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'player',
+      preferredSport: json['preferredSport']?.toString() ?? json['preferred_sport']?.toString() ?? 'badminton',
+      skillLevel: json['skillLevel']?.toString() ?? json['skill_level']?.toString() ?? 'Beginner',
+      district: json['district']?.toString() ?? 'Quận 1',
+      playTimePreference: json['playTimePreference']?.toString() ?? 'Buổi tối (18:00 - 21:00)',
+      matchesPlayed: (json['matchesPlayed'] as num?)?.toInt() ?? 0,
+      reputationRating: (json['reputationRating'] as num?)?.toDouble() ?? 5.0,
+      onTimeRate: (json['onTimeRate'] as num?)?.toInt() ?? 100,
+      venueId: json['venueId']?.toString() ?? json['venue_id']?.toString(),
+    );
+  }
 }

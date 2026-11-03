@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flame, Shield, Store, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore, authStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 
 export const LoginView: React.FC = () => {
@@ -13,18 +13,34 @@ export const LoginView: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
       setError('Vui lòng nhập địa chỉ email');
       return;
     }
-    const role: UserRole = email.toLowerCase().includes('partner') ? 'partner' : 'superadmin';
-    login(email, role);
+
+    const { partnerAccounts, customerAccounts } = authStore.getSnapshot();
+    const isCustomer = customerAccounts?.some(
+      (c) => c.email.toLowerCase() === cleanEmail.toLowerCase(),
+    ) || cleanEmail.toLowerCase() === 'nguyenvanan@gmail.com';
+
+    if (isCustomer) {
+      setError(
+        'Tài khoản này là Khách hàng (Player). Vui lòng đăng nhập trên App di động SportHub để đặt sân, hoặc dùng tài khoản Quản trị / Đối tác Chủ sân để vào trang quản trị.',
+      );
+      return;
+    }
+
+    const partner = partnerAccounts.find(
+      (p) => p.email.toLowerCase() === cleanEmail.toLowerCase(),
+    );
+    const role: UserRole = partner || cleanEmail.toLowerCase().includes('partner') ? 'partner' : 'superadmin';
+    login(cleanEmail, role);
     navigate(role === 'partner' ? '/partner' : '/admin');
   };
 
-  const handleQuickLogin = (role: UserRole) => {
-    const quickEmail = role === 'superadmin' ? 'admin@sporthub.vn' : 'partner@taodan.vn';
-    login(quickEmail, role);
+  const handleQuickLogin = (emailTarget: string, role: UserRole) => {
+    login(emailTarget, role);
     navigate(role === 'partner' ? '/partner' : '/admin');
   };
 
@@ -105,7 +121,7 @@ export const LoginView: React.FC = () => {
             <button
               type="submit"
               data-testid="btn-submit-login"
-              className="glass-pill w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer mt-3"
+              className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer mt-3"
             >
               <span>Đăng nhập hệ thống</span>
               <ArrowRight className="w-4 h-4" />
@@ -129,7 +145,7 @@ export const LoginView: React.FC = () => {
             <button
               type="button"
               data-testid="btn-quick-admin"
-              onClick={() => handleQuickLogin('superadmin')}
+              onClick={() => handleQuickLogin('admin@sporthub.vn', 'superadmin')}
               className="glass-pill p-3 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
             >
               <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0 shadow-xs group-hover:scale-110 transition-transform">
@@ -144,7 +160,7 @@ export const LoginView: React.FC = () => {
             <button
               type="button"
               data-testid="btn-quick-partner"
-              onClick={() => handleQuickLogin('partner')}
+              onClick={() => handleQuickLogin('partner@taodan.vn', 'partner')}
               className="glass-pill p-3 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/60 bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
             >
               <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 shadow-xs group-hover:scale-110 transition-transform">
@@ -152,7 +168,35 @@ export const LoginView: React.FC = () => {
               </div>
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">Chủ Sân Tao Đàn</p>
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 truncate font-medium">Quản lý cụm sân & POS</p>
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 truncate font-medium">Quận 1 • Tao Đàn</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('quoc.vo@namsaigonfootball.vn', 'partner')}
+              className="glass-pill p-3 rounded-2xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
+            >
+              <div className="p-2 rounded-xl bg-blue-600 text-white shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                <Store className="w-4 h-4" />
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-blue-950 dark:text-blue-200">Sân Nam Sài Gòn</p>
+                <p className="text-[10px] text-blue-700 dark:text-blue-400 truncate font-medium">Quận 7 • Bóng đá</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('quan.le@thaodienpickleball.vn', 'partner')}
+              className="glass-pill p-3 rounded-2xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
+            >
+              <div className="p-2 rounded-xl bg-amber-600 text-white shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                <Store className="w-4 h-4" />
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-amber-950 dark:text-amber-200">Thảo Điền Hub</p>
+                <p className="text-[10px] text-amber-700 dark:text-amber-400 truncate font-medium">Thủ Đức • Pickleball</p>
               </div>
             </button>
           </div>
