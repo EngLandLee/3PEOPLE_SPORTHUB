@@ -54,7 +54,7 @@ void main() {
 
       // Verify action buttons
       expect(find.byKey(const Key('btn_chat_book_now')), findsOneWidget);
-      expect(find.text('⚡ Đặt & Thanh toán VietQR ngay'), findsOneWidget);
+      expect(find.text('Xác nhận giữ chỗ & Thanh toán VietQR'), findsOneWidget);
       expect(find.byKey(const Key('btn_chat_view_court_map')), findsOneWidget);
       expect(find.text('🔍 Xem trên sơ đồ'), findsOneWidget);
     });

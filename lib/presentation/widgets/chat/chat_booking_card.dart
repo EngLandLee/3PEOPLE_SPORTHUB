@@ -453,7 +453,7 @@ class ChatBookingCard extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                '⚡ Đặt & Thanh toán VietQR ngay',
+                'Xác nhận giữ chỗ & Thanh toán VietQR',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

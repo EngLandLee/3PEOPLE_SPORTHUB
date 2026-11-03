@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/chatbot_service.dart';
 import 'action_proposal_card.dart';
 import 'chat_booking_card.dart';
+import 'chat_recruitment_card.dart';
 import 'chat_table_card.dart';
 
 /// A chat bubble widget representing either user or assistant messages.
@@ -16,6 +17,7 @@ class ChatMessageBubble extends StatefulWidget {
   final bool? enableAnimation;
   final void Function(Map<String, String> edits)? onApproveProposal;
   final VoidCallback? onCancelProposal;
+  final VoidCallback? onPublishRecruitment;
 
   const ChatMessageBubble({
     super.key,
@@ -25,6 +27,7 @@ class ChatMessageBubble extends StatefulWidget {
     this.enableAnimation,
     this.onApproveProposal,
     this.onCancelProposal,
+    this.onPublishRecruitment,
   });
 
   /// Cache of message IDs that have already finished their entrance / typing animation
@@ -213,6 +216,8 @@ class _ChatMessageBubbleState extends State<ChatMessageBubble>
             widget.message.actionCard?['type'] == 'booking_card');
     final hasTableCard = widget.message.hasActionCard &&
         widget.message.actionCard?['type'] == 'table_card';
+    final hasRecruitmentCard = widget.message.hasActionCard &&
+        widget.message.actionCard?['type'] == 'recruitment_card';
 
     final avatar = CircleAvatar(
       radius: 14,
@@ -410,6 +415,26 @@ class _ChatMessageBubbleState extends State<ChatMessageBubble>
                           )),
                           child: ChatTableCard(
                             cardData: widget.message.actionCard!,
+                          ),
+                        ),
+                      ),
+                  ],
+                  if (hasRecruitmentCard) ...[
+                    const SizedBox(height: 8),
+                    if (_isTypingComplete)
+                      FadeTransition(
+                        opacity: _cardController,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.08),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: _cardController,
+                            curve: Curves.easeOutCubic,
+                          )),
+                          child: ChatRecruitmentCard(
+                            cardData: widget.message.actionCard!,
+                            onPublish: widget.onPublishRecruitment,
                           ),
                         ),
                       ),

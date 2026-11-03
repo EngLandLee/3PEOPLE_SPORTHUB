@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/chatbot_service.dart';
 import '../../../core/services/venue_sync_service.dart';
@@ -287,6 +288,7 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
       isScrollControlled: true,
       builder: (bCtx) {
         final urlController = TextEditingController();
+        final customTextController = TextEditingController();
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -333,7 +335,49 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                       color: AppColors.textSecondary,
                       height: 1.35),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // Button: Choose from phone photo gallery
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const Key('btn_pick_gallery_image'),
+                    icon: const Icon(Icons.photo_library_rounded, size: 18),
+                    label: const Text(
+                      'Mở thư viện ảnh trên điện thoại',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      try {
+                        final picker = ImagePicker();
+                        final img = await picker.pickImage(
+                            source: ImageSource.gallery);
+                        if (img != null) {
+                          setState(() {
+                            _attachedImageUrl = img.path;
+                          });
+                          Navigator.of(bCtx).pop();
+                          return;
+                        }
+                      } catch (_) {}
+                      setState(() {
+                        _attachedImageUrl = presets.first;
+                      });
+                      Navigator.of(bCtx).pop();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+
                 const Text(
                   'Ảnh mẫu thể thao SportHub:',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -375,7 +419,7 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 const Text(
                   'Hoặc nhập liên kết ảnh:',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -421,6 +465,62 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                         Navigator.of(bCtx).pop();
                       },
                       child: const Text('Đính kèm',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Free-form custom text input (Image 2 option)
+                const Text(
+                  'Tùy chọn: Nhập thông tin tuyển thành viên / ghép kèo:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('input_custom_recruitment_text'),
+                        controller: customTextController,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText:
+                              'VD: Tuyển 2 thành viên đánh đôi cầu lông...',
+                          hintStyle: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.cardBorder),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      key: const Key('btn_confirm_custom_recruitment_text'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        final val = customTextController.text.trim();
+                        setState(() {
+                          if (_attachedImageUrl == null) {
+                            _attachedImageUrl = presets.first;
+                          }
+                          if (val.isNotEmpty) {
+                            _textController.text = val;
+                          }
+                        });
+                        Navigator.of(bCtx).pop();
+                      },
+                      child: const Text('Áp dụng',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
@@ -1064,6 +1164,7 @@ class _ChatbotBottomSheetState extends State<ChatbotBottomSheet> {
                                               msg.proposal!,
                                             )
                                         : null,
+                                onPublishRecruitment: _handlePublishToCommunity,
                               );
                             }
                             return const ChatTypingIndicator(

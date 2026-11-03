@@ -41,7 +41,7 @@ export interface ChatbotStoreState {
 const DEFAULT_CONFIG: ChatbotConfig = {
   provider: 'ollama',
   apiKey: '',
-  model: 'gemma2:2b',
+  model: 'qwen2.5:1.5b',
   systemPrompt: `Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
 Quy tắc phản hồi:
 - Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (1 đến 3 câu).

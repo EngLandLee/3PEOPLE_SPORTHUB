@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1280 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sporthub-chatbot-title sporthub-chatbot-desc" id="chatbot_architecture_editorial-root">
+        <title id="sporthub-chatbot-title">SportHub AI Chatbot - Kiến Trúc Agentic 6 Tầng</title>
+        <desc id="sporthub-chatbot-desc">Kiến trúc luồng xử lý Agentic 6 tầng từ Client Mobile, Gateway an ninh, RAG Realtime, FPT Cloud Gemma 26B, Đề xuất HITL đến Thanh toán VietQR.</desc>
+
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #chatbot_architecture_editorial-root { --color-paper:        #fafaf7;   
+      --color-paper-2:      #f4f4f0;   
+      --color-ink:          #18181b;   
+      --color-ink-strong:   #09090b;   
+      --color-muted:        #52525b;   
+      --color-soft:         #71717a;   
+      --color-rule:         rgba(24, 24, 27, 0.12);
+      --color-rule-solid:   #d4d4d8;   
+      --color-accent:       #ea580c;   
+      --color-accent-tint:  rgba(234, 88, 12, 0.08);
+      --color-link:         #0284c7;   
+      --font-sans:          'Geist', system-ui, -apple-system, sans-serif;
+      --font-serif:         'Instrument Serif', Georgia, serif;
+      --font-mono:          'Geist Mono', ui-monospace, monospace; }
+      #chatbot_architecture_editorial-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #chatbot_architecture_editorial-root p.subtitle { font-size: 1rem;
+      color: var(--color-muted);
+      max-width: 860px; }
+      #chatbot_architecture_editorial-root .diagram-container { width: 100%;
+      overflow-x: auto;
+      background: var(--color-paper);
+      border: 1px solid var(--color-rule);
+      border-radius: 12px;
+      padding: 1.5rem 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); }
+      #chatbot_architecture_editorial-root .summary-grid { display: grid;
+      grid-template-columns: 1.15fr 1fr 0.95fr;
+      gap: 1.25rem;
+      margin-top: 1rem; }
+      @media (max-width: 900px) {
+#chatbot_architecture_editorial-root .summary-grid { grid-template-columns: 1fr; }
+}
+      #chatbot_architecture_editorial-root .summary-card { background: #ffffff;
+      border: 1px solid var(--color-rule-solid);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem; }
+      #chatbot_architecture_editorial-root .card-tag { font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px; }
+      #chatbot_architecture_editorial-root .card-tag .dot { width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-accent); }
+      #chatbot_architecture_editorial-root .summary-card h3 { font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--color-ink);
+      letter-spacing: -0.01em; }
+      #chatbot_architecture_editorial-root .summary-card p { font-size: 0.88rem;
+      color: var(--color-muted);
+      line-height: 1.5; }
+      @media print {
+#chatbot_architecture_editorial-root .diagram-container { overflow-x: visible; border: none; padding: 0; }
+}</style>
+          <pattern id="chatbot_architecture_editorial-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="0.8" fill="#18181b" fill-opacity="0.08"/>
+          </pattern>
+          <marker id="chatbot_architecture_editorial-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#52525b"/></marker>
+          <marker id="chatbot_architecture_editorial-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ea580c"/></marker>
+          <marker id="chatbot_architecture_editorial-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0284c7"/></marker>
+        </defs>
+
+        <!-- Background -->
+        <rect width="100%" height="100%" fill="#fafaf7"/>
+        <rect width="100%" height="100%" fill="url(#chatbot_architecture_editorial-dots)" opacity="0.6"/>
+
+        <!-- ==================================================================== -->
+        <!-- 6 ZONE ENCLOSURES (TIERS) -->
+        <!-- ==================================================================== -->
+
+        <!-- Zone 1: Client Ingest -->
+        <rect x="48" y="80" width="360" height="272" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="64" y="74" width="168" height="14" rx="2" fill="#fafaf7"/>
+        <text x="70" y="84" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">01 · TẦNG THU NHẬP ĐẦU VÀO</text>
+
+        <!-- Zone 2: Gateway Security -->
+        <rect x="460" y="80" width="360" height="272" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="476" y="74" width="176" height="14" rx="2" fill="#fafaf7"/>
+        <text x="482" y="84" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">02 · AN NINH &amp; BÓC TÁCH NLP</text>
+
+        <!-- Zone 3: RAG & Realtime Store -->
+        <rect x="872" y="80" width="360" height="272" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="888" y="74" width="188" height="14" rx="2" fill="#fafaf7"/>
+        <text x="894" y="84" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">03 · TRUY XUẤT RAG &amp; CƠ SỞ DỮ LIỆU</text>
+
+        <!-- Zone 4: LLM Inference -->
+        <rect x="48" y="420" width="360" height="308" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="64" y="414" width="180" height="14" rx="2" fill="#fafaf7"/>
+        <text x="70" y="424" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">04 · FPT CLOUD GEMMA 26B LLM</text>
+
+        <!-- Zone 5: Agentic HITL Proposal -->
+        <rect x="460" y="420" width="360" height="308" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="476" y="414" width="188" height="14" rx="2" fill="#fafaf7"/>
+        <text x="482" y="424" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">05 · THIẾT LẬP ACTIONPROPOSAL</text>
+
+        <!-- Zone 6: Flutter 2-Stage & VietQR -->
+        <rect x="872" y="420" width="360" height="308" rx="8" fill="#18181b" stroke="#18181b" stroke-width="0.8" fill-opacity="0.02" stroke-opacity="0.12"/>
+        <rect x="888" y="414" width="192" height="14" rx="2" fill="#fafaf7"/>
+        <text x="894" y="424" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" letter-spacing="0.14em">06 · GIAO DIỆN FLUTTER &amp; VIETQR</text>
+
+        <!-- ==================================================================== -->
+        <!-- CONNECTORS (DRAWN BEFORE NODES) -->
+        <!-- ==================================================================== -->
+
+        <!-- Zone 1 Internal: Client Context -> Payload Packaging -->
+        <path d="M 144,184 V 206 Q 144,214 152,214 H 176 Q 184,214 184,222 V 244"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Zone 1 Internal: User Message -> Payload Packaging -->
+        <path d="M 312,184 V 206 Q 312,214 304,214 H 280 Q 272,214 272,222 V 244"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Connection 1 -> 2: Payload Packaging -> Guardrail In (Link Sky Blue) -->
+        <path d="M 328,276 H 420 Q 428,276 428,268 V 160 Q 428,152 436,152 H 480"
+              fill="none" stroke="#0284c7" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-link)"/>
+
+        <!-- Zone 2 Internal: Guardrail In -> Fast Reject (Dashed) -->
+        <line x1="652" y1="152" x2="680" y2="152" stroke="#52525b" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Zone 2 Internal: Guardrail In -> NLP Intent & Entity (Primary Accent) -->
+        <line x1="580" y1="184" x2="580" y2="244" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Connection 2 -> 3: NLP Extractor -> FAQ Knowledge Store -->
+        <path d="M 680,260 H 836 Q 844,260 844,252 V 158 Q 844,150 852,150 H 892"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Connection 2 -> 3: NLP Extractor -> Realtime Court Store (Primary Accent) -->
+        <path d="M 680,284 H 852 Q 860,284 860,276 V 260 Q 860,252 868,252 H 892"
+              fill="none" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Zone 3 Internal: FAQ Knowledge -> Target Evidence -->
+        <path d="M 1048,150 H 1068 Q 1076,150 1076,158 V 184"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Zone 3 Internal: Realtime Court Store -> Target Evidence (Primary Accent) -->
+        <path d="M 1048,252 H 1068 Q 1076,252 1076,244 V 224"
+              fill="none" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- INTER-TIER CHANNEL CONNECTOR A (Row 1 -> Row 2): Target Evidence -> Prompt Builder -->
+        <path d="M 1120,248 V 376 Q 1120,384 1112,384 H 172 Q 164,384 164,392 V 456"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- INTER-TIER CHANNEL CONNECTOR B (Row 1 -> Row 2): Target Evidence -> ActionProposal Builder (Accent) -->
+        <path d="M 1160,248 V 392 Q 1160,400 1152,400 H 582 Q 574,400 574,408 V 456"
+              fill="none" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Zone 4 Internal: Prompt Builder -> Gemma 26B (Focal Flow) -->
+        <line x1="164" y1="516" x2="164" y2="544" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Zone 4 Internal: Gemma 26B -> Guardrail Out (Focal Flow) -->
+        <line x1="164" y1="612" x2="164" y2="640" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Connection 4 -> 5: Guardrail Out -> Assemble Response -->
+        <path d="M 260,670 H 468 Q 476,670 476,662 V 618 Q 476,610 484,610 H 512"
+              fill="none" stroke="#52525b" stroke-width="1.2" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Zone 5 Internal: ActionProposal Builder -> Allowlist Guard (Dashed) -->
+        <line x1="668" y1="488" x2="688" y2="488" stroke="#52525b" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+
+        <!-- Zone 5 Internal: ActionProposal Builder -> Assemble Response (Primary Accent) -->
+        <line x1="574" y1="520" x2="574" y2="576" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Connection 5 -> 6: Assemble Response -> ActionProposalCard (Link Sky Blue) -->
+        <path d="M 732,610 H 840 Q 848,610 848,602 V 496 Q 848,488 856,488 H 892"
+              fill="none" stroke="#0284c7" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-link)"/>
+
+        <!-- Zone 6 Internal: ActionProposalCard -> Execute API (HITL Confirm) -->
+        <line x1="988" y1="520" x2="988" y2="548" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- Zone 6 Internal: Execute API -> VietQR Payment Dialog (Booking Complete) -->
+        <line x1="988" y1="612" x2="988" y2="640" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+
+        <!-- ==================================================================== -->
+        <!-- ARROW LABELS WITH MASK RECTANGLES (GAP ENFORCED) -->
+        <!-- ==================================================================== -->
+
+        <!-- Label 1 -> 2: HTTP POST -->
+        <rect x="404" y="206" width="48" height="13" rx="2" fill="#fafaf7"/>
+        <text x="428" y="216" fill="#0284c7" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTP POST</text>
+
+        <!-- Label 2 Reject: ATTACK? -->
+        <rect x="653" y="137" width="26" height="12" rx="2" fill="#fafaf7"/>
+        <text x="666" y="146" fill="#71717a" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">JAILBREAK</text>
+
+        <!-- Label 2 Valid: VALID -->
+        <rect x="566" y="208" width="28" height="12" rx="2" fill="#fafaf7"/>
+        <text x="580" y="217" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">VALID</text>
+
+        <!-- Label 2 -> 3 FAQ: FAQ INTENT -->
+        <rect x="822" y="198" width="44" height="13" rx="2" fill="#fafaf7"/>
+        <text x="844" y="208" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">FAQ INTENT</text>
+
+        <!-- Label 2 -> 3 Slot: BOOK INTENT -->
+        <rect x="748" y="274" width="48" height="13" rx="2" fill="#fafaf7"/>
+        <text x="772" y="284" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">BOOK INTENT</text>
+
+        <!-- Label Channel A: EVIDENCE + FAQ -->
+        <rect x="586" y="378" width="76" height="13" rx="2" fill="#fafaf7"/>
+        <text x="624" y="388" fill="#52525b" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">EVIDENCE + FAQ</text>
+
+        <!-- Label Channel B: REAL SLOTS & PRICE -->
+        <rect x="826" y="394" width="84" height="13" rx="2" fill="#fafaf7"/>
+        <text x="868" y="404" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">REAL SLOTS &amp; PRICE</text>
+
+        <!-- Label Zone 4 Context: CONTEXT -->
+        <rect x="146" y="524" width="36" height="12" rx="2" fill="#fafaf7"/>
+        <text x="164" y="533" fill="#ea580c" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">PROMPT</text>
+
+        <!-- Label Zone 4 Inference: 1-3 CÂU -->
+        <rect x="148" y="620" width="32" height="12" rx="2" fill="#fafaf7"/>
+        <text x="164" y="629" fill="#ea580c" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">REASON</text>
+
+        <!-- Label 4 -> 5: CLEAN TEXT -->
+        <rect x="456" y="634" width="40" height="13" rx="2" fill="#fafaf7"/>
+        <text x="476" y="644" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">CLEAN PII</text>
+
+        <!-- Label Zone 5: ALLOWLIST -->
+        <rect x="670" y="473" width="16" height="11" rx="2" fill="#fafaf7"/>
+        <text x="678" y="482" fill="#71717a" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle">FORM</text>
+
+        <!-- Label Zone 5: PROPOSAL -->
+        <rect x="554" y="542" width="40" height="13" rx="2" fill="#fafaf7"/>
+        <text x="574" y="552" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">PROPOSAL</text>
+
+        <!-- Label 5 -> 6: JSON RESP -->
+        <rect x="826" y="544" width="44" height="13" rx="2" fill="#fafaf7"/>
+        <text x="848" y="554" fill="#0284c7" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle">JSON RESP</text>
+
+        <!-- Label Zone 6: CONFIRM HITL -->
+        <rect x="964" y="528" width="48" height="13" rx="2" fill="#fafaf7"/>
+        <text x="988" y="538" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">CONFIRM HITL</text>
+
+        <!-- Label Zone 6: TICKET READY -->
+        <rect x="964" y="620" width="48" height="13" rx="2" fill="#fafaf7"/>
+        <text x="988" y="630" fill="#ea580c" font-size="7.5" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">TICKET READY</text>
+
+
+        <!-- ==================================================================== -->
+        <!-- NODE BOXES (Z-ORDER: AFTER ARROWS) -->
+        <!-- ==================================================================== -->
+
+        <!-- NODE 1.1: Client Context -->
+        <rect x="68" y="120" width="152" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="68" y="120" width="152" height="64" rx="6" fill="#52525b" stroke="#71717a" stroke-width="1" fill-opacity="0.08"/>
+        <rect x="76" y="128" width="28" height="12" rx="2" fill="none" stroke="#71717a" stroke-width="0.8" stroke-opacity="0.40"/>
+        <text x="90" y="137" fill="#71717a" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">CTX</text>
+        <text x="144" y="153" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Client Context</text>
+        <text x="144" y="170" fill="#52525b" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">venue · userId · sport</text>
+
+        <!-- NODE 1.2: User Input -->
+        <rect x="236" y="120" width="152" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="236" y="120" width="152" height="64" rx="6" fill="#52525b" stroke="#71717a" stroke-width="1" fill-opacity="0.08"/>
+        <rect x="244" y="128" width="34" height="12" rx="2" fill="none" stroke="#71717a" stroke-width="0.8" stroke-opacity="0.40"/>
+        <text x="261" y="137" fill="#71717a" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">INPUT</text>
+        <text x="312" y="153" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">User Message</text>
+        <text x="312" y="170" fill="#52525b" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">text / quick chips</text>
+
+        <!-- NODE 1.3: Payload Merger -->
+        <rect x="128" y="244" width="200" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="128" y="244" width="200" height="64" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="136" y="252" width="36" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="154" y="261" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">CLIENT</text>
+        <text x="228" y="275" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Payload Packaging</text>
+        <text x="228" y="292" fill="#0284c7" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">POST /api/chatbot/message</text>
+
+        <!-- NODE 2.1: Guardrail In (Security) -->
+        <rect x="480" y="120" width="172" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="480" y="120" width="172" height="64" rx="6" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-dasharray="4,4" fill-opacity="0.05" stroke-opacity="0.55"/>
+        <rect x="488" y="128" width="28" height="12" rx="2" fill="none" stroke="#ea580c" stroke-width="0.8" stroke-opacity="0.50"/>
+        <text x="502" y="137" fill="#ea580c" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">SEC</text>
+        <text x="566" y="153" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">guardrailIn Filter</text>
+        <text x="566" y="170" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Prompt Injection Guard</text>
+
+        <!-- NODE 2.2: Fast Reject -->
+        <rect x="680" y="120" width="120" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="680" y="120" width="120" height="64" rx="6" fill="#18181b" stroke="#18181b" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.03" stroke-opacity="0.25"/>
+        <rect x="688" y="128" width="30" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.30"/>
+        <text x="703" y="137" fill="#71717a" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">DROP</text>
+        <text x="740" y="153" fill="#71717a" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Fast Reject</text>
+        <text x="740" y="170" fill="#71717a" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">0 LLM token used</text>
+
+        <!-- NODE 2.3: NLP Extractor -->
+        <rect x="480" y="244" width="200" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="480" y="244" width="200" height="64" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="488" y="252" width="36" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="506" y="261" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">PARSER</text>
+        <text x="580" y="275" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">NLP Intent &amp; Entities</text>
+        <text x="580" y="292" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">môn · khu vực · slot · add-on</text>
+
+        <!-- NODE 3.1: FAQ Knowledge Store -->
+        <rect x="892" y="120" width="156" height="60" rx="6" fill="#fafaf7"/>
+        <rect x="892" y="120" width="156" height="60" rx="6" fill="#18181b" stroke="#52525b" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="900" y="128" width="28" height="12" rx="2" fill="none" stroke="#52525b" stroke-width="0.8" stroke-opacity="0.40"/>
+        <text x="914" y="137" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RAG</text>
+        <text x="970" y="148" fill="#18181b" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">FAQ Engine</text>
+        <text x="970" y="164" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Top 3 FAQ · quy chế, hoàn tiền</text>
+
+        <!-- NODE 3.2: Realtime Court Store -->
+        <rect x="892" y="220" width="156" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="892" y="220" width="156" height="64" rx="6" fill="#18181b" stroke="#52525b" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="900" y="228" width="34" height="12" rx="2" fill="none" stroke="#52525b" stroke-width="0.8" stroke-opacity="0.40"/>
+        <text x="917" y="237" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">STORE</text>
+        <text x="970" y="249" fill="#18181b" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Realtime Court DB</text>
+        <text x="970" y="266" fill="#ea580c" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">venues · peak 17h-21h</text>
+
+        <!-- NODE 3.3: Target Evidence -->
+        <rect x="1076" y="160" width="140" height="88" rx="6" fill="#fafaf7"/>
+        <rect x="1076" y="160" width="140" height="88" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="1084" y="168" width="30" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="1099" y="177" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">EVID</text>
+        <text x="1146" y="196" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Target Evidence</text>
+        <text x="1146" y="214" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">dữ liệu sân thật 100%</text>
+        <text x="1146" y="228" fill="#ea580c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">anti-hallucination</text>
+
+        <!-- NODE 4.1: Prompt Contextualizer -->
+        <rect x="68" y="456" width="192" height="60" rx="6" fill="#fafaf7"/>
+        <rect x="68" y="456" width="192" height="60" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="76" y="464" width="28" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="90" y="473" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">CTX</text>
+        <text x="164" y="485" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Prompt Contextualizer</text>
+        <text x="164" y="502" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">System + Evidence + FAQ</text>
+
+        <!-- NODE 4.2: FPT Cloud Gemma 26B (FOCAL CORE 1) -->
+        <rect x="68" y="544" width="192" height="68" rx="6" fill="#fafaf7"/>
+        <rect x="68" y="544" width="192" height="68" rx="6" fill="#ea580c" stroke="#ea580c" stroke-width="1.3" fill-opacity="0.08"/>
+        <rect x="76" y="552" width="34" height="12" rx="2" fill="none" stroke="#ea580c" stroke-width="0.8" stroke-opacity="0.50"/>
+        <text x="93" y="561" fill="#ea580c" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">CORE</text>
+        <text x="248" y="604" fill="#ea580c" font-size="30" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="end" fill-opacity="0.12">AI</text>
+        <text x="164" y="575" fill="#18181b" font-size="12.5" font-weight="700" font-family="'Geist', sans-serif" text-anchor="middle">FPT Cloud Gemma 26B</text>
+        <text x="164" y="593" fill="#ea580c" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">LLM suy luận · giải thích 1-3 câu</text>
+
+        <!-- NODE 4.3: Safety & Anti-Hallucination -->
+        <rect x="68" y="640" width="192" height="60" rx="6" fill="#fafaf7"/>
+        <rect x="68" y="640" width="192" height="60" rx="6" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-dasharray="4,4" fill-opacity="0.05" stroke-opacity="0.55"/>
+        <rect x="76" y="648" width="28" height="12" rx="2" fill="none" stroke="#ea580c" stroke-width="0.8" stroke-opacity="0.50"/>
+        <text x="90" y="657" fill="#ea580c" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">SEC</text>
+        <text x="164" y="669" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">guardrailOut Cleaner</text>
+        <text x="164" y="686" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">gọt markdown · khử PII &amp; key</text>
+
+        <!-- NODE 5.1: ActionProposal Builder -->
+        <rect x="480" y="456" width="188" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="480" y="456" width="188" height="64" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="488" y="464" width="32" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="504" y="473" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">HITL</text>
+        <text x="574" y="487" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ActionProposal Builder</text>
+        <text x="574" y="505" fill="#ea580c" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">khóa venueId, courtId · TTL 15m</text>
+
+        <!-- NODE 5.2: Allowlist Form Guard -->
+        <rect x="688" y="456" width="116" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="688" y="456" width="116" height="64" rx="6" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-dasharray="4,4" fill-opacity="0.05" stroke-opacity="0.55"/>
+        <rect x="696" y="464" width="32" height="12" rx="2" fill="none" stroke="#ea580c" stroke-width="0.8" stroke-opacity="0.50"/>
+        <text x="712" y="473" fill="#ea580c" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">VALID</text>
+        <text x="746" y="487" fill="#18181b" font-size="11.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Allowlist Guard</text>
+        <text x="746" y="505" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">timeSlot, note ≤200k</text>
+
+        <!-- NODE 5.3: Assemble Response -->
+        <rect x="512" y="576" width="220" height="68" rx="6" fill="#fafaf7"/>
+        <rect x="512" y="576" width="220" height="68" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="520" y="584" width="40" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="540" y="593" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">SERVER</text>
+        <text x="622" y="607" fill="#18181b" font-size="12.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Assemble Response</text>
+        <text x="622" y="626" fill="#0284c7" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">reply + proposal + actionCard</text>
+
+        <!-- NODE 6.1: ActionProposalCard (Stage 1) -->
+        <rect x="892" y="456" width="192" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="892" y="456" width="192" height="64" rx="6" fill="#52525b" stroke="#71717a" stroke-width="1" fill-opacity="0.08"/>
+        <rect x="900" y="464" width="46" height="12" rx="2" fill="none" stroke="#71717a" stroke-width="0.8" stroke-opacity="0.40"/>
+        <text x="923" y="473" fill="#71717a" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">STAGE 1</text>
+        <text x="988" y="487" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ActionProposalCard</text>
+        <text x="988" y="505" fill="#52525b" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">xem slot, giá · nút [Xác nhận]</text>
+
+        <!-- NODE 6.2: Execute API -->
+        <rect x="892" y="548" width="192" height="64" rx="6" fill="#fafaf7"/>
+        <rect x="892" y="548" width="192" height="64" rx="6" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <rect x="900" y="556" width="28" height="12" rx="2" fill="none" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.35"/>
+        <text x="914" y="565" fill="#52525b" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">API</text>
+        <text x="988" y="579" fill="#18181b" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Execute Booking API</text>
+        <text x="988" y="597" fill="#ea580c" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">POST /api/action/execute · DB</text>
+
+        <!-- NODE 6.3: VietQR Payment Dialog (FOCAL CORE 2) -->
+        <rect x="892" y="640" width="192" height="68" rx="6" fill="#fafaf7"/>
+        <rect x="892" y="640" width="192" height="68" rx="6" fill="#ea580c" stroke="#ea580c" stroke-width="1.3" fill-opacity="0.08"/>
+        <rect x="900" y="648" width="30" height="12" rx="2" fill="none" stroke="#ea580c" stroke-width="0.8" stroke-opacity="0.50"/>
+        <text x="915" y="657" fill="#ea580c" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">PAY</text>
+        <text x="1072" y="700" fill="#ea580c" font-size="30" font-weight="700" font-family="'Geist Mono', monospace" text-anchor="end" fill-opacity="0.12">QR</text>
+        <text x="988" y="671" fill="#18181b" font-size="12.5" font-weight="700" font-family="'Geist', sans-serif" text-anchor="middle">VietQR Payment Dialog</text>
+        <text x="988" y="689" fill="#ea580c" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Mã NAPAS 247 · thanh toán tức thì</text>
+
+        <!-- ==================================================================== -->
+        <!-- LEGEND STRIP (BOTTOM HORIZONTAL) -->
+        <!-- ==================================================================== -->
+        <line x1="48" y1="748" x2="1232" y2="748" stroke="#18181b" stroke-width="0.8" stroke-opacity="0.12"/>
+        <text x="48" y="764" fill="#52525b" font-size="7.5" font-family="'Geist Mono', monospace" letter-spacing="0.18em">CHÚ THÍCH HỆ THỐNG (LEGEND)</text>
+
+        <!-- Item 1: Core Focal -->
+        <rect x="48" y="776" width="14" height="10" rx="2" fill="#ea580c" stroke="#ea580c" stroke-width="1.2" fill-opacity="0.08"/>
+        <text x="68" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Trọng tâm AI / VietQR</text>
+
+        <!-- Item 2: Backend Step -->
+        <rect x="204" y="776" width="14" height="10" rx="2" fill="#ffffff" stroke="#18181b" stroke-width="1"/>
+        <text x="224" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Xử lý Gateway / Server</text>
+
+        <!-- Item 3: Store DB -->
+        <rect x="368" y="776" width="14" height="10" rx="2" fill="#18181b" stroke="#52525b" stroke-width="1" fill-opacity="0.05"/>
+        <text x="388" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Cơ sở dữ liệu / RAG</text>
+
+        <!-- Item 4: Security -->
+        <rect x="528" y="776" width="14" height="10" rx="2" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-dasharray="3,3" fill-opacity="0.05" stroke-opacity="0.55"/>
+        <text x="548" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Chốt an ninh Guardrail</text>
+
+        <!-- Item 5: Client Input -->
+        <rect x="688" y="776" width="14" height="10" rx="2" fill="#52525b" stroke="#71717a" stroke-width="1" fill-opacity="0.08"/>
+        <text x="708" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Giao diện người dùng</text>
+
+        <!-- Item 6: Primary Arrow -->
+        <line x1="840" y1="781" x2="868" y2="781" stroke="#ea580c" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-accent)"/>
+        <text x="876" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Luồng dữ liệu chính</text>
+
+        <!-- Item 7: Link Arrow -->
+        <line x1="1000" y1="781" x2="1028" y2="781" stroke="#0284c7" stroke-width="1.3" marker-end="url(#chatbot_architecture_editorial-arrow-link)"/>
+        <text x="1036" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">HTTP API call</text>
+
+        <!-- Item 8: Async Arrow -->
+        <line x1="1132" y1="781" x2="1160" y2="781" stroke="#52525b" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#chatbot_architecture_editorial-arrow)"/>
+        <text x="1168" y="784" fill="#52525b" font-size="8.5" font-family="'Geist', sans-serif">Chặn / Kiểm duyệt</text>
+      </svg>

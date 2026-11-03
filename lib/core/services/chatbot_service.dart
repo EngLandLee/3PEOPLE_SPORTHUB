@@ -867,6 +867,10 @@ class ChatbotService {
   /// Candidate server URLs for reaching the backend
   List<String> get candidateServerUrls {
     final urls = <String>[];
+    const envBackend = String.fromEnvironment('BACKEND_URL');
+    if (envBackend.isNotEmpty && !urls.contains(envBackend)) {
+      urls.add(envBackend);
+    }
     try {
       if (Uri.base.scheme == 'http' || Uri.base.scheme == 'https') {
         final host = Uri.base.host;
@@ -876,12 +880,27 @@ class ChatbotService {
       }
     } catch (_) {}
     if (!urls.contains(serverBaseUrl)) urls.add(serverBaseUrl);
-    if (!urls.contains('http://10.0.2.2:5173'))
-      urls.add('http://10.0.2.2:5173');
-    if (!urls.contains('http://127.0.0.1:5173'))
-      urls.add('http://127.0.0.1:5173');
-    if (!urls.contains('http://localhost:5173'))
+    if (!urls.contains('http://172.20.10.7:5173')) {
+      urls.add('http://172.20.10.7:5173');
+    }
+    if (!urls.contains('http://172.20.10.7:3000')) {
+      urls.add('http://172.20.10.7:3000');
+    }
+    if (!urls.contains('http://10.12.66.16:5173')) {
+      urls.add('http://10.12.66.16:5173');
+    }
+    if (!urls.contains('http://localhost:5173')) {
       urls.add('http://localhost:5173');
+    }
+    if (!urls.contains('http://localhost:3000')) {
+      urls.add('http://localhost:3000');
+    }
+    if (!urls.contains('http://127.0.0.1:5173')) {
+      urls.add('http://127.0.0.1:5173');
+    }
+    if (!urls.contains('http://10.0.2.2:5173')) {
+      urls.add('http://10.0.2.2:5173');
+    }
     if (!urls.contains('http://0.0.0.0:5173')) urls.add('http://0.0.0.0:5173');
     return urls;
   }
@@ -1379,14 +1398,68 @@ class ChatbotService {
     isTypingNotifier.value = true;
 
     try {
+      final effectiveContext = context ?? currentContext;
+      final effectiveHttpClient = httpClient ?? this.httpClient;
+
+      // Fast-path: Basic greetings do NOT query external databases/servers,
+      // answering immediately via local RAG/guidance with NO booking card.
+      final lowerTrim = text.trim().toLowerCase();
+      final isExplicitBooking = RegExp(
+        r'đặt\s*sân|thuê\s*sân|book|giữ\s*chỗ|lấy\s*sân|sân\s*trống|tuyển|ghép\s*kèo|tìm\s*bạn|tìm\s*kèo',
+        caseSensitive: false,
+      ).hasMatch(text);
+      final isPureGreetingPrompt = !isExplicitBooking &&
+          (RegExp(
+                r'^(?:xin\s*)?chào(?:\s+(?:bạn|em|ad|shop|bot|mọi\s*người|anh|chị|sporthub))?$|'
+                r'^(?:hello|hi|hey|alo|good\s*(?:morning|afternoon|evening)|hế\s*lô|chào\s*buổi\s*(?:sáng|chiều|tối))$',
+                caseSensitive: false,
+              ).hasMatch(lowerTrim) ||
+              RegExp(
+                r'^(?:bạn\s*là\s*ai|ai\s*đấy|trợ\s*lý\s*gì|bạn\s*làm\s*được\s*gì|giới\s*thiệu\s*(?:về\s*)?(?:bản\s*thân|mình)?)$',
+                caseSensitive: false,
+              ).hasMatch(lowerTrim) ||
+              (RegExp(r'chào|hello|hi\b', caseSensitive: false).hasMatch(lowerTrim) &&
+                  lowerTrim.split(RegExp(r'\s+')).length <= 3 &&
+                  !lowerTrim.contains('sân') &&
+                  !lowerTrim.contains('giờ')));
+
+      if (isPureGreetingPrompt && effectiveHttpClient == null) {
+        assistantMessage =
+            _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+        addMessage(assistantMessage);
+        return assistantMessage;
+      }
+
+      // Fast-path: Slot modification / changing booking time operates deterministically
+      // on local court schedule, immediately updating booking card and proposal.
+      final hasTimeRangePattern = RegExp(
+        r'(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?\s*(?:-|đến|tới)\s*(\d{1,2})(?:h|:|\s*giờ\s*)(\d{2})?',
+        caseSensitive: false,
+      ).hasMatch(text);
+      final isTimeChangeRequest = RegExp(
+        r'(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang|khung\s*giờ\s*sang|khung\s*giờ|giờ\s*chơi\s*sang|giờ)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(tối|sáng|chiều|đi)?|'
+        r'(?:^|\s)(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|được\s*ko|nhé|nha|ạ|đi)|'
+        r'(?:đổi|chuyển)\s*(?:sang|qua|lịch\s*sang|khung\s*giờ\s*sang)?\s*(ngày\s*mai|mai|hôm\s*nay|tối\s*mai)',
+        caseSensitive: false,
+      ).hasMatch(text);
+
+      if ((isTimeChangeRequest || hasTimeRangePattern) &&
+          (pendingBooking != null ||
+              latestBookingCard != null ||
+              messagesNotifier.value.any((m) => m.hasProposal)) &&
+          effectiveHttpClient == null) {
+        assistantMessage =
+            _processLocalIntent(text, effectiveContext, imageUrl: imageUrl);
+        addMessage(assistantMessage);
+        return assistantMessage;
+      }
+
       // Natural thinking effect in live client
       if (!isTestEnvironment && httpClient == null && this.httpClient == null) {
         await Future.delayed(const Duration(milliseconds: 350));
       }
 
       // Try server inference if httpClient is injected or not in offline test
-      final effectiveContext = context ?? currentContext;
-      final effectiveHttpClient = httpClient ?? this.httpClient;
       final shouldAttemptNetwork =
           scopeAllowed && (effectiveHttpClient != null || !isTestEnvironment);
 
@@ -1476,13 +1549,17 @@ class ChatbotService {
             for (final baseUrl in candidateServerUrls) {
               try {
                 final uri = Uri.parse('$baseUrl/api/chatbot/message');
+                final isEmulatorProbe = baseUrl.contains('10.0.2.2');
+                final probeTimeout = isEmulatorProbe
+                    ? const Duration(milliseconds: 1500)
+                    : const Duration(seconds: 8);
                 final response = await client
                     .post(
                       uri,
                       headers: {'Content-Type': 'application/json'},
                       body: payload,
                     )
-                    .timeout(const Duration(seconds: 65));
+                    .timeout(probeTimeout);
 
                 if (response.statusCode == 200) {
                   final data = jsonDecode(response.body);
@@ -1546,9 +1623,8 @@ class ChatbotService {
       }
       if (assistantMessage == null &&
           !isTestEnvironment &&
-          effectiveHttpClient == null &&
-          enableOfflineFallback) {
-        assistantMessage = await _callFptCloudDirectly(
+          effectiveHttpClient == null) {
+        assistantMessage = await _callOllamaDirectly(
           text,
           effectiveContext,
           imageUrl: imageUrl,
@@ -1612,7 +1688,51 @@ class ChatbotService {
       );
     }
 
-    // 0. Check date/time query first to prevent false matching on "bao nhiêu" in priceRegex
+    // 0. Greeting & basic conversation guard: Answer quickly via polite guidance,
+    // and explicitly prevent false-positive booking cards when user only greets.
+    final isExplicitBookingOrRecruitment = RegExp(
+      r'đặt\s*sân|thuê\s*sân|book|giữ\s*chỗ|tuyển|ghép\s*kèo|tìm\s*bạn|tìm\s*kèo',
+      caseSensitive: false,
+    ).hasMatch(text);
+
+    final isPureGreeting = !isExplicitBookingOrRecruitment &&
+        (RegExp(
+              r'^(?:xin\s*)?chào(?:\s+(?:bạn|em|ad|shop|bot|mọi\s*người|anh|chị|sporthub))?$|'
+              r'^(?:hello|hi|hey|alo|good\s*(?:morning|afternoon|evening)|hế\s*lô|chào\s*buổi\s*(?:sáng|chiều|tối))$',
+              caseSensitive: false,
+            ).hasMatch(text.trim()) ||
+            RegExp(
+              r'^(?:bạn\s*là\s*ai|ai\s*đấy|trợ\s*lý\s*gì|bạn\s*làm\s*được\s*gì|giới\s*thiệu\s*(?:về\s*)?(?:bản\s*thân|mình)?)$',
+              caseSensitive: false,
+            ).hasMatch(text.trim()) ||
+            (RegExp(r'chào|hello|hi\b', caseSensitive: false).hasMatch(text) &&
+                text.trim().split(RegExp(r'\s+')).length <= 4 &&
+                !text.contains('sân') &&
+                !text.contains('giờ') &&
+                !text.contains('ngày')));
+
+    if (isPureGreeting) {
+      final userName = context?.userName?.trim();
+      final greetingPrefix = (userName != null && userName.isNotEmpty)
+          ? 'Chào anh/chị $userName! '
+          : 'Xin chào! ';
+      return ChatMessage(
+        id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+        text:
+            '${greetingPrefix}Em là trợ lý AI SportHub, rất vui được hỗ trợ anh/chị. Em có thể giúp anh/chị tìm sân thể thao, xem lịch trống, tuyển thành viên ghép kèo hay kiểm tra thông tin sân bãi nhé ạ! 🏸⚽🏓',
+        sender: 'assistant',
+        timestamp: DateTime.now(),
+        actionCard: null,
+        quickSuggestions: const [
+          '🏸 Cầu lông Q.1 (19h)',
+          '🏓 Pickleball Thảo Điền',
+          '⚽ Bóng đá mini Q.7',
+          'Tình trạng sân hôm nay',
+        ],
+      );
+    }
+
+    // 0.1 Check date/time query first to prevent false matching on "bao nhiêu" in priceRegex
     final isDateTimeQuery = RegExp(
       r'(hôm nay|bây giờ|hiện tại).*(ngày mấy|ngày bao nhiêu|thứ mấy|mấy giờ|thời gian)|'
       r'(ngày mấy|ngày bao nhiêu|thứ mấy|mấy giờ).*(hôm nay|bây giờ|hiện tại)|'
@@ -1658,7 +1778,7 @@ class ChatbotService {
       );
     }
 
-    // 1. Follow-up / Booking modification intent ("đổi sang 20h", "chuyển sang 20h", "lùi lại 20h", "20h thì sao", "19h30 - 21h30")
+    // 1. Follow-up / Booking modification intent ("đổi sang 20h", "đổi khung giờ sang 20h", "chuyển sang 20h", "lùi lại 20h", "20h thì sao", "19h30 - 21h30")
     final hasPendingOrRecent =
         pendingBooking != null || latestBookingCard != null;
     final hasTimeRangePattern = RegExp(
@@ -1666,15 +1786,27 @@ class ChatbotService {
       caseSensitive: false,
     ).hasMatch(text);
     final changeTimeMatch = RegExp(
-      r'(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(tối|sáng|chiều)?|'
-      r'^(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|nhé|nha)|'
-      r'(?:đổi|chuyển)\s*(?:sang|qua|lịch\s*sang)?\s*(ngày\s*mai|mai|hôm\s*nay|tối\s*mai)',
+      r'(?:đổi|chuyển|dời|lùi|thay\s*đổi|lấy|chọn)\s*(?:sang|qua|lịch\s*sang|thành|giờ\s*sang|khung\s*giờ\s*sang|khung\s*giờ|giờ\s*chơi\s*sang|giờ)?\s*(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(tối|sáng|chiều|đi)?|'
+      r'(?:^|\s)(\d{1,2})(?:h|:|\s*giờ)(\d{2})?\s*(?:thì\s*sao|được\s*không|được\s*ko|nhé|nha|ạ|đi)|'
+      r'(?:đổi|chuyển)\s*(?:sang|qua|lịch\s*sang|khung\s*giờ\s*sang)?\s*(ngày\s*mai|mai|hôm\s*nay|tối\s*mai)',
       caseSensitive: false,
     ).firstMatch(text);
 
-    if (hasPendingOrRecent &&
+    if ((hasPendingOrRecent || text.toLowerCase().contains('đổi') || text.toLowerCase().contains('chuyển')) &&
         (changeTimeMatch != null || hasTimeRangePattern)) {
-      final existing = latestBookingCard ?? pendingBooking!;
+      final existing = latestBookingCard ??
+          pendingBooking ??
+          <String, dynamic>{
+            'venueId': context?.venueId ?? 'venue_01',
+            'venueName': context?.venueName ?? 'CLB Cầu Lông Tao Đàn',
+            'sport': context?.sport ?? 'Cầu lông',
+            'startTime': '19:00',
+            'endTime': '20:00',
+            'time': '19:00',
+            'date': 'Hôm nay',
+            'court': 'Sân 1',
+            'price': 180000,
+          };
       final venueId =
           existing['venueId']?.toString() ?? (context?.venueId ?? 'venue_01');
       final venueName = existing['venueName']?.toString() ??
@@ -1716,6 +1848,40 @@ class ChatbotService {
         };
         pendingBooking = updatedCard;
 
+        final updatedProposal = ActionProposal(
+          id: 'prop_${DateTime.now().millisecondsSinceEpoch}',
+          tool: 'create_court_booking',
+          status: 'pending',
+          target: {
+            'venueId': venueId,
+            'venueName': venueName,
+            'courtId': 'court_1',
+            'courtName': courtInfo.courtName,
+            'date': dateUsed,
+            'timeSlot': '${parsedTime.startTime} - ${parsedTime.endTime}',
+            'startTime': parsedTime.startTime,
+            'endTime': parsedTime.endTime,
+            'price': newTotalPrice,
+          },
+          form: [
+            FormFieldSpec(
+              key: 'timeSlot',
+              label: 'Khung giờ chơi',
+              type: 'text',
+              required: true,
+              currentValue: '${parsedTime.startTime} - ${parsedTime.endTime}',
+            ),
+            FormFieldSpec(
+              key: 'note',
+              label: 'Ghi chú cho chủ sân',
+              type: 'textarea',
+              maxLength: 200,
+              currentValue: '',
+            ),
+          ],
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 15 * 60 * 1000,
+        );
+
         return ChatMessage(
           id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
           text:
@@ -1723,8 +1889,9 @@ class ChatbotService {
           sender: 'assistant',
           timestamp: DateTime.now(),
           actionCard: updatedCard,
+          proposal: updatedProposal,
           quickSuggestions: const [
-            '⚡ Đặt & Thanh toán VietQR ngay',
+            '⚡ Xác nhận giữ chỗ & Thanh toán VietQR',
             '🔍 Xem trên sơ đồ',
             '🏸 Đặt thêm vợt',
             '🥤 Thêm nước bù khoáng',
@@ -2242,7 +2409,10 @@ class ChatbotService {
     // 4. Recruitment / Member finding / Matchmaking assistance
     final isRecruitment = imageUrl != null ||
         RegExp(
-          r'tuyển\s*thành\s*viên|tuyển\s*người|tìm\s*bạn|ghép\s*kèo|tìm\s*kèo|kèo\s*giao\s*lưu|cần\s*người|cần\s*thành\s*viên|tuyển\s*thêm|tìm\s*người',
+          r'tuyển\s*(?:\d+\s*)?(?:thành\s*viên|người|slot|bạn|đối\s*thủ|tay\s*vợt)?|'
+          r'tuyển|ghép\s*kèo|tìm\s*(?:người|bạn|kèo|thành\s*viên|đối\s*thủ)|'
+          r'đánh\s*(?:đôi|đơn)|kèo\s*(?:giao\s*lưu|đôi|đơn)|'
+          r'cần\s*(?:\d+\s*)?(?:người|thành\s*viên|slot|bạn)',
           caseSensitive: false,
         ).hasMatch(text);
 
@@ -3561,8 +3731,8 @@ class ChatbotService {
     }
   }
 
-  /// Directly calls FPT Cloud AI when local dev proxy server is not reachable (e.g. mobile phone on 4G/Wi-Fi)
-  Future<ChatMessage?> _callFptCloudDirectly(
+  /// Directly calls local Ollama AI when local dev proxy server is not reachable
+  Future<ChatMessage?> _callOllamaDirectly(
     String text,
     ChatContext? context, {
     String? imageUrl,
@@ -3570,8 +3740,12 @@ class ChatbotService {
     try {
       final client = http.Client();
       try {
-        const apiKey = String.fromEnvironment('FPT_API_KEY');
-        if (apiKey.isEmpty) return null;
+        final candidateUrls = [
+          'http://localhost:11434',
+          'http://127.0.0.1:11434',
+          'http://10.0.2.2:11434',
+        ];
+
         final now = DateTime.now();
         final days = [
           'Chủ Nhật',
@@ -3594,56 +3768,71 @@ class ChatbotService {
         final actionCard = localResult.actionCard;
         final quickSuggestions = localResult.quickSuggestions;
         final userPrefSport =
-            context?.sport ?? context?.preferredSport ?? 'Pickleball';
+            context?.sport ?? context?.preferredSport ?? 'Cầu lông';
         final userName = context?.userName ?? 'Khách hàng';
+
+        final bookingHint = actionCard != null
+            ? '\n[HỆ THỐNG ĐÃ CẬP NHẬT THẺ ĐẶT SÂN]: Khung giờ: ${actionCard['startTime']} - ${actionCard['endTime']}, Sân: ${actionCard['court']}, Cơ sở: ${actionCard['venueName']}. Hãy thông báo cho khách hàng thẻ đã cập nhật thành công.'
+            : '';
 
         final systemPrompt =
             '''Bạn là SportHub AI - trợ lý ảo đặt sân thể thao thông minh tại TP.HCM.
 [THỜI GIAN THỰC HỆ THỐNG]: Hôm nay là $dayName, ngày $dateStr (giờ hiện tại: $timeStr).
-[THÔNG TIN HỒ SƠ NGƯỜI DÙNG]: Tên khách hàng: $userName. Môn thể thao yêu thích trong hồ sơ: $userPrefSport.
+[THÔNG TIN HỒ SƠ NGƯỜI DÙNG]: Tên khách hàng: $userName. Môn thể thao yêu thích: $userPrefSport.$bookingHint
 Quy tắc phản hồi:
 - Trả lời bằng ngôn ngữ tự nhiên, súc tích, thân thiện, lễ phép (chỉ từ 1 đến 3 câu).
-- Khi người dùng hỏi về sở thích hay môn thể thao họ yêu thích, BẮT BUỘC trả lời đúng môn thể thao trong hồ sơ ($userPrefSport).
 - TUYỆT ĐỐI KHÔNG tự vẽ khung bảng biểu markdown (| ... |) và không tự viết các nút bấm giả lập trong ngoặc vuông như "[⚡ ĐẶT SÂN]".
 - Giao diện ứng dụng SportHub đã tự động hiển thị thẻ đặt sân và các nút gợi ý bên dưới.
 - Chỉ hỗ trợ các vấn đề thể thao, sân bãi, giá cả, ghép kèo tại TP.HCM. Từ chối các chủ đề ngoài lề.''';
 
-        final response = await client
-            .post(
-              Uri.parse('https://mkp-api.fptcloud.com/v1/chat/completions'),
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer $apiKey',
-              },
-              body: jsonEncode({
-                'model': 'gemma-4-26B-A4B-it',
-                'messages': [
-                  {'role': 'system', 'content': systemPrompt},
-                  {'role': 'user', 'content': text},
-                ],
-                'temperature': 0.7,
-                'max_tokens': 300,
-              }),
-            )
-            .timeout(const Duration(milliseconds: 5000));
+        for (final baseUrl in candidateUrls) {
+          try {
+            final response = await client
+                .post(
+                  Uri.parse('$baseUrl/api/chat'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({
+                    'model': 'qwen2.5:1.5b',
+                    'stream': false,
+                    'messages': [
+                      {'role': 'system', 'content': systemPrompt},
+                      {'role': 'user', 'content': text},
+                    ],
+                    'options': {'temperature': 0.7},
+                  }),
+                )
+                .timeout(const Duration(milliseconds: 4000));
 
-        if (response.statusCode == 200) {
-          final data = jsonDecode(utf8.decode(response.bodyBytes));
-          final content =
-              data['choices']?[0]?['message']?['content']?.toString();
-          if (content != null && content.trim().isNotEmpty) {
-            final cleaned = cleanReply(content);
-            if (actionCard != null && actionCard['type'] == 'booking_card') {
-              pendingBooking = actionCard;
+            if (response.statusCode == 200) {
+              final data = jsonDecode(utf8.decode(response.bodyBytes));
+              final content = data['message']?['content']?.toString();
+              if (content != null && content.trim().isNotEmpty) {
+                var cleaned = cleanReply(content);
+                final isRefusal = cleaned.contains('không thể thực hiện') ||
+                    cleaned.contains('phạm vi quyền') ||
+                    cleaned.contains('ngoài phạm vi') ||
+                    cleaned.contains('không có quyền') ||
+                    cleaned.contains('không có thẩm quyền') ||
+                    cleaned.contains('chưa được cấp quyền');
+                if (isRefusal && localResult.text.isNotEmpty) {
+                  cleaned = localResult.text;
+                }
+                if (actionCard != null && actionCard['type'] == 'booking_card') {
+                  pendingBooking = actionCard;
+                }
+                return ChatMessage(
+                  id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
+                  text: cleaned,
+                  sender: 'assistant',
+                  timestamp: DateTime.now(),
+                  actionCard: actionCard,
+                  quickSuggestions: quickSuggestions,
+                  proposal: localResult.proposal,
+                );
+              }
             }
-            return ChatMessage(
-              id: 'msg_${DateTime.now().millisecondsSinceEpoch}_assistant',
-              text: cleaned,
-              sender: 'assistant',
-              timestamp: DateTime.now(),
-              actionCard: actionCard,
-              quickSuggestions: quickSuggestions,
-            );
+          } catch (_) {
+            continue;
           }
         }
       } finally {
