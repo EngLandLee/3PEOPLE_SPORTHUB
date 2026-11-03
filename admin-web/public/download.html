@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tải SportHub Mobile App - Bản Release Chính Thức</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+  
+  <div class="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6">
+    
+    <!-- Logo Badge -->
+    <div class="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-emerald-400 p-0.5 shadow-lg shadow-indigo-500/20">
+      <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-3xl">
+        🏆
+      </div>
+    </div>
+
+    <!-- Title & Subtitle -->
+    <div>
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        BẢN RELEASE CHÍNH THỨC V1.0
+      </div>
+      <h1 class="text-2xl font-extrabold tracking-tight text-white">SportHub Mobile App</h1>
+      <p class="text-xs text-slate-400 mt-1">Ứng Dụng Đặt Sân Thể Thao & Ghép Kèo AI (TP.HCM)</p>
+    </div>
+
+    <!-- QR Code Scan -->
+    <div class="bg-white p-4 rounded-2xl inline-block shadow-inner mx-auto">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://era-obligations-professional-durable.trycloudflare.com/sporthub.apk" alt="QR Code Tải APK" class="w-44 h-44 rounded-lg" />
+      <p class="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-wider">Quét Camera để Tải Ngay (Mọi Mạng 4G/Wifi)</p>
+    </div>
+
+    <!-- Download Button -->
+    <div class="space-y-3 pt-2">
+      <a href="/sporthub.apk" download="sporthub.apk" class="w-full inline-flex items-center justify-center gap-3 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        Tải Trực Tiếp (APK - 22.3 MB)
+      </a>
+
+      <div class="text-[11px] text-slate-400 flex items-center justify-center gap-4">
+        <span>⚡ Chip ARM64-v8a</span>
+        <span>•</span>
+        <span>☁️ Supabase Cloud Live</span>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="border-t border-slate-800/80 pt-4 text-left text-xs text-slate-400 space-y-1.5">
+      <p class="font-bold text-slate-300">💡 Hướng dẫn cài đặt nhanh:</p>
+      <p>1. Mở bằng trình duyệt <strong>Google Chrome</strong> để tải trực tiếp file APK.</p>
+      <p>2. Khi tải xong bấm vào thông báo tải về để <strong>Cài đặt</strong> (nếu máy hỏi mở bằng gì, chọn <em>"Trình cài đặt gói"</em>, không chọn giải nén).</p>
+      <p>3. Nếu máy hỏi <em>"Cài đặt ứng dụng không xác định"</em>, gạt nút <strong>Cho phép</strong>.</p>
+      <p>4. Nếu file bị trình duyệt lưu thành đuôi <code>.zip</code>, chỉ cần đổi tên (Rename) xóa chữ <code>.zip</code> thành <code>.apk</code> là cài được ngay.</p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="flex items-center justify-center gap-4 text-xs text-indigo-400 font-semibold pt-1">
+      <a href="/api-docs" target="_blank" class="hover:underline">📖 Tài liệu API Swagger</a>
+      <span>•</span>
+      <a href="/" target="_blank" class="hover:underline">💻 Web Admin Portal</a>
+    </div>
+
+  </div>
+
+</body>
+</html>

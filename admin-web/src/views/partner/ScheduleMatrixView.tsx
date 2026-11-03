@@ -28,7 +28,7 @@ const getFormattedVietnameseDate = (dateStr: string) => {
 };
 
 export const ScheduleMatrixView: React.FC = () => {
-  const { courts, slots, venues } = useVenueStore();
+  const { courts, slots, venues, bookings } = useVenueStore();
   const { activeVenueId } = useAuthStore();
   const currentVenueId = activeVenueId || 'venue_01';
   const currentVenue = venues.find((v) => v.id === currentVenueId) || venues[0];
@@ -60,6 +60,56 @@ export const ScheduleMatrixView: React.FC = () => {
   slots.forEach((s) => {
     if (s.venueId === currentVenueId && (!s.date || s.date === selectedDate)) {
       slotMap.set(s.id, s);
+    }
+  });
+
+  // Dynamically overlay confirmed bookings for selectedDate & currentVenueId
+  bookings.forEach((b) => {
+    const isVenueMatch =
+      b.venueId === currentVenueId ||
+      (currentVenueId === 'venue_01' && (b.venueId === 'venue_q1_04' || b.venueName?.includes('Tao Đàn')));
+
+    const isDateMatch =
+      Boolean(b.date && (b.date === selectedDate || b.date.split('T')[0] === selectedDate));
+
+    if (isVenueMatch && isDateMatch && b.paymentStatus !== 'cancelled') {
+      const courtNumber = (b as any).courtNumber || (b.courtName ? parseInt(b.courtName.replace(/\D/g, ''), 10) : 1);
+      const court =
+        venueCourts.find((c) => c.id === b.courtId) ||
+        venueCourts.find((c) => (courtNumber && c.name.includes(String(courtNumber))) || (courtNumber && c.id === `court_0${courtNumber}`));
+
+      const courtId = court ? court.id : (b.courtId || `court_0${courtNumber || 1}`);
+      const rawStart = b.startTime || b.timeSlot?.split(' - ')[0] || '19:00';
+      const startHourStr = rawStart.split(':')[0].padStart(2, '0');
+      const rawEnd = b.endTime || b.timeSlot?.split(' - ')[1] || `${(parseInt(startHourStr, 10) + 1).toString().padStart(2, '0')}:00`;
+
+      const startH = parseInt(startHourStr, 10) || 19;
+      const endH = parseInt(rawEnd.split(':')[0], 10) || (startH + 1);
+
+      for (let h = startH; h < endH; h++) {
+        const curHourStr = h.toString().padStart(2, '0');
+        const nextHourStr = (h + 1).toString().padStart(2, '0');
+        const curSlotId = `${courtId}_${curHourStr}_00`;
+        const existingSlot = slotMap.get(curSlotId);
+        const isPeak = h >= 17 && h < 21;
+
+        slotMap.set(curSlotId, {
+          id: curSlotId,
+          courtId,
+          courtName: court ? court.name : b.courtName,
+          venueId: currentVenueId,
+          date: selectedDate,
+          startTime: `${curHourStr}:00`,
+          endTime: `${nextHourStr}:00`,
+          price: b.price || (court ? (isPeak ? court.peakPrice : court.regularPrice) : 180000),
+          isPeak,
+          status: 'bookedApp',
+          ticketId: b.id,
+          customerName: b.customerName,
+          customerPhone: b.customerPhone,
+          note: existingSlot?.note,
+        });
+      }
     }
   });
 

@@ -4,12 +4,14 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  UserCheck,
   Store,
   CalendarRange,
   QrCode,
   BarChart3,
   LogOut,
   Bot,
+  MessageSquare,
   FileCode2,
 } from 'lucide-react';
 import { useAuthStore, authStore } from '../../store/authStore';
@@ -43,6 +45,17 @@ export function Sidebar() {
       name: 'Tài khoản Chủ Sân',
       path: '/admin/accounts',
       icon: Users,
+    },
+    {
+      name: 'Tài khoản Người dùng',
+      path: '/admin/users',
+      icon: UserCheck,
+    },
+    {
+      name: 'Tin nhắn Khách hàng',
+      path: '/admin/chat',
+      icon: MessageSquare,
+      badge: 'LIVE',
     },
     {
       name: 'Trợ lý AI',
@@ -84,6 +97,12 @@ export function Sidebar() {
       name: 'Báo cáo Doanh thu',
       path: '/partner/revenue',
       icon: BarChart3,
+    },
+    {
+      name: 'Tin nhắn Khách hàng',
+      path: '/partner/chat',
+      icon: MessageSquare,
+      badge: 'LIVE',
     },
     {
       name: 'Trợ lý AI',
@@ -208,7 +227,7 @@ export function Sidebar() {
             <span>Hệ thống trực tuyến</span>
           </div>
           <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
-            SportHub Dashboards V2
+            Nhóm 3 người - App đặt sân cầu Lông (SportHub)
           </p>
         </div>
 

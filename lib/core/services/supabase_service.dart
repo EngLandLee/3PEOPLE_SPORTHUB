@@ -131,6 +131,7 @@ class SupabaseService {
   Future<Map<String, dynamic>> createBookingSafely({
     required String bookingId,
     required String venueId,
+    String? venueName,
     required int courtNumber,
     required String courtName,
     required String sport,
@@ -168,38 +169,22 @@ class SupabaseService {
         },
       );
 
+      if (venueName != null && venueName.trim().isNotEmpty) {
+        try {
+          await _client!
+              .from('bookings')
+              .update({'venue_name': venueName.trim()})
+              .eq('id', bookingId);
+        } catch (_) {}
+      }
+
       if (response is Map) {
         return Map<String, dynamic>.from(response);
       }
       return {'success': true, 'booking_id': bookingId};
     } catch (e) {
-      debugPrint('⚠️ [SupabaseService] RPC fn_book_court_slot failed, trying direct insert: $e');
-      // Direct table insert fallback
-      try {
-        await _client!.from('bookings').insert({
-          'id': bookingId,
-          'booking_id': bookingId,
-          'venue_id': venueId,
-          'court_number': courtNumber,
-          'court_name': courtName,
-          'sport': sport,
-          'date': date,
-          'time_slot': '$startTime - $endTime',
-          'start_time': startTime,
-          'end_time': endTime,
-          'customer_name': customerName,
-          'customer_phone': customerPhone,
-          'price': price,
-          'payment_status': 'pending',
-          'payment_method': paymentMethod,
-          'checked_in': false,
-          'add_ons': addOns ?? [],
-        });
-        return {'success': true, 'booking_id': bookingId};
-      } catch (insertError) {
-        debugPrint('❌ [SupabaseService] Insert booking failed: $insertError');
-        return {'success': false, 'message': insertError.toString()};
-      }
+      debugPrint('❌ [SupabaseService] RPC fn_book_court_slot error: $e');
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -266,6 +251,48 @@ class SupabaseService {
           },
         )
         .subscribe();
+  }
+
+  // ===========================================================================
+  // 4. USER PROFILES
+  // ===========================================================================
+
+  static String toUuid(String id) {
+    if (RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(id)) {
+      return id;
+    }
+    final rawDigits = id.replaceAll(RegExp(r'[^0-9a-fA-F]'), '');
+    final padded = rawDigits.padRight(32, '0').substring(0, 32);
+    return '${padded.substring(0, 8)}-${padded.substring(8, 12)}-4${padded.substring(13, 16)}-8${padded.substring(17, 20)}-${padded.substring(20, 32)}';
+  }
+
+  Future<bool> syncUserProfile({
+    required String userId,
+    required String fullName,
+    required String email,
+    required String phone,
+    String role = 'player',
+    String preferredSport = 'pickleball',
+    String skillLevel = 'Beginner',
+    String? district,
+  }) async {
+    if (!isConfigured) return false;
+    try {
+      final uuid = toUuid(userId);
+      await _client!.from('user_profiles').upsert({
+        'id': uuid,
+        'full_name': fullName,
+        'email': email,
+        'phone': phone,
+        'role': role,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      debugPrint('✅ [SupabaseService] Synced profile for $email to Supabase');
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ [SupabaseService] syncUserProfile failed: $e');
+      return false;
+    }
   }
 
   void dispose() {

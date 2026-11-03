@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import '../theme/theme_store.dart';
 
 class AppColors {
-  // Dark Theme Palette Constants
-  static const Color darkBackground = Color(0xFF0B0F19);
-  static const Color darkSurface = Color(0xFF161F30);
-  static const Color darkCardBorder = Color(0xFF223049);
-  static const Color darkTextPrimary = Color(0xFFF8FAFC);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  // Night Court Dark Theme Palette Constants
+  static const Color darkBackground = Color(0xFF070B14);
+  static const Color darkSurface = Color(0xFF0F1626);
+  static const Color darkCardBorder = Color(0xFF1E2A3D);
+  static const Color darkTextPrimary = Color(0xFFF5F7FA);
+  static const Color darkTextSecondary = Color(0xFF8B98AD);
 
-  // Light Theme Palette Constants
-  static const Color lightBackground = Color(0xFFF8FAFC);
+  // Daylight Court Light Theme Palette Constants
+  static const Color lightBackground = Color(0xFFFAFAF7);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightCardBorder = Color(0xFFE2E8F0);
   static const Color lightTextPrimary = Color(0xFF0F172A);
   static const Color lightTextSecondary = Color(0xFF64748B);
 
-  // Sunset Athletic Orange Brand Palette (Strava & Playtomic Style)
-  static const Color darkPrimary = Color(0xFFF97316);  // Vibrant Athletic Orange
-  static const Color lightPrimary = Color(0xFFEA580C); // Deep Energy Orange
-  static const Color primaryLight = Color(0xFFFFF7ED); // Soft Orange Light Background
-  static const Color primaryHover = Color(0xFFC2410C); // Darker Orange Hover
+  // Night Court Electric Lime & Daylight Lime Brand Palette (Playtomic & Nike NRC Style)
+  static const Color darkPrimary = Color(0xFFC6F432);  // Electric Lime Neon
+  static const Color lightPrimary = Color(0xFF4D7C0F); // Deep Athletic Lime (WCAG AA)
+  static const Color primaryLight = Color(0xFFF7FEE7); // Soft Lime Tint Background
+  static const Color primaryHover = Color(0xFF3F6212); // Deeper Lime Hover
 
   // Dynamic Getters driven by ThemeStore
   static bool get isDark => ThemeStore.instance.isDarkMode;
@@ -31,10 +31,10 @@ class AppColors {
   static Color get textSecondary =>
       isDark ? darkTextSecondary : lightTextSecondary;
   static Color get primary => isDark ? darkPrimary : lightPrimary;
-  static Color get onPrimary => isDark ? Colors.black : Colors.white;
+  static Color get onPrimary => isDark ? const Color(0xFF070B14) : Colors.white;
 
   // Shared Brand & Functional Colors
-  static const Color accent = Color(0xFF00E676);
+  static const Color accent = Color(0xFFFF6B2C);
   static const Color secondary = Color(0xFF06B6D4);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);

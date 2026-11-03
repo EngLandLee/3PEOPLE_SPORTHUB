@@ -58,6 +58,37 @@ function getInitialState(): VenueStoreState {
               }
             }
           }
+          if (Array.isArray(parsed.bookings)) {
+            for (const b of parsed.bookings as BookingTicket[]) {
+              const matchedVenue = (parsed.venues as Venue[]).find(
+                (v) => v.id === b.venueId || (b.venueId === 'venue_q1_04' && v.id === 'venue_01')
+              );
+              if (matchedVenue) {
+                if (b.venueName !== matchedVenue.name) {
+                  b.venueName = matchedVenue.name;
+                  updated = true;
+                }
+                try {
+                  notificationStore.repairBookingNotification(
+                    b.id,
+                    matchedVenue.id,
+                    matchedVenue.name
+                  );
+                } catch {}
+              }
+              if (b.venueId && b.venueId !== 'venue_01' && Array.isArray(parsed.slots)) {
+                for (const s of parsed.slots) {
+                  if (s.ticketId === b.id && s.venueId === 'venue_01') {
+                    s.status = 'available';
+                    delete s.ticketId;
+                    delete s.customerName;
+                    delete s.customerPhone;
+                    updated = true;
+                  }
+                }
+              }
+            }
+          }
           if (updated && typeof window !== 'undefined' && window.localStorage) {
             try {
               window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -145,24 +176,50 @@ class VenueStoreEngine {
           }
           if (Array.isArray(syncData.bookings) && syncData.bookings.length > 0) {
             for (const sb of syncData.bookings) {
-              const exists = this.state.bookings.some((b) => b.id === sb.id);
-              if (!exists) {
-                const venue = this.state.venues.find(
-                  (v) => v.id === sb.venueId || (sb.venueId === 'venue_q1_04' && v.id === 'venue_01')
-                );
-                const targetVenueId = venue ? venue.id : (sb.venueId === 'venue_q1_04' ? 'venue_01' : sb.venueId);
-                const targetVenueName = venue ? venue.name : (sb.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn');
-                const targetCourtId = sb.courtId || `court_0${sb.courtNumber || 1}`;
-                const targetSlotId = sb.slotId || `${targetCourtId}_${sb.startTime ? sb.startTime.replace(':', '_') : '18_00'}`;
+              const venue = this.state.venues.find(
+                (v) => v.id === sb.venueId || (sb.venueId === 'venue_q1_04' && v.id === 'venue_01')
+              );
+              const targetVenueId = venue ? venue.id : (sb.venueId === 'venue_q1_04' ? 'venue_01' : sb.venueId);
+              const targetVenueName = venue ? venue.name : (sb.venueName || 'CLB Cầu Lông & Pickleball Tao Đàn');
+              const courtNum = Number(sb.courtNumber || 1);
+              const padNum = String(courtNum).padStart(2, '0');
+              const matchedCourt = this.state.courts.find(
+                (c) =>
+                  c.venueId === targetVenueId &&
+                  (c.id === sb.courtId ||
+                    c.courtNumber === courtNum ||
+                    c.id.endsWith(`_${padNum}`) ||
+                    c.id.endsWith(`_${courtNum}`))
+              );
+              const targetCourtId = matchedCourt
+                ? matchedCourt.id
+                : (sb.courtId || `court_0${courtNum}`);
+              const targetSlotId = `${targetCourtId}_${sb.startTime ? sb.startTime.replace(':', '_') : '18_00'}`;
 
+              const existingBooking = this.state.bookings.find((b) => b.id === sb.id);
+              if (existingBooking) {
+                if (existingBooking.venueName !== targetVenueName || existingBooking.venueId !== targetVenueId) {
+                  existingBooking.venueId = targetVenueId;
+                  existingBooking.venueName = targetVenueName;
+                  existingBooking.courtId = targetCourtId;
+                  changed = true;
+                }
+                try {
+                  notificationStore.repairBookingNotification(
+                    sb.id,
+                    targetVenueId,
+                    targetVenueName
+                  );
+                } catch {}
+              } else {
                 const newBooking: BookingTicket = {
                   id: sb.id,
                   slotId: targetSlotId,
                   courtId: targetCourtId,
-                  courtName: sb.courtName || `Sân ${sb.courtNumber || 1}`,
+                  courtName: sb.courtName || `Sân ${courtNum}`,
                   venueId: targetVenueId,
                   venueName: targetVenueName,
-                  sport: sb.sport || 'badminton',
+                  sport: sb.sport || matchedCourt?.sport || 'badminton',
                   date: sb.date || new Date().toISOString().split('T')[0],
                   timeSlot: sb.timeSlot || `${sb.startTime || '18:00'} - ${sb.endTime || '19:00'}`,
                   customerName: sb.customerName || 'Khách đặt qua App',
@@ -175,24 +232,32 @@ class VenueStoreEngine {
                 };
                 this.state.bookings.unshift(newBooking);
 
-                // Update corresponding slot in schedule matrix
+                // Update corresponding slot in schedule matrix ONLY if venueId matches
                 const slot = this.state.slots.find(
-                  (s) => s.id === targetSlotId || (s.courtId === targetCourtId && (s.startTime === newBooking.timeSlot.split(' - ')[0] || `${s.startTime} - ${s.endTime}` === newBooking.timeSlot || s.startTime === newBooking.timeSlot))
+                  (s) =>
+                    s.venueId === targetVenueId &&
+                    (s.id === targetSlotId ||
+                      (s.courtId === targetCourtId &&
+                        (s.startTime === newBooking.timeSlot.split(' - ')[0] ||
+                          `${s.startTime} - ${s.endTime}` === newBooking.timeSlot ||
+                          s.startTime === newBooking.timeSlot)))
                 );
                 if (slot) {
                   slot.status = 'bookedApp';
                   slot.ticketId = newBooking.id;
                   slot.customerName = newBooking.customerName;
                   slot.customerPhone = newBooking.customerPhone;
+                  slot.date = newBooking.date;
                 }
 
-                // Add notification
+                // Add notification scoped to targetVenueId
                 try {
                   notificationStore.addNotification({
                     type: 'booking',
                     title: 'Đặt sân mới qua App 📱',
                     message: `${newBooking.customerName} vừa đặt ${newBooking.courtName} (${newBooking.timeSlot}) tại ${newBooking.venueName}. Mã: ${newBooking.id}`,
                     timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                    venueId: targetVenueId,
                   });
                 } catch {
                   // Ignore notification errors in background
@@ -211,28 +276,62 @@ class VenueStoreEngine {
     }
   }
 
-  public handleExternalBooking = (newBooking: BookingTicket): void => {
-    const exists = this.state.bookings.some((b) => b.id === newBooking.id);
+  public handleExternalBooking = (incomingBooking: BookingTicket): void => {
+    const exists = this.state.bookings.some((b) => b.id === incomingBooking.id);
     if (exists) return;
+
+    const venue = this.state.venues.find(
+      (v) =>
+        v.id === incomingBooking.venueId ||
+        (incomingBooking.venueId === 'venue_q1_04' && v.id === 'venue_01')
+    );
+    const targetVenueId = venue
+      ? venue.id
+      : incomingBooking.venueId === 'venue_q1_04'
+        ? 'venue_01'
+        : incomingBooking.venueId;
+    const targetVenueName = venue ? venue.name : incomingBooking.venueName;
+    const courtNumMatch = incomingBooking.courtName?.match(/\d+/) || incomingBooking.courtId?.match(/\d+/);
+    const courtNum = courtNumMatch ? Number(courtNumMatch[0]) : 1;
+    const padNum = String(courtNum).padStart(2, '0');
+    const matchedCourt = this.state.courts.find(
+      (c) =>
+        c.venueId === targetVenueId &&
+        (c.id === incomingBooking.courtId ||
+          c.courtNumber === courtNum ||
+          c.id.endsWith(`_${padNum}`) ||
+          c.id.endsWith(`_${courtNum}`))
+    );
+    const targetCourtId = matchedCourt ? matchedCourt.id : incomingBooking.courtId;
+    const startTimePart = incomingBooking.timeSlot.split(' - ')[0] || '18:00';
+    const targetSlotId = `${targetCourtId}_${startTimePart.replace(':', '_')}`;
+
+    const newBooking: BookingTicket = {
+      ...incomingBooking,
+      venueId: targetVenueId,
+      venueName: targetVenueName,
+      courtId: targetCourtId,
+      slotId: targetSlotId,
+    };
 
     this.state.bookings.unshift(newBooking);
 
-    // Update corresponding slot in schedule matrix
-    const targetSlotId = newBooking.slotId;
-    const targetCourtId = newBooking.courtId;
+    // Update corresponding slot in schedule matrix ONLY if venueId matches
     const slot = this.state.slots.find(
       (s) =>
-        s.id === targetSlotId ||
-        (s.courtId === targetCourtId &&
-          (s.startTime === newBooking.timeSlot.split(' - ')[0] ||
-            `${s.startTime} - ${s.endTime}` === newBooking.timeSlot ||
-            s.startTime === newBooking.timeSlot))
+        s.venueId === targetVenueId &&
+        (s.id === targetSlotId ||
+          (s.courtId === targetCourtId &&
+            (s.startTime === newBooking.timeSlot.split(' - ')[0] ||
+              `${s.startTime} - ${s.endTime}` === newBooking.timeSlot ||
+              s.startTime === newBooking.timeSlot)))
     );
     if (slot) {
       slot.status = 'bookedApp';
       slot.ticketId = newBooking.id;
       slot.customerName = newBooking.customerName;
       slot.customerPhone = newBooking.customerPhone;
+      slot.date = newBooking.date;
     }
 
     try {
@@ -241,6 +340,7 @@ class VenueStoreEngine {
         title: 'Đặt sân mới qua App 📱',
         message: `${newBooking.customerName} vừa đặt ${newBooking.courtName} (${newBooking.timeSlot}) tại ${newBooking.venueName}. Mã: ${newBooking.id}`,
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        venueId: targetVenueId,
       });
     } catch {
       // Ignore notification errors in background

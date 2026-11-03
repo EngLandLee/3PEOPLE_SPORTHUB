@@ -1,5 +1,6 @@
 {
   "name": "sporthub-workspace",
+  "description": "Nhóm 3 người - App đặt sân cầu Lông (SportHub)",
   "private": true,
   "version": "1.0.0",
   "scripts": {

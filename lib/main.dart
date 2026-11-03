@@ -3,10 +3,12 @@ import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'core/constants/app_colors.dart';
 import 'core/utils/currency_formatter.dart';
 import 'core/state/auth_store.dart';
 import 'core/state/venue_owner_store.dart';
+import 'core/state/venue_chat_store.dart';
 import 'core/theme/theme_store.dart';
 import 'core/utils/seed_data.dart';
 import 'core/utils/vietqr_generator.dart';
@@ -41,8 +43,10 @@ import 'core/services/external_link_service.dart';
 import 'core/state/ticket_store.dart';
 import 'presentation/widgets/chat/floating_chat_bubble.dart';
 import 'presentation/widgets/chat/chatbot_bottom_sheet.dart';
+import 'presentation/screens/user_chat_tab.dart';
 import 'core/services/chatbot_service.dart';
 import 'core/services/supabase_service.dart';
+import 'core/services/matchmaking_service.dart';
 
 class MainNavigationController {
   static void Function(int index)? switchToTab;
@@ -213,7 +217,9 @@ class UserProfileStore {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ThemeStore.instance.setThemeMode(ThemeMode.dark);
   await SupabaseService.instance.initialize();
+  await TicketStore.instance.loadFromSqlite();
   runApp(const SportHubApp());
 }
 
@@ -240,7 +246,7 @@ class SportHubApp extends StatelessWidget {
         valueListenable: ThemeStore.instance.themeModeNotifier,
         builder: (context, themeMode, _) {
           return MaterialApp(
-            title: 'SportHub',
+            title: 'Nhóm 3 người - App đặt sân cầu Lông (SportHub)',
             debugShowCheckedModeBanner: false,
             scrollBehavior: const AppScrollBehavior(),
             themeMode: themeMode,
@@ -342,6 +348,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           onNavigateToCommunity: () => _switchTab(1),
         );
       case 3:
+        return const UserChatTab();
+      case 4:
         return const ProfileScreen();
       default:
         return const ExploreVenuesScreen();
@@ -429,7 +437,10 @@ class ConsumerFloatingNavBar extends StatelessWidget {
               child: _buildNavItem(2, Icons.confirmation_number_rounded, 'Vé của tôi'),
             ),
             Expanded(
-              child: _buildNavItem(3, Icons.person_rounded, 'Hồ sơ'),
+              child: _buildNavItem(3, Icons.chat_bubble_outline_rounded, 'Tin nhắn'),
+            ),
+            Expanded(
+              child: _buildNavItem(4, Icons.person_rounded, 'Hồ sơ'),
             ),
           ],
         ),
@@ -444,7 +455,8 @@ class ConsumerFloatingNavBar extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.16)
@@ -478,6 +490,7 @@ class ConsumerFloatingNavBar extends StatelessWidget {
             const SizedBox(height: 2),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
               width: isSelected ? 4 : 0,
               height: isSelected ? 4 : 0,
               decoration: BoxDecoration(
@@ -656,7 +669,7 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
               color: AppColors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
               border:
-                  Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.2),
@@ -676,7 +689,8 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
             'Không tìm thấy sân nào phù hợp',
             style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
               color: AppColors.textPrimary,
             ),
             textAlign: TextAlign.center,
@@ -704,14 +718,15 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.onPrimary,
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             child: const Text(
               'Đặt lại bộ lọc',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
           ),
         ],
@@ -772,28 +787,30 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                   key: const Key('header_user_avatar'),
                                   onTap: () => MainNavigationController
                                       .switchToTab
-                                      ?.call(3),
+                                      ?.call(4),
                                   child: Container(
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.primary,
-                                          AppColors.secondary
-                                        ],
-                                      ),
+                                      color: AppColors.surface,
                                       border: Border.all(
-                                          color: AppColors.cardBorder,
-                                          width: 2),
+                                          color: AppColors.primary,
+                                          width: 1.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.2),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
                                     ),
                                     child: Center(
                                       child: Text(
                                         initials,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.primary,
                                           fontSize: 14,
                                         ),
                                       ),
@@ -817,15 +834,16 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                         'SportHub',
                                         style: TextStyle(
                                           fontSize: 18,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w900,
                                           color: AppColors.textPrimary,
-                                          letterSpacing: 0.5,
+                                          letterSpacing: -0.3,
                                         ),
                                       ),
                                       Text(
-                                        'Chào ${userProfile.fullName} 👋',
+                                        'Chào ${userProfile.fullName}',
                                         style: TextStyle(
                                           fontSize: 12,
+                                          fontWeight: FontWeight.w500,
                                           color: AppColors.textSecondary,
                                         ),
                                         maxLines: 1,
@@ -955,7 +973,7 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Top App Header - Row 2: Location Pill + Subtitle
+                        // Top App Header - Row 2: Location Pill + Subtitle + Upcoming Pass Bento Pill
                         Row(
                           children: [
                             InkWell(
@@ -994,6 +1012,8 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                            _buildUpcomingTicketBento(),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -1065,14 +1085,14 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Section Title
                         Row(
                           children: [
                             Container(
                               width: 4,
-                              height: 16,
+                              height: 18,
                               decoration: BoxDecoration(
                                 color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(2),
@@ -1084,7 +1104,7 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                 'Cụm sân nổi bật tại TP.HCM',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w800,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
@@ -1130,12 +1150,55 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
     );
   }
 
+  Widget _buildUpcomingTicketBento() {
+    return ValueListenableBuilder<List<TicketModel>>(
+      valueListenable: TicketStore.instance.ticketsNotifier,
+      builder: (context, tickets, _) {
+        final active = tickets.where((t) => t.status == 'paid').toList();
+        if (active.isEmpty) return const SizedBox.shrink();
+        final nextTicket = active.first;
+        return GestureDetector(
+          key: const Key('home_upcoming_ticket_bento'),
+          onTap: () => MainNavigationController.switchToTab?.call(2),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bolt_rounded, size: 13, color: AppColors.primary),
+                const SizedBox(width: 3),
+                Text(
+                  'CA ${nextTicket.startTime}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.3,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSportChip(String key, String label) {
     final isSelected = _selectedSport == key;
     return GestureDetector(
       onTap: () => setState(() => _selectedSport = key),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.surface,
@@ -1158,7 +1221,7 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
           label,
           style: TextStyle(
             fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             color: isSelected ? AppColors.onPrimary : AppColors.textSecondary,
           ),
         ),
@@ -1168,17 +1231,17 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
 
   Widget _buildVenueCard(BuildContext context, Venue venue) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+        border: Border.all(color: AppColors.cardBorder, width: 1.0),
         boxShadow: [
           BoxShadow(
             color:
-                Colors.black.withValues(alpha: AppColors.isDark ? 0.3 : 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+                Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1212,17 +1275,16 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                       ),
                     ),
                   ),
-                  // Gradient Overlay (Dark mode blends with dark card, light mode stays transparent and sharp)
+                  // Gradient Overlay
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
+                          Colors.black.withValues(alpha: 0.35),
                           Colors.transparent,
-                          AppColors.isDark
-                              ? AppColors.surface.withValues(alpha: 0.8)
-                              : Colors.transparent,
+                          Colors.black.withValues(alpha: AppColors.isDark ? 0.75 : 0.4),
                         ],
                       ),
                     ),
@@ -1233,20 +1295,29 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                     left: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: Colors.orange.withValues(alpha: 0.5)),
+                            color: AppColors.accent.withValues(alpha: 0.8),
+                            width: 1),
                       ),
-                      child: const Text(
-                        '🔥 Đặt nhiều',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFBBF24),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.bolt_rounded,
+                              size: 13, color: AppColors.accent),
+                          const SizedBox(width: 3),
+                          const Text(
+                            '🔥 Đặt nhiều',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1256,12 +1327,13 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                     right: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: Colors.amber.withValues(alpha: 0.5)),
+                            color: Colors.amber.withValues(alpha: 0.6),
+                            width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1294,15 +1366,16 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
 
             // Card Body
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     venue.name,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -1316,7 +1389,9 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                         child: Text(
                           '${venue.address}, ${venue.district}',
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12),
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1334,9 +1409,9 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                       _buildAmenityChip('🟢 Còn ${venue.courtCount} sân'),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
-                  // Price and Gradient CTA Button
+                  // Price and Athletic CTA Button
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1347,15 +1422,19 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                             Text(
                               'Giá chỉ từ',
                               style: TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 11),
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500),
                             ),
+                            const SizedBox(height: 1),
                             Text(
                               CurrencyFormatter.formatWithUnit(
                                   venue.hourlyRate, 'h'),
                               style: TextStyle(
                                 color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w900,
                                 fontSize: 16,
+                                letterSpacing: -0.3,
                               ),
                             ),
                           ],
@@ -1363,15 +1442,13 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                          ),
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -1388,23 +1465,23 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
                                 ),
                               );
                             },
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 9),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     'Xem lịch sân',
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onPrimary,
+                                      fontWeight: FontWeight.w900,
                                       fontSize: 13,
                                     ),
                                   ),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 4),
                                   Icon(Icons.arrow_forward_rounded,
-                                      size: 14, color: Colors.white),
+                                      size: 14, color: AppColors.onPrimary),
                                 ],
                               ),
                             ),
@@ -1423,23 +1500,49 @@ class _ExploreVenuesScreenState extends State<ExploreVenuesScreen> {
   }
 
   Widget _buildAmenityChip(String text) {
+    IconData icon = Icons.check_circle_outline_rounded;
+    String cleanText = text;
+    if (text.contains('Máy lạnh')) {
+      icon = Icons.ac_unit_rounded;
+      cleanText = 'Máy lạnh';
+    } else if (text.contains('Bãi xe')) {
+      icon = Icons.local_parking_rounded;
+      cleanText = 'Bãi xe';
+    } else if (text.contains('sân')) {
+      icon = Icons.sports_tennis_rounded;
+      cleanText = text.replaceAll('🟢 ', '');
+    } else if (text.contains('WiFi') || text.contains('wifi')) {
+      icon = Icons.wifi_rounded;
+      cleanText = 'WiFi';
+    } else if (text.contains('Căn tin')) {
+      icon = Icons.local_cafe_rounded;
+      cleanText = 'Căn tin';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color:
-            AppColors.isDark ? AppColors.background : const Color(0xFFF1F5F9),
+            AppColors.isDark ? AppColors.surface : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: AppColors.isDark
-              ? AppColors.textSecondary
-              : const Color(0xFF334155),
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColors.primary),
+          const SizedBox(width: 4),
+          Text(
+            cleanText,
+            style: TextStyle(
+              color: AppColors.isDark
+                  ? AppColors.textSecondary
+                  : const Color(0xFF334155),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1788,9 +1891,15 @@ class _VietQrPaymentDialogState extends State<VietQrPaymentDialog> {
                     child: Image.network(
                       qrUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.qr_code_2,
-                            size: 110, color: Colors.black87),
+                      errorBuilder: (_, __, ___) => Center(
+                        child: QrImageView(
+                          data:
+                              '2|99|0988888777|SPORTHUB VIETNAM|partner@sporthub.vn|0|0|${widget.grandTotal.toInt()}|SPORTHUB_PAYMENT|transfer_myqr',
+                          version: QrVersions.auto,
+                          size: 150,
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.all(4),
+                        ),
                       ),
                     ),
                   ),
@@ -2604,8 +2713,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               selectedSlots.isNotEmpty ? selectedSlots.first : null;
           final lastSlot = selectedSlots.isNotEmpty ? selectedSlots.last : null;
           final courtNum = firstSlot?.courtNumber ?? 1;
-          final startT = firstSlot?.startTime ?? '18:00';
-          final endT = lastSlot?.endTime ?? '19:00';
+          final startT = firstSlot?.startTime ?? '';
+          final endT = lastSlot?.endTime ?? '';
           final venueSport = widget.venue.sportTypes.isNotEmpty
               ? widget.venue.sportTypes.first
               : 'badminton';
@@ -2992,16 +3101,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: _buildQuickActionButton(
+                  key: const Key('btn_quick_action_chat_owner'),
                   icon: Icons.chat_bubble_outline_rounded,
                   label: 'Nhắn tin CLB',
                   subLabel: 'Phản hồi nhanh',
                   color: Colors.amber,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('💬 Đang mở kênh chat với CLB...')),
-                    );
-                  },
+                  onTap: () => _openOwnerChatModal(context),
                 ),
               ),
             ],
@@ -3012,6 +3117,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
   }
 
   Widget _buildQuickActionButton({
+    Key? key,
     required IconData icon,
     required String label,
     required String subLabel,
@@ -3019,6 +3125,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
     required VoidCallback onTap,
   }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -5815,8 +5922,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                     child: Text(
                       CurrencyFormatter.format(grandTotal),
                       style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
                         color: AppColors.primary,
                       ),
                     ),
@@ -5828,7 +5936,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
+                  colors: [
+                    AppColors.primary,
+                    AppColors.isDark
+                        ? const Color(0xFFA3E635)
+                        : AppColors.secondary,
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
@@ -5858,7 +5971,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
                           'Thanh toán VietQR',
                           style: TextStyle(
                             color: AppColors.onPrimary,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
                         ),
@@ -5871,6 +5984,281 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           ],
         ),
       ),
+    );
+  }
+
+  void _openOwnerChatModal(BuildContext context) {
+    final user = AuthStore.instance.currentUser;
+    final customerId = user?.userId ?? 'user_guest';
+    final customerName = user?.fullName ?? 'Khách đặt sân';
+    final venueId = widget.venue.id;
+    final venueName = widget.venue.name;
+
+    final textController = TextEditingController();
+    final scrollController = ScrollController();
+
+    void doSend() {
+      final val = textController.text.trim();
+      if (val.isEmpty) return;
+      textController.clear();
+      VenueChatStore.instance.sendMessage(
+        venueId: venueId,
+        venueName: venueName,
+        customerId: customerId,
+        customerName: customerName,
+        senderRole: 'customer',
+        text: val,
+      );
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (scrollController.hasClients) {
+          scrollController.animateTo(
+            scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bCtx) {
+        return Container(
+          height: MediaQuery.of(bCtx).size.height * 0.75,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: AppColors.cardBorder),
+          ),
+          child: Column(
+            children: [
+              // Sheet Header
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border:
+                      Border(bottom: BorderSide(color: AppColors.cardBorder)),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor:
+                          AppColors.primary.withValues(alpha: 0.15),
+                      child: Icon(Icons.storefront_rounded,
+                          color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Chủ sân: $venueName',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.5,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  'Đang hoạt động • Phản hồi trong 5 phút',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          color: AppColors.textSecondary),
+                      onPressed: () => Navigator.of(bCtx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Messages
+              Expanded(
+                child: ValueListenableBuilder<List<VenueChatMessage>>(
+                  valueListenable: VenueChatStore.instance.messagesNotifier,
+                  builder: (context, _, __) {
+                    final threadMessages =
+                        VenueChatStore.instance.getThreadMessages(
+                      venueId: venueId,
+                      customerId: customerId,
+                    );
+
+                    if (threadMessages.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded,
+                                size: 48, color: AppColors.textSecondary),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Gửi tin nhắn trực tiếp cho chủ sân $venueName',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      itemCount: threadMessages.length,
+                      itemBuilder: (context, idx) {
+                        final m = threadMessages[idx];
+                        final isMe = m.isFromCustomer;
+                        final time =
+                            '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
+
+                        return Align(
+                          alignment: isMe
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            constraints: BoxConstraints(
+                              maxWidth:
+                                  MediaQuery.of(context).size.width * 0.75,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? AppColors.primary
+                                  : AppColors.background,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: Radius.circular(isMe ? 16 : 4),
+                                bottomRight: Radius.circular(isMe ? 4 : 16),
+                              ),
+                              border: Border.all(
+                                color: isMe
+                                    ? Colors.transparent
+                                    : AppColors.cardBorder,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: isMe
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  m.text,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: isMe
+                                        ? AppColors.onPrimary
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  time,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isMe
+                                        ? AppColors.onPrimary
+                                            .withValues(alpha: 0.7)
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // Input bar
+              Container(
+                padding: EdgeInsets.fromLTRB(
+                    12, 8, 12, MediaQuery.of(bCtx).viewInsets.bottom + 8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border(top: BorderSide(color: AppColors.cardBorder)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const Key('customer_venue_chat_input'),
+                          controller: textController,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => doSend(),
+                          decoration: InputDecoration(
+                            hintText: 'Nhập tin nhắn gửi chủ sân...',
+                            hintStyle: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            filled: true,
+                            fillColor: AppColors.background,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide:
+                                  BorderSide(color: AppColors.cardBorder),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        key: const Key('btn_send_customer_venue_chat'),
+                        icon: Icon(Icons.send_rounded,
+                            color: AppColors.primary),
+                        onPressed: doSend,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -5904,6 +6292,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            key: const Key('btn_chat_with_owner'),
+            tooltip: 'Nhắn tin cho chủ sân',
+            icon: Icon(Icons.forum_outlined, color: AppColors.primary),
+            onPressed: () => _openOwnerChatModal(context),
+          ),
           IconButton(
             icon: const Icon(Icons.share_rounded),
             onPressed: () {
@@ -6078,35 +6472,23 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   void _runAiMatchmaking() async {
     setState(() => _isLoading = true);
 
-    // Simulate AI inference via Gemini service logic
-    await Future.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-      _recommendations = [
-        const MatchRecommendation(
-          postId: 'post_01',
-          matchScore: 95,
-          compatibilityLevel: 'HIGH',
-          matchReason:
-              'Cùng trình độ Intermediate, cùng ở Bình Thạnh, khớp khung giờ tối thứ 7!',
-        ),
-        const MatchRecommendation(
-          postId: 'post_02',
-          matchScore: 85,
-          compatibilityLevel: 'HIGH',
-          matchReason: 'Cùng môn Pickleball và gần khu vực Thủ Đức lân cận.',
-        ),
-        const MatchRecommendation(
-          postId: 'post_03',
-          matchScore: 80,
-          compatibilityLevel: 'HIGH',
-          matchReason:
-              'Kèo bóng đá mini 5 người tại Sân Nam Sài Gòn (Quận 7) thiếu 3 chân đá giao lưu tối Thứ Tư!',
-        ),
-      ];
-    });
+    try {
+      final user = UserProfileStore.instance.profile;
+      final results = await MatchmakingService.instance.getRecommendations(
+        userProfile: user,
+        posts: _communityPosts,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _recommendations = results;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String _formatCurrency(double amount) {
@@ -6543,7 +6925,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: _hubMode == 'community'
-                          ? Colors.black
+                          ? AppColors.onPrimary
                           : AppColors.textSecondary,
                     ),
                   ),
@@ -6571,7 +6953,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: _hubMode == 'ai'
-                          ? Colors.black
+                          ? AppColors.onPrimary
                           : AppColors.textSecondary,
                     ),
                   ),
@@ -7457,7 +7839,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
             ),
           ),
 
-        ..._recommendations.map((rec) => Container(
+        ..._recommendations.map((rec) {
+          CommunityPost? matchedPost;
+          for (final p in _communityPosts) {
+            if (p.id == rec.postId) {
+              matchedPost = p;
+              break;
+            }
+          }
+
+          return Container(
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -7524,6 +7915,59 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       ),
                     ],
                   ),
+                  if (matchedPost != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      matchedPost.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '${matchedPost.venueName} • ${matchedPost.district}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded,
+                            size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          matchedPost.scheduledTime,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${matchedPost.currentPlayers}/${matchedPost.requiredPlayers} người',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Text(
                     rec.matchReason,
@@ -7544,20 +7988,27 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Đã gửi lời mời tham gia kèo đấu!')),
-                        );
-                      },
-                      child: const Text('Gửi lời mời',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: matchedPost != null
+                          ? (matchedPost.isJoined ? null : () => _joinPost(matchedPost!))
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Đã gửi lời mời tham gia kèo đấu!')),
+                              );
+                            },
+                      child: Text(
+                        matchedPost != null && matchedPost.isJoined
+                            ? 'Đã tham gia'
+                            : (matchedPost != null ? 'Tham gia kèo' : 'Gửi lời mời'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
               ),
-            )),
+            );
+        }),
       ],
     );
   }
@@ -8120,10 +8571,16 @@ class _TicketsScreenState extends State<TicketsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        border: Border.all(
+          color: AppColors.isDark
+              ? AppColors.primary.withValues(alpha: 0.28)
+              : AppColors.cardBorder,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color:
+                Colors.black.withValues(alpha: AppColors.isDark ? 0.45 : 0.08),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -8150,13 +8607,14 @@ class _TicketsScreenState extends State<TicketsScreen> {
                             runSpacing: 2,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 'SPORTHUB PASS',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w900,
+                                  fontStyle: FontStyle.italic,
                                   letterSpacing: 1.5,
-                                  color: AppColors.secondary,
+                                  color: AppColors.primary,
                                 ),
                               ),
                               _buildSportBadge(ticket.sportType),
@@ -8196,7 +8654,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                           Text(
                             ticket.venueName.toUpperCase(),
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               fontSize: 13,
                               color: AppColors.textPrimary,
                             ),
@@ -8284,9 +8742,10 @@ class _TicketsScreenState extends State<TicketsScreen> {
                           Text(
                             _formatCurrency(ticket.totalPrice),
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w900,
+                                fontStyle: FontStyle.italic,
                                 color: AppColors.primary,
-                                fontSize: 13),
+                                fontSize: 14),
                           ),
                         ],
                       ),
@@ -8363,15 +8822,20 @@ class _TicketsScreenState extends State<TicketsScreen> {
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.qr_code_2_rounded,
-                            size: 52, color: Colors.black87),
-                        const SizedBox(height: 1),
+                        QrImageView(
+                          data: ticket.bookingId,
+                          version: QrVersions.auto,
+                          size: 72,
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.all(3),
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           'Mã vé: ${ticket.bookingId}',
                           style: const TextStyle(
-                            fontSize: 9,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black54,
+                            color: Colors.black87,
                           ),
                         ),
                       ],
@@ -9176,19 +9640,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.secondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: AppColors.cardBorder, width: 2),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.primary, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Center(
               child: Text(
                 initials,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                   fontSize: 22,
                 ),
               ),

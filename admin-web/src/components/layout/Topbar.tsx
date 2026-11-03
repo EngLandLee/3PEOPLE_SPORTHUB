@@ -100,7 +100,7 @@ export function Topbar() {
             SportHub <span className="text-emerald-500">Portal</span>
           </span>
           <span className="text-[10px] text-slate-400 dark:text-slate-500 block -mt-1 font-bold uppercase tracking-wider">
-            Dashboards V2
+            Nhóm 3 người - App đặt sân cầu Lông (SportHub)
           </span>
         </div>
 

@@ -83,7 +83,7 @@ void main() {
       // Dark primary should be high-visibility sports accent
       expect(AppColors.darkPrimary, isNotNull);
       expect(AppColors.accent, isNotNull);
-      expect(AppColors.darkBackground, const Color(0xFF0B0F19));
+      expect(AppColors.darkBackground, const Color(0xFF070B14));
     });
   });
 }

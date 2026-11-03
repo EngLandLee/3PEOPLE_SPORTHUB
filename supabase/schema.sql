@@ -84,6 +84,11 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Unique index preventing double-booking of the same court slot concurrently
+CREATE UNIQUE INDEX IF NOT EXISTS uq_booking_slot_active
+ON public.bookings (venue_id, court_number, date, start_time)
+WHERE payment_status != 'cancelled';
+
 -- 6. TRANSACTIONS (Nhật Ký Dòng Tiền & Bán Lẻ POS)
 CREATE TABLE IF NOT EXISTS public.transactions (
     id TEXT PRIMARY KEY DEFAULT ('TX-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || SUBSTR(MD5(RANDOM()::TEXT), 1, 6)),

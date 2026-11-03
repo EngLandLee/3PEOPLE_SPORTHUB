@@ -288,7 +288,7 @@ export const PosCheckinView: React.FC = () => {
               type="button"
               data-testid="btn-rapid-checkin"
               onClick={() => handleCheckIn()}
-              className="glass-pill px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               Check-in ngay
@@ -471,7 +471,7 @@ export const PosCheckinView: React.FC = () => {
                       type="button"
                       data-testid={prod.testIdInc}
                       onClick={() => incrementItem(prod.id)}
-                      className="glass-pill w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                      className="w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>

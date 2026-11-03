@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { SuperAdminDashboardView } from './views/superadmin/SuperAdminDashboardView';
 import { VenuesManagementView } from './views/superadmin/VenuesManagementView';
 import { PartnerAccountsView } from './views/superadmin/PartnerAccountsView';
+import { UserManagementView } from './views/superadmin/UserManagementView';
 import { PartnerDashboardView } from './views/partner/PartnerDashboardView';
 import { CourtsManagementView } from './views/partner/CourtsManagementView';
 import { ScheduleMatrixView } from './views/partner/ScheduleMatrixView';
@@ -156,6 +157,7 @@ export function RevenueReportPlaceholder() {
 
 import { LoginView } from './views/auth/LoginView';
 import ChatbotManagementView from './views/admin/ChatbotManagementView';
+import { CustomerChatView } from './views/admin/CustomerChatView';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -191,6 +193,8 @@ export function AppRoutes() {
         <Route path="admin" element={<SuperAdminDashboardView />} />
         <Route path="admin/venues" element={<VenuesManagementView />} />
         <Route path="admin/accounts" element={<PartnerAccountsView />} />
+        <Route path="admin/users" element={<UserManagementView />} />
+        <Route path="admin/chat" element={<CustomerChatView />} />
         <Route path="admin/chatbot" element={<ChatbotManagementView />} />
 
         {/* Partner Routes */}
@@ -199,6 +203,7 @@ export function AppRoutes() {
         <Route path="partner/schedule" element={<ScheduleMatrixView />} />
         <Route path="partner/pos" element={<PosCheckinView />} />
         <Route path="partner/revenue" element={<RevenueAnalyticsView />} />
+        <Route path="partner/chat" element={<CustomerChatView />} />
         <Route path="partner/chatbot" element={<ChatbotManagementView />} />
 
         {/* Fallback */}

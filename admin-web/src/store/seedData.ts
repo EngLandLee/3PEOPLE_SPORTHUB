@@ -5,6 +5,7 @@ import {
   BookingTicket,
   AddOnItem,
   PartnerAccount,
+  CustomerAccount,
   TransactionRecord,
 } from '../types';
 
@@ -901,6 +902,57 @@ export const INITIAL_PARTNER_ACCOUNTS: PartnerAccount[] = [
     role: 'partner',
     isActive: true,
     createdAt: '2026-04-12T10:00:00Z',
+  },
+];
+
+export const INITIAL_CUSTOMER_ACCOUNTS: CustomerAccount[] = [
+  {
+    id: 'user_player_01',
+    fullName: 'Nguyễn Văn An',
+    email: 'an.nguyen@gmail.com',
+    phone: '0909 111 222',
+    preferredSport: 'Cầu lông',
+    skillLevel: 'Khá (3.0 - 4.0)',
+    district: 'Quận 1',
+    isActive: true,
+    matchesPlayed: 42,
+    createdAt: '2026-02-10T14:00:00Z',
+  },
+  {
+    id: 'user_player_02',
+    fullName: 'Trần Thị Mai',
+    email: 'mai.tran@gmail.com',
+    phone: '0912 345 678',
+    preferredSport: 'Pickleball',
+    skillLevel: 'Cơ bản (2.0 - 3.0)',
+    district: 'TP. Thủ Đức',
+    isActive: true,
+    matchesPlayed: 18,
+    createdAt: '2026-03-01T09:15:00Z',
+  },
+  {
+    id: 'user_player_03',
+    fullName: 'Lê Hoàng Long',
+    email: 'long.le@gmail.com',
+    phone: '0988 555 444',
+    preferredSport: 'Bóng đá',
+    skillLevel: 'Trung bình',
+    district: 'Quận 7',
+    isActive: true,
+    matchesPlayed: 35,
+    createdAt: '2026-03-15T16:45:00Z',
+  },
+  {
+    id: 'user_player_04',
+    fullName: 'Phạm Thu Trang',
+    email: 'trang.pham@gmail.com',
+    phone: '0977 123 999',
+    preferredSport: 'Cầu lông',
+    skillLevel: 'Mới bắt đầu',
+    district: 'Quận Bình Thạnh',
+    isActive: true,
+    matchesPlayed: 8,
+    createdAt: '2026-04-01T11:20:00Z',
   },
 ];
 

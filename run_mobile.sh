@@ -7,8 +7,9 @@ echo "  1) Flutter Chrome Mobile Viewport (Siêu nhẹ)   "
 echo "  2) Flutter Web Server (Nhúng vào tab Orca)     "
 echo "  3) Khởi động Android Emulator & Chạy Flutter   "
 echo "  4) Chạy Full: Web Admin (5173) + Flutter Chrome (8080)"
+echo "  5) Chạy Điện thoại thật Android (USB: Web Admin 5173 + adb reverse + Flutter App)"
 echo "================================================="
-read -p "Nhập lựa chọn (1/2/3/4): " choice
+read -p "Nhập lựa chọn (1/2/3/4/5): " choice
 
 case $choice in
   1)
@@ -51,6 +52,19 @@ case $choice in
       --web-hostname localhost \
       --web-browser-flag "--window-size=412,915" \
       --web-browser-flag "--user-agent=Mozilla/5.0 (Linux; Android 14; Pixel 7)"
+    ;;
+  5)
+    echo ">> Đang kiểm tra thiết bị Android cắm qua USB..."
+    adb devices
+    echo ">> Đang cấu hình chuyển tiếp cổng (adb reverse tcp:5173 tcp:5173)..."
+    adb reverse tcp:5173 tcp:5173
+    echo ">> Đang khởi động Web Admin & AI Backend (Port 5173)..."
+    (cd admin-web && npm run dev -- --host 0.0.0.0 --port 5173) &
+    ADMIN_PID=$!
+    trap "kill $ADMIN_PID 2>/dev/null" EXIT
+    sleep 2
+    echo ">> Khởi chạy Flutter app lên thiết bị thật..."
+    flutter run
     ;;
   *)
     echo "[!] Lựa chọn không hợp lệ."

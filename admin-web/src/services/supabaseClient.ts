@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { BookingTicket } from '../types';
+import { INITIAL_VENUES, INITIAL_COURTS } from '../store/seedData';
 
 const envUrl =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
@@ -37,9 +38,23 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured()
  */
 export function mapSupabaseRowToBooking(row: Record<string, unknown>): BookingTicket {
   const id = String(row.booking_id || row.id || '');
-  const venueId = String(row.venue_id || 'venue_01');
+  const rawVenueId = String(row.venue_id || 'venue_01');
+  const venueId = rawVenueId === 'venue_q1_04' ? 'venue_01' : rawVenueId;
+  const matchedVenue = INITIAL_VENUES.find((v) => v.id === venueId);
+  const venueName = String(
+    row.venue_name || matchedVenue?.name || 'CLB Cầu Lông & Pickleball Tao Đàn'
+  );
+
   const courtNumber = Number(row.court_number || 1);
-  const courtId = String(row.court_id || `court_0${courtNumber}`);
+  const padNum = String(courtNumber).padStart(2, '0');
+  const matchedCourt = INITIAL_COURTS.find(
+    (c) =>
+      c.venueId === venueId &&
+      (c.courtNumber === courtNumber ||
+        c.id.endsWith(`_${padNum}`) ||
+        c.id.endsWith(`_${courtNumber}`))
+  );
+  const courtId = String(row.court_id || matchedCourt?.id || `court_${padNum}`);
   const startTime = String(row.start_time || '18:00');
   const slotId = String(row.slot_id || `${courtId}_${startTime.replace(':', '_')}`);
 
@@ -47,10 +62,10 @@ export function mapSupabaseRowToBooking(row: Record<string, unknown>): BookingTi
     id,
     slotId,
     courtId,
-    courtName: String(row.court_name || `Sân ${courtNumber}`),
+    courtName: String(row.court_name || matchedCourt?.name || `Sân ${courtNumber}`),
     venueId,
-    venueName: String(row.venue_name || 'CLB Cầu Lông & Pickleball Tao Đàn'),
-    sport: String(row.sport || 'badminton'),
+    venueName,
+    sport: String(row.sport || matchedCourt?.sport || 'badminton'),
     date: String(row.date || new Date().toISOString().split('T')[0]),
     timeSlot: String(row.time_slot || `${startTime} - ${row.end_time || '19:00'}`),
     customerName: String(row.customer_name || 'Khách đặt qua App'),

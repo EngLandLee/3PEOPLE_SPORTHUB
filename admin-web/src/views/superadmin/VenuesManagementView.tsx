@@ -69,7 +69,7 @@ export const VenuesManagementView: React.FC = () => {
           type="button"
           onClick={() => setIsAddModalOpen(true)}
           data-testid="btn-add-venue"
-          className="glass-pill inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all cursor-pointer w-fit"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all cursor-pointer w-fit"
         >
           <Plus className="w-4 h-4" />
           <span>Thêm Cụm Sân</span>

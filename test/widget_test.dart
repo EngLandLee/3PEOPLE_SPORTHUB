@@ -13,9 +13,9 @@ void main() {
   });
 
   test('AppColors defines primary and status colors correctly', () {
-    expect(AppColors.primary.toARGB32(), 0xFFEA580C);
+    expect(AppColors.primary.toARGB32(), 0xFF4D7C0F);
     ThemeStore.instance.setThemeMode(ThemeMode.dark);
-    expect(AppColors.primary.toARGB32(), 0xFFF97316);
+    expect(AppColors.primary.toARGB32(), 0xFFC6F432);
     expect(AppColors.slotAvailable.toARGB32(), 0xFF10B981);
     expect(AppColors.slotBooked.toARGB32(), 0xFFEF4444);
     expect(AppColors.slotSelected.toARGB32(), 0xFFF59E0B);

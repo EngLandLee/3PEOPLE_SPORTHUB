@@ -224,7 +224,7 @@ export const ChatbotManagementView: React.FC = () => {
                     prov === 'fpt'
                       ? 'gemma-4-26B-A4B-it'
                       : prov === 'ollama'
-                      ? 'gemma2:2b'
+                      ? 'qwen2.5:1.5b'
                       : prov === 'openai'
                       ? 'gpt-4o-mini'
                       : 'gemini-1.5-flash';
